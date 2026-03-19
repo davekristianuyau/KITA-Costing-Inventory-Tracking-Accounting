@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sed -n 's/.*\"session_id\":\"\\([^\"]*\\)\".*/\\1/p' | { read -r code; timestamp=$(date '+%Y-%m-%d %H:%M'); echo \"[$timestamp] - Resume code: ${code:-unknown}\" >> ./CLAUDE.md; }"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true
+  }
+}
