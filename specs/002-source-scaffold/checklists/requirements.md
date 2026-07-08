@@ -43,3 +43,10 @@
   networking). Recorded in the spec and tracked as a follow-up; feature 001 not modified here.
 - This multi-service direction increases operational complexity relative to the constitution's
   Simplicity principle for a solo maintainer — a deliberate, user-approved trade-off.
+- CLARIFIED (2026-07-08 session, 4 questions): (1) scaffold stands up gateway + frontend + one
+  generic reference microservice only; (2) reference service has full PostgreSQL persistence
+  with versioned migrations + sample table; (3) gateway = Nginx edge (cache/static/proxy) +
+  Spring Cloud Gateway API gateway, TLS/DNS at feature-001 cloud LB; (4) interface = REST/JSON
+  with OpenAPI contract-first driving generated clients + contract tests. Docker Compose
+  (local orchestration) and static gateway routing recorded as low-risk assumptions (not asked).
+  Spec re-validated — all items still pass.

@@ -24,6 +24,25 @@ accounting.
 > to be revised to deploy a set of services (multiple images + gateway/ingress + internal
 > networking) rather than a single image. Flagged as a follow-up on feature 001.
 
+## Clarifications
+
+### Session 2026-07-08
+
+- Q: How many services does the scaffold stand up initially? → A: Gateway + frontend +
+  one generic reference microservice only; real domains (costing/inventory/accounting)
+  are added later via the documented "add a service" pattern.
+- Q: Does the reference service include real database persistence? → A: Yes — it
+  connects to PostgreSQL with versioned migration tooling and one sample table, and
+  reads/writes it (full persistence slice), establishing the migration pattern.
+- Q: How is the gateway implemented? → A: Two layers — Nginx at the edge (serves the
+  built React static assets, HTTP caching/compression, reverse-proxies `/api/*`) and a
+  dedicated Spring Cloud Gateway service for backend API routing (and future auth,
+  rate limiting, circuit breaking). TLS/DNS/custom domain are handled by feature 001's
+  cloud load balancer, so Nginx does not terminate TLS.
+- Q: What form does the frontend↔backend interface contract take? → A: REST/JSON over
+  HTTP with an OpenAPI specification as the source of truth (contract-first), used to
+  generate typed clients and contract tests.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Build and run all services from a clean checkout (Priority: P1)
@@ -186,8 +205,11 @@ sample test per service and for the frontend.
 - **FR-008**: A developer MUST be able to add a new domain microservice by following a
   documented pattern — building its own image and routing through the gateway — without
   modifying unrelated services.
-- **FR-009**: Every inter-service and frontend-to-backend interaction MUST use a documented,
-  versioned interface contract so services cannot drift silently.
+- **FR-009**: Every inter-service and frontend-to-backend interaction MUST use REST/JSON over
+  HTTP described by a versioned OpenAPI specification (contract-first) that serves as the
+  single source of truth, so services cannot drift silently.
+- **FR-009a**: The OpenAPI specification MUST be usable to generate the frontend's typed API
+  client and to drive contract tests validating that services conform to it.
 - **FR-010**: The project MUST include runnable automated tests for the frontend and each
   backend service, with at least one passing sample test each.
 - **FR-011**: The project MUST include configured code formatting and linting runnable via a
@@ -205,8 +227,18 @@ sample test per service and for the frontend.
 - **FR-016**: Services released together MUST be version-compatible; the scaffold MUST define
   how a coordinated set of service image versions is expressed so a running system never mixes
   incompatible versions.
-- **FR-017**: The gateway MUST route external requests to the correct backend microservice and
-  serve as the single entry point the frontend calls.
+- **FR-017**: A dedicated API gateway (Spring Cloud Gateway) MUST route requests to the correct
+  backend microservice and serve as the single backend entry point; it is the intended home for
+  future cross-cutting concerns (auth, rate limiting, circuit breaking).
+- **FR-017a**: An Nginx edge layer MUST serve the built React static assets, apply HTTP
+  caching and compression, and reverse-proxy `/api/*` requests to the API gateway. It MUST NOT
+  terminate TLS (TLS/DNS/custom domain are provided by feature 001's cloud load balancer).
+- **FR-018**: The reference microservice MUST connect to a PostgreSQL database and MUST include
+  versioned, repeatable schema migration tooling that creates at least one sample table on
+  startup/deploy, per the constitution's migration discipline.
+- **FR-019**: The reference microservice MUST demonstrate a persisted read/write against the
+  sample table, and the frontend round-trip (US4) MUST surface data that originates from the
+  database (not a hard-coded stub).
 
 ### Key Entities *(include if feature involves data)*
 
@@ -216,16 +248,25 @@ sample test per service and for the frontend.
 - **Microservice**: An independently developable and deployable backend unit representing a
   business area (e.g., costing, inventory, accounting); has a defined boundary, its own image,
   and a health endpoint.
-- **Gateway**: The single external entry point that routes requests to backend microservices
-  and aggregates health.
+- **API Gateway**: The dedicated Spring Cloud Gateway service that routes requests to backend
+  microservices, aggregates health, and hosts future cross-cutting concerns (auth, rate
+  limiting). Its own container image.
+- **Edge / Nginx layer**: Serves the built React static assets and applies HTTP caching and
+  compression, reverse-proxying `/api/*` to the API Gateway. Packaged as the frontend's
+  container image; does not terminate TLS.
 - **Reference Microservice**: The one fully implemented example microservice (status/sample
   endpoint) demonstrating the service pattern and gateway routing end to end.
 - **Frontend Shell**: The React application providing navigation and views, including a view
-  that consumes the reference microservice via the gateway; built into its own image.
-- **Interface Contract**: The documented, versioned description of requests/responses between
-  the frontend, gateway, and services.
+  that consumes the reference microservice; built to static assets and served by the Edge/Nginx
+  layer in its own container image.
+- **Interface Contract**: A versioned OpenAPI specification (REST/JSON) that is the source of
+  truth for requests/responses between the frontend, gateway, and services; drives generated
+  clients and contract tests.
 - **Release Set**: The coordinated set of service image versions known to be compatible and
   deployed together (addresses cross-service version consistency).
+- **Schema Migration**: A versioned, repeatable database change applied by the reference
+  microservice's migration tooling; creates the sample table and models how future services
+  evolve their schema.
 
 ## Success Criteria *(mandatory)*
 
@@ -247,6 +288,9 @@ sample test per service and for the frontend.
   than a blank or crashed page, 100% of the time.
 - **SC-008**: The produced images are accepted and deployable by feature 001's pipeline (once
   revised for multi-service), with correct ports, health endpoints, and immutable tags.
+- **SC-009**: On a clean database, running the reference service applies its migrations to
+  create the sample table and completes a persisted read/write; re-running the migrations is
+  safe (no error, no duplicate schema).
 
 ## Assumptions
 
@@ -255,18 +299,23 @@ sample test per service and for the frontend.
   feature). Vue is not used.
 - **Backend**: Java + Spring Boot, structured as true microservices, each independently
   deployable in its own container image, fronted by a gateway.
-- **Multiple containers**: The system runs as multiple containers (frontend + each service),
-  orchestrated locally by a documented tool (e.g., a compose file). This supersedes the earlier
-  "1 container" phrasing.
+- **Multiple containers**: The system runs as multiple containers (Nginx/frontend, API
+  gateway, each backend service, and a local PostgreSQL), orchestrated locally by **Docker
+  Compose** (the documented "single command"). This supersedes the earlier "1 container"
+  phrasing. (Low-risk default; not asked during clarification.)
+- **Service routing/config**: Backend service routes are configured statically in the API
+  gateway via externalized configuration/environment variables; no dynamic service-discovery
+  server (e.g., Eureka) is introduced at scaffold stage (YAGNI). (Low-risk default; not asked.)
 - **Feature 001 impact**: Feature `001-multi-cloud-cicd` currently deploys a single image per
   app and MUST be revised to deploy a multi-service set (multiple images, gateway/ingress,
   internal networking). Tracked as a follow-up; this spec does not modify feature 001.
 - **Scope is a skeleton**: This feature delivers project structure, gateway, one reference
   microservice, a thin React UI slice, and build/run/test tooling — not costing/inventory/
   accounting business logic (future features).
-- **Database**: The scaffold expects a relational database (managed PostgreSQL from feature
-  001). The reference microservice may operate without persisted business data initially; a
-  connectivity check is sufficient for the slice.
+- **Database**: The scaffold uses a relational database (PostgreSQL, matching feature 001's
+  managed database). The reference microservice connects to it, ships versioned migration
+  tooling and one sample table, and performs a read/write against it — establishing the
+  persistence and migration pattern future services follow.
 - **Android app**: A future React Native Android application is anticipated but is out of scope
   for this feature; the React choice is made partly to support it.
 
