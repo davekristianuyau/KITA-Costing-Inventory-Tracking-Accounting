@@ -37,4 +37,11 @@
   master-data service** (referenced by ID here); (2) Inventory, BOM, and Sales are **one
   combined operations service** with internal modules sharing the item catalog — the integrated
   approach Odoo and SAP S/4HANA use — kept as one bounded-context service for strong stock
-  consistency. Spec re-validated; all items pass.
+  consistency.
+- CLARIFY SESSION (2026-07-08, 3 questions + user examples): (1) multiple stock locations with
+  simple transfers; (2) lot/batch tracking with optional expiry; (3) costing = per-item AVCO
+  default, FIFO+FEFO for perishables. User examples (electrical kit, restaurant recipe, clothing
+  production) expanded scope: BOMs are kit/recipe (phantom, consumed at sale) OR manufactured
+  (built to stock); unit-of-measure conversions required; production/assembly builds and
+  BOM cost roll-up + profit% are now IN scope. Reservation model, partial fulfillment, and BOM
+  versioning recorded as documented defaults (not asked). Spec re-validated; all items pass.
