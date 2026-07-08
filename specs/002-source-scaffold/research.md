@@ -6,6 +6,11 @@ Resolves the technical choices implied by the spec and its clarifications. Frame
 families (React, Spring Boot, microservices, Nginx, OpenAPI, PostgreSQL) are fixed by the
 project owner; this document pins the specific tools and patterns.
 
+> **Scope note**: Feature 002 is **scaffolding only** — it creates the folder structure and
+> config/skeleton files that reflect these decisions, but implements no application behavior.
+> The decisions below define the architecture the skeleton targets and the toolchains its
+> config files declare; the actual code, migrations, and tests are built in later features.
+
 ## R1. Frontend stack
 
 - **Decision**: React 18 + **TypeScript** + **Vite**; React Router for navigation; state kept

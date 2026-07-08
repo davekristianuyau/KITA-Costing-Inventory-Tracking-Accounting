@@ -49,4 +49,10 @@
   Spring Cloud Gateway API gateway, TLS/DNS at feature-001 cloud LB; (4) interface = REST/JSON
   with OpenAPI contract-first driving generated clients + contract tests. Docker Compose
   (local orchestration) and static gateway routing recorded as low-risk assumptions (not asked).
-  Spec re-validated — all items still pass.
+- SCOPE CORRECTION (2026-07-08): Feature reduced to **scaffolding only** — folder structure +
+  config/skeleton files, NO application logic, NO functional tests, NO behavioral migrations
+  (user choice "Structure + config skeletons"). Spec, plan, tasks, data-model, and quickstart
+  rewritten accordingly. Implementation (reference service, gateway routing, React UI,
+  migrations, tests) moves to later per-service features. TDD (Principle II) is N/A here (no
+  behavior) and applies to those later features. Persistence/round-trip/test items from the
+  earlier draft are now out of scope for 002. Spec re-validated — all items pass.

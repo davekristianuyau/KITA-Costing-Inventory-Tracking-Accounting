@@ -5,41 +5,36 @@
 
 ## Summary
 
-Scaffold a runnable, testable multi-service skeleton for KITA: a **React (TypeScript, Vite)**
-frontend served by **Nginx** (static + caching + `/api` proxy), a **Spring Cloud Gateway** API
-gateway, and one generic **reference microservice** (Spring Boot + Spring Data JPA + Flyway)
-with real **PostgreSQL** persistence and a sample table. The frontend↔backend contract is an
-**OpenAPI** spec (contract-first) that drives a generated TypeScript client and backend
-contract tests. Everything builds into **one container image per service** and runs together
-locally via **Docker Compose** with a single command. These images are the artifacts the
-multi-cloud pipeline (feature 001) deploys. This feature delivers structure, tooling, and a
-thin persistence-backed vertical slice — no costing/inventory/accounting business logic.
+Create the **repository skeleton only** for KITA's multi-service application: the complete
+folder structure plus the non-application config/scaffolding files that fix the architecture on
+disk — backend Gradle multi-module files, a frontend package/config manifest and tool configs,
+per-service Dockerfile skeletons, a `docker-compose.yml`, a `Makefile`, quality-gate configs,
+the placed `contracts/openapi.yaml`, `.gitignore`, and documentation. **No application code, no
+functional tests, no behavioral migrations** — those land in later per-service features that
+fill in this skeleton. The layout reflects the resolved architecture (React+Nginx frontend →
+Spring Cloud Gateway → Spring Boot reference microservice → PostgreSQL, OpenAPI contract-first).
 
 ## Technical Context
 
-**Language/Version**: Frontend — TypeScript 5.x on Node 22 LTS (React 18, Vite 5). Backend —
-Java 21 LTS (Spring Boot 3.3.x, Spring Cloud Gateway 2023.x). Orchestration — Docker Compose;
-Nginx 1.27 (stable).
-**Primary Dependencies**: React Router, generated OpenAPI TS client (openapi-typescript +
-openapi-fetch); Spring Web, Spring Data JPA (Hibernate), Flyway, Spring Boot Actuator, Bean
-Validation; Gradle (Kotlin DSL) multi-module backend build.
-**Storage**: PostgreSQL 16 (local via Compose; managed PostgreSQL from feature 001 in cloud).
-Schema owned by the reference service and evolved through Flyway migrations.
-**Testing**: Frontend — Vitest + React Testing Library; ESLint + Prettier. Backend — JUnit 5,
-Spring Boot Test, Testcontainers (PostgreSQL) for integration + migration tests, OpenAPI
-request/response validation for contract tests; Spotless (google-java-format) + Checkstyle.
-**Target Platform**: Linux containers (one image per service), runnable locally on
-macOS/Windows/Linux via Docker Compose; images consumable by feature 001's pipeline.
-**Project Type**: Multi-service web application (frontend + gateway + backend microservice).
-**Performance Goals**: Not an app-runtime concern in this feature. Scaffold targets: cold
-`docker compose up` to all-healthy in < 3 minutes; full test+lint suite in < 5 minutes locally.
-**Constraints**: One container image per service; single-command build and single-command run;
-config externalized (12-factor) so images run unchanged across environments; secrets never
-hard-coded; OpenAPI is the single source of truth; only Nginx/frontend + gateway are entry
-points (backend services private on the Compose network).
-**Scale/Scope**: Skeleton — 4 runtime containers (Nginx/frontend, gateway, reference-service,
-postgres). One reference domain, one sample table, one end-to-end round trip. Designed so new
-services are added by copying the reference-service module pattern.
+**Language/Version**: Config/scaffolding only. Declares the intended toolchains without using
+them: TypeScript/Node 22 + Vite (frontend), Java 21 + Spring Boot 3.3 + Gradle Kotlin DSL
+(backend), Nginx, Docker Compose. No source is compiled or executed in this feature.
+**Primary Dependencies**: Declared as intent in manifests/build files (React, React Router,
+Spring Web/Gateway/Data JPA/Flyway/Actuator, quality-gate plugins) — not exercised.
+**Storage**: PostgreSQL is scaffolded as a Compose service placeholder and a Flyway migration
+directory placeholder; no schema or migration behavior.
+**Testing**: None in this feature — there is no application behavior to test. Quality-gate tool
+*configs* are placed as scaffolding; test suites arrive with the code in later features. (See
+Constitution Check for why TDD does not apply here.)
+**Target Platform**: A version-controlled repository skeleton on any OS; files describe
+Linux-container targets to be built later.
+**Project Type**: Repository/project scaffolding (structure + config), pre-implementation.
+**Performance Goals**: N/A (no runtime).
+**Constraints**: No application logic/tests/behavioral migrations (FR-013); empty directories
+preserved via placeholders (FR-002); structure must match the resolved architecture so later
+features need no restructuring (FR-014); files implying behavior are clearly marked skeletons.
+**Scale/Scope**: One frontend, one gateway, one reference-service (template), one contracts
+dir, one docs set, plus root orchestration/build files. Bounded and small by design.
 
 ## Constitution Check
 
@@ -47,18 +42,21 @@ services are added by copying the reference-service module pattern.
 
 | Principle | Gate | Status |
 |-----------|------|--------|
-| I. Specification-Driven Development | Clarified spec + this plan verify compliance before build | PASS — spec.md complete, 4 clarifications resolved |
-| II. Test-Driven Development | Contract tests (OpenAPI), migration/integration tests (Testcontainers), frontend component tests — written before implementation | PASS — TDD ordering enforced in tasks |
-| III. Security & Data Integrity First | DB credentials via env/Compose secrets (never in code); Bean Validation at API boundaries; `@Transactional` writes; TLS handled at cloud edge (001); money uses BigDecimal when domains arrive | PASS — patterns established by the reference slice |
-| IV. Environment Isolation | All config externalized; local Compose is a dev environment distinct from STG/PROD (feature 001) | PASS |
-| V. Observability & Debuggability | Structured (JSON) logging via Logback; Actuator `/health` per service; gateway aggregate health | PASS — FR-003/018 (spec 001) alignment |
-| VI. Simplicity & YAGNI | One reference service; static gateway routing (no discovery server); Flyway SQL (no heavier tooling); managed frameworks over custom | PASS with justification — see Complexity Tracking |
-| VII. Automated Quality Gates | One documented command runs build/test/lint across the repo; fails on lint/test failure; CI-ready | PASS — FR-010/011 |
+| I. Specification-Driven Development | Clarified, scope-corrected spec + this plan precede any file creation | PASS |
+| II. Test-Driven Development | TDD governs application/bugfix code; this feature writes **no application code**, so there is nothing to test. Test harness + suites are scaffolded/authored in the later implementation features that add behavior. | PASS (N/A by scope — recorded, not skipped) |
+| III. Security & Data Integrity First | No code/secrets created; `.gitignore` excludes local secrets/artifacts; migration/secret conventions are documented for later features | PASS |
+| IV. Environment Isolation | Compose/config scaffolding keeps configuration externalized by design; no environments provisioned | PASS |
+| V. Observability & Debuggability | Logging/health conventions documented in scaffolding; implemented with the services later | PASS |
+| VI. Simplicity & YAGNI | Structure limited to one reference service + shared dirs; no speculative modules | PASS with the multi-service justification below |
+| VII. Automated Quality Gates | Quality-gate tool *configs* + Makefile/CI skeletons are placed so gates are ready when code arrives | PASS |
 
-Initial Constitution Check: **PASS** (one justified complexity — the multi-service topology).
-Post-Design Constitution Check (after Phase 1): **PASS** — the OpenAPI contract and reference
-module keep the design cohesive; no new principle tension introduced by the data model or
-contracts.
+Initial Constitution Check: **PASS**. Post-Design Check: **PASS** — a pure-scaffolding feature
+introduces no behavioral surface; the one standing complexity is the multi-service structure.
+
+> **Note on TDD:** Principle II is NON-NEGOTIABLE for code. Because this feature deliberately
+> contains no application logic (user-confirmed scaffolding-only scope), there is no behavior to
+> cover. The first implementation feature that adds behavior MUST follow TDD, using the
+> quality-gate/test-tool configs scaffolded here.
 
 ## Project Structure
 
@@ -67,69 +65,68 @@ contracts.
 ```text
 specs/002-source-scaffold/
 ├── plan.md              # This file
-├── spec.md              # Feature spec (with Clarifications)
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output
-│   ├── openapi.yaml            # Source-of-truth API contract (reference endpoint)
-│   ├── service-template.md     # The "add a new microservice" pattern (FR-008)
-│   └── container-contract.md   # Per-service image contract consumed by feature 001
+├── spec.md              # Scaffolding-only spec (with Clarifications)
+├── research.md          # Phase 0 — architecture decisions the layout reflects
+├── data-model.md        # Phase 1 — the STRUCTURE model (no runtime data)
+├── quickstart.md        # Phase 1 — how to verify the scaffold
+├── contracts/           # Phase 1 — placed contract + convention docs
+│   ├── openapi.yaml            # Source-of-truth API contract (placed; implemented later)
+│   ├── service-template.md     # Add-a-service pattern (documentation)
+│   └── container-contract.md   # Per-service image contract (documentation)
 └── checklists/
-    └── requirements.md  # Spec quality checklist
+    └── requirements.md
 ```
 
-### Source Code (repository root)
+### Source Code (repository root) — the skeleton this feature creates
 
 ```text
-frontend/                          # React + TypeScript + Vite, served by Nginx
-├── src/
-│   ├── app/                        # shell, routing, layout
-│   ├── features/reference/         # view that consumes the reference service
-│   ├── api/                        # generated OpenAPI TS client (from contracts/openapi.yaml)
-│   └── main.tsx
-├── tests/                          # Vitest + React Testing Library
-├── Dockerfile                      # multi-stage: node build → nginx serve
-├── nginx.conf                      # static serving, caching, gzip, /api proxy → gateway
-├── package.json
-└── .eslintrc / .prettierrc
+frontend/                          # React + TS + Vite (config/manifests only), Nginx edge
+├── src/                           # placeholder (.gitkeep); components added later
+├── tests/                         # placeholder; suites added later
+├── package.json                   # intended deps + script targets (no components)
+├── tsconfig.json / vite.config.ts # config skeletons
+├── .eslintrc / .prettierrc        # quality-gate configs
+├── nginx.conf                     # skeleton (serve static + /api proxy)
+└── Dockerfile                     # skeleton (node build → nginx)
 
 backend/
-├── settings.gradle.kts             # multi-module: gateway, reference-service
-├── build.gradle.kts                # shared config (Spotless, Checkstyle, versions)
-├── gateway/                        # Spring Cloud Gateway
-│   ├── src/main/java/... 
-│   ├── src/main/resources/application.yml   # static routes (env-overridable)
-│   ├── src/test/java/...
-│   └── Dockerfile
-└── reference-service/              # reference microservice
-    ├── src/main/java/...           # controller, service (@Transactional), JPA entity, repo
+├── settings.gradle.kts            # declares :gateway, :reference-service
+├── build.gradle.kts               # root toolchain + Spotless/Checkstyle (no app code)
+├── config/                        # checkstyle.xml, spotless rules (quality-gate configs)
+├── gateway/
+│   ├── src/main/java/             # placeholder (.gitkeep)
+│   ├── src/main/resources/        # placeholder application.yml skeleton
+│   ├── build.gradle.kts           # module build skeleton
+│   └── Dockerfile                 # skeleton
+└── reference-service/             # THE TEMPLATE for future services
+    ├── src/main/java/             # placeholder (.gitkeep)
     ├── src/main/resources/
-    │   ├── application.yml
-    │   └── db/migration/           # Flyway V1__create_sample_table.sql
-    ├── src/test/java/...           # unit, Testcontainers integration, OpenAPI contract tests
-    └── Dockerfile
+    │   └── db/migration/          # placeholder (.gitkeep) — Flyway location, no migrations
+    ├── src/test/java/             # placeholder
+    ├── build.gradle.kts           # module build skeleton
+    └── Dockerfile                 # skeleton
 
 contracts/
-└── openapi.yaml                    # single source of truth (copy/symlink of specs contract)
+└── openapi.yaml                   # placed source-of-truth contract
 
-docker-compose.yml                  # postgres + gateway + reference-service + frontend(nginx)
-Makefile                            # documented single commands: build / up / test / lint
 docs/
-├── quickstart.md                   # checkout → running system
-└── add-a-service.md                # the FR-008 pattern
+├── architecture.md                # layout + architecture overview
+├── add-a-service.md               # the template pattern
+└── quickstart.md                  # how the pieces fit (fleshed out as code lands)
+
+docker-compose.yml                 # intended services wiring (scaffold)
+Makefile                           # build/up/test/lint target skeletons
+README.md                          # architecture + layout
+.gitignore                         # build outputs / local artifacts
 ```
 
-**Structure Decision**: Multi-service layout. `frontend/` (React+Nginx) and `backend/`
-(Gradle multi-module: `gateway`, `reference-service`) each build one image per service;
-`contracts/openapi.yaml` is the shared source of truth; `docker-compose.yml` + `Makefile`
-provide the single-command build/run/test/lint. This satisfies the per-service-image (FR-005),
-single-command (FR-001/002/015), and add-a-service (FR-008) requirements while keeping the
-scaffold minimal.
+**Structure Decision**: Establish the full multi-service tree with placeholders and the
+config/scaffolding files listed above; no application code. This satisfies the scaffolding-only
+scope (FR-013), preserves empty dirs (FR-002), and fixes the architecture (FR-014) so later
+features implement in place without restructuring.
 
 ## Complexity Tracking
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|--------------------------------------|
-| Multi-service topology (frontend + Nginx + gateway + reference service) instead of a single app | The project owner explicitly chose true microservices (spec 002 clarification); the scaffold must establish that shape so future domains are independently deployable | A single Spring Boot + embedded UI monolith is simpler but contradicts the approved microservices direction and would misrepresent how every future service is built/deployed. Complexity is bounded by scaffolding only ONE reference service and using static routing + managed frameworks. |
-| Two front-tier layers (Nginx edge + Spring Cloud Gateway) | Nginx gives HTTP caching + static React serving; the gateway gives programmable backend routing and a home for future auth — distinct concerns | Collapsing to one layer either loses caching/static optimization (gateway-only) or pushes backend routing/auth into Nginx config (Nginx-only), which is harder to evolve. User approved the two-layer split. |
+| Multi-service skeleton (frontend + Nginx + gateway + reference-service) rather than a single folder | The approved architecture is microservices (spec 001/002); the skeleton must express that shape so future features slot in without restructuring | A single-app skeleton is simpler but would misrepresent the agreed architecture and force a disruptive reorganization once real services are added. Complexity is bounded: one reference service as the template, everything else a placeholder. |
