@@ -1,0 +1,163 @@
+openapi: 3.1.0
+info:
+  title: KITA Reference Service API
+  version: 0.1.0
+  description: >
+    Contract-first API for the KITA scaffold reference microservice. This file is the single
+    source of truth for the frontend↔backend interface. The frontend generates a typed client
+    from it; the backend is validated against it by contract tests. Real domain services
+    (costing/inventory/accounting) add their own paths following this shape.
+servers:
+  - url: /api
+    description: Routed via the API gateway (browser calls same-origin /api through Nginx)
+tags:
+  - name: reference
+    description: Generic reference domain used to prove the end-to-end persistence slice
+  - name: system
+    description: Health and version
+
+paths:
+  /reference/items:
+    get:
+      tags: [reference]
+      summary: List sample items
+      operationId: listSampleItems
+      responses:
+        "200":
+          description: Items retrieved (from the database, not a stub)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SampleItem"
+    post:
+      tags: [reference]
+      summary: Create a sample item
+      operationId: createSampleItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SampleItemCreate"
+      responses:
+        "201":
+          description: Item created and persisted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SampleItem"
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /reference/items/{id}:
+    get:
+      tags: [reference]
+      summary: Get a sample item by id
+      operationId: getSampleItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Item found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SampleItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /health:
+    get:
+      tags: [system]
+      summary: Aggregate/service health
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "503":
+          description: Service or a required dependency is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+
+components:
+  schemas:
+    SampleItem:
+      type: object
+      required: [id, name, quantity, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        quantity:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SampleItemCreate:
+      type: object
+      required: [name, quantity]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        quantity:
+          type: integer
+          minimum: 0
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+        version:
+          type: string
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+    Problem:
+      type: object
+      description: RFC 9457-style problem detail
+      required: [status, title]
+      properties:
+        status:
+          type: integer
+        title:
+          type: string
+        detail:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string

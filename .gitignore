@@ -1,0 +1,29 @@
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+frontend/build/
+*.log
+npm-debug.log*
+
+# --- Java / Gradle (backend) ---
+.gradle/
+**/build/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Docker ---
+# (no build artifacts tracked)
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+*.swp

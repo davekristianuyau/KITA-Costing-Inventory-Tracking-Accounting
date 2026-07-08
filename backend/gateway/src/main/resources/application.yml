@@ -1,0 +1,21 @@
+# Gateway configuration (SCAFFOLDING SKELETON).
+# Static routes are added here when the gateway is implemented. All values are env-overridable.
+server:
+  port: 8081
+
+spring:
+  application:
+    name: gateway
+  # cloud:
+  #   gateway:
+  #     routes:
+  #       - id: reference-service
+  #         uri: ${REFERENCE_SERVICE_URL:http://reference-service:8082}
+  #         predicates:
+  #           - Path=/api/reference/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

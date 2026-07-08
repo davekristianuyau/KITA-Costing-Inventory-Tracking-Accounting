@@ -1,0 +1,8 @@
+{
+  "//": "Frontend lint config (scaffolding skeleton). Rules refined when app code lands.",
+  "root": true,
+  "env": { "browser": true, "es2022": true },
+  "parserOptions": { "ecmaVersion": "latest", "sourceType": "module" },
+  "extends": ["eslint:recommended"],
+  "ignorePatterns": ["dist", "build", "node_modules", "src/api/schema.ts"]
+}
