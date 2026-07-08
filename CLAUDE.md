@@ -26,3 +26,28 @@ Format for entries:
 ```
 [YYYY-MM-DD HH:MM] - Resume code: [code]
 ```
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
+[2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 17:36] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 17:39] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 17:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 17:55] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 17:56] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 17:57] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 18:19] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+
+## Active Technologies
+- Terraform (HCL) >= 1.9; Bash scripts (orchestration); YAML (GitHub Actions). + Terraform providers `hashicorp/aws` (~> 5.x), `hashicorp/google` (001-multi-cloud-cicd)
+- Managed PostgreSQL per cloud (AWS RDS / GCP Cloud SQL / Azure Database for (001-multi-cloud-cicd)
+
+## Recent Changes
+- 001-multi-cloud-cicd: Added Terraform (HCL) >= 1.9; Bash scripts (orchestration); YAML (GitHub Actions). + Terraform providers `hashicorp/aws` (~> 5.x), `hashicorp/google`
+[2026-07-08 19:02] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 19:07] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 20:01] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-08 20:07] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
