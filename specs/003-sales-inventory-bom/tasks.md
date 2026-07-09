@@ -161,16 +161,16 @@ validated; AVCO running average recomputed.
 
 ### Tests (write first, must FAIL) ⚠️
 
-- [ ] T043 [P] [US4] Contract test for receipts endpoint vs OpenAPI
-- [ ] T044 [P] [US4] Integration: receipt increases on-hand + RECEIPT movement; invalid supplier rejected (FR-013/014)
-- [ ] T045 [P] [US4] Unit test: AVCO running-average recompute on successive receipts (contracts/costing-model.md)
+- [X] T043 [P] [US4] Contract test for receipts endpoint vs OpenAPI
+- [X] T044 [P] [US4] Integration: receipt increases on-hand + RECEIPT movement; invalid supplier rejected (FR-013/014)
+- [X] T045 [P] [US4] Unit test: AVCO running-average recompute on successive receipts (contracts/costing-model.md)
 
 ### Implementation
 
-- [ ] T046 [US4] Flyway `V4__receipts.sql`: `goods_receipt`, `receipt_line`
-- [ ] T047 [P] [US4] JPA entities + repositories: `GoodsReceipt`, `ReceiptLine`
-- [ ] T048 [US4] `ValuationService` (AVCO): recompute item average on receipt; stamp movement unit cost
-- [ ] T049 [US4] `GoodsReceiptService` + controller; validate supplier via `PartyClient` (makes T043 pass)
+- [X] T046 [US4] Flyway `V4__receipts.sql`: `goods_receipt`, `receipt_line`
+- [X] T047 [P] [US4] JPA entities + repositories: `GoodsReceipt`, `ReceiptLine`
+- [X] T048 [US4] `ValuationService` (AVCO): recompute item average on receipt; stamp movement unit cost
+- [X] T049 [US4] `GoodsReceiptService` + controller; validate supplier via `PartyClient` (makes T043 pass)
 
 **Checkpoint**: inbound stock + weighted-average costing.
 
