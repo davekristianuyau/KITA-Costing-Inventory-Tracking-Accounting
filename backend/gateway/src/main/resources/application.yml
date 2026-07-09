@@ -6,13 +6,17 @@ server:
 spring:
   application:
     name: gateway
-  # cloud:
-  #   gateway:
-  #     routes:
-  #       - id: reference-service
-  #         uri: ${REFERENCE_SERVICE_URL:http://reference-service:8082}
-  #         predicates:
-  #           - Path=/api/reference/**
+  cloud:
+    gateway:
+      routes:
+        # - id: reference-service
+        #   uri: ${REFERENCE_SERVICE_URL:http://reference-service:8082}
+        #   predicates:
+        #     - Path=/api/reference/**
+        - id: operations-service
+          uri: ${OPERATIONS_SERVICE_URL:http://operations-service:8083}
+          predicates:
+            - Path=/api/operations/**
 
 management:
   endpoints:

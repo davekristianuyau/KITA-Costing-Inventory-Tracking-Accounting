@@ -4,3 +4,4 @@ rootProject.name = "kita-backend"
 
 include(":gateway")
 include(":reference-service")
+include(":operations-service")

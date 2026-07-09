@@ -26,12 +26,12 @@ US4(P2) → US7(P2) → US8(P2) → US5(P3). US6/US7/US8 depend on US3 (BOM), so
 
 ## Phase 1: Setup
 
-- [ ] T001 Register module: add `include(":operations-service")` to `backend/settings.gradle.kts` and create `backend/operations-service/` structure per plan.md
-- [ ] T002 Create `backend/operations-service/build.gradle.kts` with Spring Web, Data JPA, Flyway, Validation, Actuator, PostgreSQL driver, and test deps (Spring Boot Test, Testcontainers postgresql)
-- [ ] T003 [P] Create `@SpringBootApplication` main class + `src/main/resources/application.yml` (datasource, Flyway, Actuator health/info, env-overridable) and package skeleton (`catalog/ inventory/ bom/ production/ sales/ costing/ party/ common/ api/`)
-- [ ] T004 [P] Create `backend/operations-service/Dockerfile` (multi-stage JVM build, `EXPOSE 8083`, actuator healthcheck)
-- [ ] T005 [P] Copy `specs/003-sales-inventory-bom/contracts/operations-openapi.yaml` to `contracts/operations-openapi.yaml` and into the module resources for contract tests
-- [ ] T006 Add `operations-service` to `docker-compose.yml` (env: DATABASE_*, PARTY_SERVICE_URL; private) and a `/api/operations/**` route in `backend/gateway/src/main/resources/application.yml`
+- [X] T001 Register module: add `include(":operations-service")` to `backend/settings.gradle.kts` and create `backend/operations-service/` structure per plan.md
+- [X] T002 Create `backend/operations-service/build.gradle.kts` with Spring Web, Data JPA, Flyway, Validation, Actuator, PostgreSQL driver, and test deps (Spring Boot Test, Testcontainers postgresql)
+- [X] T003 [P] Create `@SpringBootApplication` main class + `src/main/resources/application.yml` (datasource, Flyway, Actuator health/info, env-overridable) and package skeleton (`catalog/ inventory/ bom/ production/ sales/ costing/ party/ common/ api/`)
+- [X] T004 [P] Create `backend/operations-service/Dockerfile` (multi-stage JVM build, `EXPOSE 8083`, actuator healthcheck)
+- [X] T005 [P] Copy `specs/003-sales-inventory-bom/contracts/operations-openapi.yaml` to `contracts/operations-openapi.yaml` and into the module resources for contract tests
+- [X] T006 Add `operations-service` to `docker-compose.yml` (env: DATABASE_*, PARTY_SERVICE_URL; private) and a `/api/operations/**` route in `backend/gateway/src/main/resources/application.yml`
 
 ---
 
@@ -39,11 +39,11 @@ US4(P2) → US7(P2) → US8(P2) → US5(P3). US6/US7/US8 depend on US3 (BOM), so
 
 **⚠️ CRITICAL**: complete before user stories.
 
-- [ ] T007 Implement `common/` money & quantity decimal support (BigDecimal helpers, scales/rounding) and a global RFC-9457 `Problem` exception handler
+- [X] T007 Implement `common/` money & quantity decimal support (BigDecimal helpers, scales/rounding) and a global RFC-9457 `Problem` exception handler
 - [ ] T008 [P] Configure structured JSON logging (Logback) and expose Actuator `/health` + `/info` (version)
 - [ ] T009 [P] Define `party/PartyClient` port (`validateCustomer`/`validateSupplier`) + HTTP adapter (`PARTY_SERVICE_URL`) + an in-memory fake for tests, per contracts/party-integration.md
-- [ ] T010 [P] Create Testcontainers PostgreSQL base test class in `src/test/java/.../support/`
-- [ ] T011 [P] Create an OpenAPI contract-test harness that validates responses against `operations-openapi.yaml`
+- [X] T010 [P] Create Testcontainers PostgreSQL base test class in `src/test/java/.../support/`
+- [X] T011 [P] Create an OpenAPI contract-test harness that validates responses against `operations-openapi.yaml`
 
 **Checkpoint**: module builds, DB/test harness + party port ready.
 
@@ -59,19 +59,19 @@ on-hand reconciles to Σ movements; issuing below zero is rejected.
 
 ### Tests (write first, must FAIL) ⚠️
 
-- [ ] T012 [P] [US1] Contract test for items/availability/movements/adjustments endpoints vs OpenAPI in `src/test/.../contract/`
-- [ ] T013 [P] [US1] Testcontainers integration test: migrations apply; on-hand = Σ movements (reconciliation, SC-001)
-- [ ] T014 [P] [US1] Unit test: UoM conversions (kg↔g, tray↔pcs, m↔cm)
-- [ ] T015 [P] [US1] Integration test: issue/adjustment driving on-hand < 0 is rejected (FR-004)
+- [X] T012 [P] [US1] Contract test for items/availability/movements/adjustments endpoints vs OpenAPI in `src/test/.../contract/`
+- [X] T013 [P] [US1] Testcontainers integration test: migrations apply; on-hand = Σ movements (reconciliation, SC-001)
+- [X] T014 [P] [US1] Unit test: UoM conversions (kg↔g, tray↔pcs, m↔cm)
+- [X] T015 [P] [US1] Integration test: issue/adjustment driving on-hand < 0 is rejected (FR-004)
 
 ### Implementation
 
-- [ ] T016 [US1] Flyway `V1__catalog_inventory.sql`: `unit_of_measure`, `uom_conversion`, `item`, `stock_location`, `lot`, `stock_level`, `stock_movement` (NUMERIC money/qty; indexes on item/location/lot/occurred_at)
-- [ ] T017 [P] [US1] JPA entities + repositories for catalog: `Item`, `UnitOfMeasure`, `UomConversion`
-- [ ] T018 [P] [US1] JPA entities + repositories for inventory: `StockLocation`, `Lot`, `StockLevel`, `StockMovement`
-- [ ] T019 [US1] `UomConversionService` (convert to item base UoM; reject cross-family)
-- [ ] T020 [US1] `StockLedgerService`: record a movement and update the cached `StockLevel` atomically in one transaction; enforce non-negative on-hand
-- [ ] T021 [US1] Catalog + inventory controllers in `api/`: create/list items & UoM, get availability, list movements (period filter), post adjustment — conforming to OpenAPI (makes T012 pass)
+- [X] T016 [US1] Flyway `V1__catalog_inventory.sql`: `unit_of_measure`, `uom_conversion`, `item`, `stock_location`, `lot`, `stock_level`, `stock_movement` (NUMERIC money/qty; indexes on item/location/lot/occurred_at)
+- [X] T017 [P] [US1] JPA entities + repositories for catalog: `Item`, `UnitOfMeasure`, `UomConversion`
+- [X] T018 [P] [US1] JPA entities + repositories for inventory: `StockLocation`, `Lot`, `StockLevel`, `StockMovement`
+- [X] T019 [US1] `UomConversionService` (convert to item base UoM; reject cross-family)
+- [X] T020 [US1] `StockLedgerService`: record a movement and update the cached `StockLevel` atomically in one transaction; enforce non-negative on-hand
+- [X] T021 [US1] Catalog + inventory controllers in `api/`: create/list items & UoM, get availability, list movements (period filter), post adjustment — conforming to OpenAPI (makes T012 pass)
 - [ ] T022 [US1] Wire structured audit logging for stock changes
 
 **Checkpoint**: inventory ledger works standalone. **MVP reached.**

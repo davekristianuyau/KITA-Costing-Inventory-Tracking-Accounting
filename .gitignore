@@ -8,9 +8,10 @@ npm-debug.log*
 # --- Java / Gradle (backend) ---
 .gradle/
 **/build/
+**/bin/
 *.class
 *.jar
-!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 
 # --- Environment / secrets ---
 .env
