@@ -114,16 +114,16 @@ a cycle is rejected.
 
 ### Tests (write first, must FAIL) ⚠️
 
-- [ ] T032 [P] [US3] Contract test for BOM endpoints (create, explosion) vs OpenAPI
-- [ ] T033 [P] [US3] Unit test: multi-level explosion multiplies quantities correctly (FR-012)
-- [ ] T034 [P] [US3] Unit test: cycle detection rejects an item that contains itself (FR-011)
+- [X] T032 [P] [US3] Contract test for BOM endpoints (create, explosion) vs OpenAPI
+- [X] T033 [P] [US3] Unit test: multi-level explosion multiplies quantities correctly (FR-012)
+- [X] T034 [P] [US3] Unit test: cycle detection rejects an item that contains itself (FR-011)
 
 ### Implementation
 
-- [ ] T035 [US3] Flyway `V3__bom.sql`: `bill_of_materials` (type KIT/MANUFACTURED, output_quantity), `bom_component`
-- [ ] T036 [P] [US3] JPA entities + repositories: `BillOfMaterials`, `BomComponent`
-- [ ] T037 [US3] `BomService`: create with cycle check; recursive explosion with UoM conversion
-- [ ] T038 [US3] BOM controller (create, explosion) (makes T032 pass)
+- [X] T035 [US3] Flyway `V3__bom.sql`: `bill_of_materials` (type KIT/MANUFACTURED, output_quantity), `bom_component`
+- [X] T036 [P] [US3] JPA entities + repositories: `BillOfMaterials`, `BomComponent`
+- [X] T037 [US3] `BomService`: create with cycle check; recursive explosion with UoM conversion
+- [X] T038 [US3] BOM controller (create, explosion) (makes T032 pass)
 
 **Checkpoint**: BOM structures defined and explodable.
 

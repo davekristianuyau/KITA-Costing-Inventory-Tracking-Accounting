@@ -41,8 +41,9 @@ public abstract class AbstractIntegrationTest {
   @BeforeEach
   void resetDatabase() {
     jdbc.execute(
-        "TRUNCATE TABLE reservation, sales_order_line, sales_order, stock_movement, stock_level,"
-            + " lot, uom_conversion, item, unit_of_measure, stock_location RESTART IDENTITY CASCADE");
+        "TRUNCATE TABLE reservation, sales_order_line, sales_order, bom_component,"
+            + " bill_of_materials, stock_movement, stock_level, lot, uom_conversion, item,"
+            + " unit_of_measure, stock_location RESTART IDENTITY CASCADE");
   }
 }
 
