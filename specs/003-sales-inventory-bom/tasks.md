@@ -88,18 +88,18 @@ releases; concurrent confirms for the last unit → exactly one wins; oversell r
 
 ### Tests (write first, must FAIL) ⚠️
 
-- [ ] T023 [P] [US2] Contract test for sales-order endpoints (create/confirm/fulfill/cancel) vs OpenAPI
-- [ ] T024 [P] [US2] Integration: confirm reserves & drops available; fulfill decrements on-hand; cancel releases (FR-006/007)
-- [ ] T025 [P] [US2] Concurrency test: N parallel confirms for the last available unit → exactly one succeeds (SC-002)
-- [ ] T026 [P] [US2] Integration: confirm exceeding available is rejected (no oversell, FR-008); invalid/inactive customer rejected (FR-014, SC-005)
+- [X] T023 [P] [US2] Contract test for sales-order endpoints (create/confirm/fulfill/cancel) vs OpenAPI
+- [X] T024 [P] [US2] Integration: confirm reserves & drops available; fulfill decrements on-hand; cancel releases (FR-006/007)
+- [X] T025 [P] [US2] Concurrency test: N parallel confirms for the last available unit → exactly one succeeds (SC-002)
+- [X] T026 [P] [US2] Integration: confirm exceeding available is rejected (no oversell, FR-008); invalid/inactive customer rejected (FR-014, SC-005)
 
 ### Implementation
 
-- [ ] T027 [US2] Flyway `V2__sales.sql`: `sales_order`, `sales_order_line`, `reservation`
-- [ ] T028 [P] [US2] JPA entities + repositories: `SalesOrder`, `SalesOrderLine`, `Reservation`
-- [ ] T029 [US2] `ReservationService`: `SELECT … FOR UPDATE` reserve/release per contracts/reservation-model.md
-- [ ] T030 [US2] `SalesOrderService`: lifecycle (draft→confirmed→fulfilled→closed / cancelled) with partial fulfillment; validate customer via `PartyClient`
-- [ ] T031 [US2] Sales-order controller + lifecycle action endpoints (makes T023 pass)
+- [X] T027 [US2] Flyway `V2__sales.sql`: `sales_order`, `sales_order_line`, `reservation`
+- [X] T028 [P] [US2] JPA entities + repositories: `SalesOrder`, `SalesOrderLine`, `Reservation`
+- [X] T029 [US2] `ReservationService`: `SELECT … FOR UPDATE` reserve/release per contracts/reservation-model.md
+- [X] T030 [US2] `SalesOrderService`: lifecycle (draft→confirmed→fulfilled→closed / cancelled) with partial fulfillment; validate customer via `PartyClient`
+- [X] T031 [US2] Sales-order controller + lifecycle action endpoints (makes T023 pass)
 
 **Checkpoint**: stocked-goods sales with safe reservations.
 

@@ -20,4 +20,10 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
           + " and (:lotId is null or s.lot.id = :lotId)")
   List<StockLevel> lockByItemLocationLot(
       @Param("item") Item item, @Param("loc") StockLocation location, @Param("lotId") UUID lotId);
+
+  /** Lock ALL of an item's stock rows (across locations/lots) for reservation. Serializes
+   * concurrent confirmations so the last available unit is never reserved twice (no oversell). */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select s from StockLevel s where s.item = :item order by s.id")
+  List<StockLevel> lockAllByItem(@Param("item") Item item);
 }
