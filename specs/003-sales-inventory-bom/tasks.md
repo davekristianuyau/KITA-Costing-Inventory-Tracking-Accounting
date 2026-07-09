@@ -139,13 +139,13 @@ quantities; component shortage rejects.
 
 ### Tests (write first, must FAIL) ⚠️
 
-- [ ] T039 [P] [US6] Integration: selling 1 electrical set deducts enclosure + 4 breakers; no finished stock (SC-009)
-- [ ] T040 [P] [US6] Integration: tapsilog order deducts 250g rice, 200g tapa, 1 egg (UoM conversions applied)
-- [ ] T041 [P] [US6] Integration: kit sale with a short component is rejected naming it (FR-025)
+- [X] T039 [P] [US6] Integration: selling 1 electrical set deducts enclosure + 4 breakers; no finished stock (SC-009)
+- [X] T040 [P] [US6] Integration: tapsilog order deducts 250g rice, 200g tapa, 1 egg (UoM conversions applied)
+- [X] T041 [P] [US6] Integration: kit sale with a short component is rejected naming it (FR-025)
 
 ### Implementation
 
-- [ ] T042 [US6] Extend `SalesOrderService`: for KIT lines, explode to components and reserve/consume components (FEFO for perishable) instead of a finished-good count
+- [X] T042 [US6] Extend `SalesOrderService`: for KIT lines, explode to components and reserve/consume components (FEFO for perishable) instead of a finished-good count
 
 **Checkpoint**: kit/recipe selling consumes raw materials correctly.
 

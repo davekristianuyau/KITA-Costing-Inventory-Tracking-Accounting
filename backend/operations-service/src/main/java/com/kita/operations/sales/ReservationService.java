@@ -1,5 +1,10 @@
 package com.kita.operations.sales;
 
+import com.kita.operations.bom.BillOfMaterials;
+import com.kita.operations.bom.BillOfMaterialsRepository;
+import com.kita.operations.bom.BomService;
+import com.kita.operations.bom.BomType;
+import com.kita.operations.catalog.CatalogService;
 import com.kita.operations.catalog.Item;
 import com.kita.operations.common.DomainException;
 import com.kita.operations.inventory.MovementType;
@@ -8,13 +13,14 @@ import com.kita.operations.inventory.StockLevel;
 import com.kita.operations.inventory.StockLevelRepository;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Reserve / release / fulfill stock for sales-order lines. Uses pessimistic locks so concurrent
- * confirmations cannot reserve the same unit twice (no oversell — SC-002). All methods run inside
- * the caller's transaction.
+ * Reserve / release / fulfill stock for sales lines. A KIT line consumes its exploded components
+ * (not a finished-good count); a stocked line reserves the item itself. Pessimistic locks prevent
+ * overselling (SC-002).
  */
 @Service
 public class ReservationService {
@@ -22,19 +28,41 @@ public class ReservationService {
   private final StockLevelRepository levels;
   private final ReservationRepository reservations;
   private final StockLedgerService ledger;
+  private final BillOfMaterialsRepository boms;
+  private final BomService bomService;
+  private final CatalogService catalog;
 
   public ReservationService(
-      StockLevelRepository levels, ReservationRepository reservations, StockLedgerService ledger) {
+      StockLevelRepository levels,
+      ReservationRepository reservations,
+      StockLedgerService ledger,
+      BillOfMaterialsRepository boms,
+      BomService bomService,
+      CatalogService catalog) {
     this.levels = levels;
     this.reservations = reservations;
     this.ledger = ledger;
+    this.boms = boms;
+    this.bomService = bomService;
+    this.catalog = catalog;
   }
 
-  /** Hard-reserve a line's quantity across the item's locked stock rows. Rejects if short. */
   @Transactional
   public void reserve(SalesOrderLine line) {
     Item item = line.getItem();
     BigDecimal need = line.getQuantity();
+    Optional<BillOfMaterials> bom = boms.findByParentItemAndActiveTrue(item);
+    if (bom.isPresent() && bom.get().getType() == BomType.KIT) {
+      for (BomService.ComponentRequirement r : bomService.explode(item.getId(), need)) {
+        reserveItemQuantity(line, catalog.requireItem(r.componentItemId()), r.requiredQuantity());
+      }
+    } else {
+      reserveItemQuantity(line, item, need);
+    }
+    line.setReservedQty(need);
+  }
+
+  private void reserveItemQuantity(SalesOrderLine line, Item item, BigDecimal need) {
     List<StockLevel> locked = levels.lockAllByItem(item);
     BigDecimal available =
         locked.stream().map(StockLevel::getAvailable).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -63,10 +91,8 @@ public class ReservationService {
       reservations.save(new Reservation(line, item, level.getLocation(), level.getLot(), take));
       remaining = remaining.subtract(take);
     }
-    line.setReservedQty(line.getReservedQty().add(need));
   }
 
-  /** Release a line's reservations (on cancel): return reserved quantity to availability. */
   @Transactional
   public void release(SalesOrderLine line) {
     for (Reservation r : reservations.findByOrderLine(line)) {
@@ -76,10 +102,8 @@ public class ReservationService {
     line.setReservedQty(BigDecimal.ZERO);
   }
 
-  /** Fulfill a line's reservations: issue stock (decrement on-hand) and clear the reservation. */
   @Transactional
   public void fulfill(SalesOrderLine line) {
-    BigDecimal fulfilled = BigDecimal.ZERO;
     for (Reservation r : reservations.findByOrderLine(line)) {
       BigDecimal unitCost =
           r.getItem().getStandardCost() == null ? BigDecimal.ZERO : r.getItem().getStandardCost();
@@ -94,11 +118,10 @@ public class ReservationService {
           "SALES_ORDER",
           line.getOrder().getId().toString());
       decrementReserved(r);
-      fulfilled = fulfilled.add(r.getQuantity());
       reservations.delete(r);
     }
-    line.setFulfilledQty(line.getFulfilledQty().add(fulfilled));
-    line.setReservedQty(line.getReservedQty().subtract(fulfilled).max(BigDecimal.ZERO));
+    line.setFulfilledQty(line.getFulfilledQty().add(line.getReservedQty()));
+    line.setReservedQty(BigDecimal.ZERO);
   }
 
   private void decrementReserved(Reservation r) {
