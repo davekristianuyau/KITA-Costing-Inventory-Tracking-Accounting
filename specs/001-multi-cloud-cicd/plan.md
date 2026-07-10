@@ -1,54 +1,46 @@
 # Implementation Plan: Multi-Cloud CI/CD Infrastructure Scaffolding
 
-**Branch**: `001-multi-cloud-cicd` | **Date**: 2026-07-08 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-multi-cloud-cicd` | **Date**: 2026-07-10 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-multi-cloud-cicd/spec.md`
 
 ## Summary
 
-Stand up the foundational infrastructure-as-code and delivery pipeline that provisions
-and deploys the KITA application (an Odoo/SAP-HANA-class web app + PostgreSQL database +
-object storage) onto a client-selected public cloud — AWS, Google Cloud, or Azure — with
-provider selection driven by configuration only. Each deployment has two isolated tiers,
-STG and PROD, named `{client-name}-{env}`, with gated (non-automatic) promotion of the
-same validated artifact from STG to PROD, auto-rollback on failed health checks, a single
-default region (per-client override), daily backups + point-in-time recovery on PROD, and
-public TLS ingress governed by application-level authentication with per-client custom
-domains.
-
-Technical approach: a single Terraform codebase using a **provider-abstraction pattern** —
-one thin root configuration selects a per-cloud module (`aws` / `gcp` / `azure`) that all
-implement an identical variable/output contract — plus a CI/CD pipeline (GitHub Actions)
-whose deploy/promote/teardown jobs call provider-agnostic scripts over that contract. The
-same container image tag is promoted STG→PROD; managed services are preferred on every
-cloud to minimize operational burden for a solo maintainer.
+Provision and deploy KITA — now a **multi-service application** (React/Nginx frontend, Spring
+Cloud Gateway, and Spring Boot microservices such as `operations-service`, per features 002/003)
+— onto a client-selected public cloud (AWS, GCP, or Azure) with configuration-only provider
+switching. Terraform (single codebase, provider-abstraction modules) provisions per environment:
+a private network, per-service compute for every service in a **Release Set**, a shared managed
+PostgreSQL, object storage, service-to-service networking, and a single public gateway/ingress
+(TLS + client custom domain). Only the gateway (and frontend) are public; backend services are
+private. Two isolated tiers (STG, PROD) with gated, whole-Release-Set promotion, auto-rollback on
+failed aggregate health, single default region, per-`{client-name}-{env}` naming, and daily
+backups + PITR on PROD. CI/CD (GitHub Actions) runs provider-agnostic scripts over the module
+contract.
 
 ## Technical Context
 
-**Language/Version**: Terraform (HCL) >= 1.9; Bash scripts (orchestration); YAML (GitHub Actions).
+**Language/Version**: Terraform (HCL) >= 1.9; Bash (orchestration); YAML (GitHub Actions).
 **Primary Dependencies**: Terraform providers `hashicorp/aws` (~> 5.x), `hashicorp/google`
-(~> 5.x), `hashicorp/azurerm` (~> 4.x); the target cloud CLIs (`aws`, `gcloud`, `az`) for
-auth/verification; a container image built upstream (consumed, not built here).
-**Storage**: Managed PostgreSQL per cloud (AWS RDS / GCP Cloud SQL / Azure Database for
-PostgreSQL — Flexible Server); managed object storage (S3 / GCS / Azure Blob); Terraform
-remote state per cloud (S3+DynamoDB lock / GCS / Azure Storage), state keyed per
+(~> 5.x), `hashicorp/azurerm` (~> 4.x); cloud CLIs; container images (a Release Set) built by
+features 002/003 and published to a registry.
+**Storage**: Managed PostgreSQL per environment (RDS / Cloud SQL / Azure DB for PostgreSQL,
+shared by services); object storage (S3/GCS/Blob); remote Terraform state per cloud keyed
 `{client-name}-{env}`.
-**Testing**: `terraform fmt`/`validate`, `tflint`, static config-contract checks (required
-variables + naming regex), `terraform plan` diff review, and post-deploy smoke tests
-(health endpoint + DB read/write + isolation) run in CI.
-**Target Platform**: AWS, Google Cloud, Azure public regions. Compute via managed container
-runtimes — AWS ECS Fargate (behind ALB), GCP Cloud Run, Azure Container Apps — each behind
-the module contract.
-**Project Type**: Infrastructure + delivery pipeline (no application source in this feature).
-**Performance Goals**: A full clean-account provision + deploy completes in < 30 minutes;
-a promotion (image swap on existing infra) completes in < 10 minutes. (App runtime
-performance is out of scope — deferred to the application feature.)
-**Constraints**: Provider switch requires config-only changes (no pipeline/app logic
-changes); idempotent re-runs produce zero drift; no secrets in repo/logs; STG and PROD
-fully isolated; auto-rollback on failed PROD health check; single default region with
-per-client override; data stays in its region.
-**Scale/Scope**: Single-tenant per client; near-term focus on local clients (single-region
-sufficient). Tens of client deployments expected, each with 2 environments. Each environment
-is a single always-on app instance + single-node managed DB (STG sized smaller than PROD).
+**Testing**: `terraform fmt`/`validate`, `tflint`, config-contract checks (release-set schema,
+naming regex), `plan` diff, and post-deploy smoke tests (public gateway health, private-service
+reachability, aggregate health, per-service round trip).
+**Target Platform**: AWS, GCP, Azure. Multi-service compute — AWS ECS Fargate services behind one
+ALB in a VPC; GCP Cloud Run services (+ Serverless VPC connector, internal ingress for backend);
+Azure Container Apps environment (external/internal ingress). Managed PostgreSQL private per env.
+**Project Type**: Infrastructure + delivery pipeline for a multi-service application.
+**Performance Goals**: Clean-account provision + deploy of the full service set < 45 minutes; a
+Release-Set promotion (image swaps on existing infra) < 15 minutes.
+**Constraints**: Provider switch is config-only; idempotent; no secrets in repo/logs; STG/PROD
+isolated (network, DB, storage, service workloads); only the gateway public (backend private,
+FR-001c); deploy/promote/rollback operate on the whole Release Set (FR-022); aggregate health
+gates success and drives auto-rollback (FR-004/006a/SC-014); single default region, in-region data.
+**Scale/Scope**: Single-tenant per client; tens of clients × 2 tiers. Each environment runs a
+handful of services (frontend, gateway, 1+ backend services) + one managed DB.
 
 ## Constitution Check
 
@@ -56,18 +48,17 @@ is a single always-on app instance + single-node managed DB (STG sized smaller t
 
 | Principle | Gate | Status |
 |-----------|------|--------|
-| I. Specification-Driven Development | Approved spec + this plan verifies compliance before build | PASS — spec.md complete and clarified |
-| II. Test-Driven Development | Contract/validation tests and post-deploy smoke tests written before the modules/pipeline they cover | PASS — TDD order enforced in tasks; see contracts/ and Testing |
-| III. Security & Data Integrity First | Secrets only in cloud secret managers; encryption at rest + TLS in transit; per-env secret scoping; config validated at pipeline entry | PASS — FR-013/014/014a; money-math is app-level (out of scope here) |
-| IV. Environment Isolation | STG/PROD separate resources + separate remote state; no shared DB/storage; explicit promotion | PASS — FR-008/008a/009/010; state keyed per {client}-{env} |
-| V. Observability & Debuggability | Structured logs shipped to each cloud's log service; health endpoint gates deploy; deploy/promotion audit records | PASS — FR-018/016 |
-| VI. Simplicity & YAGNI | Managed services over self-hosting; single-node DB; no Kubernetes; provider abstraction is the minimum needed for the multi-cloud requirement | PASS with justification — see Complexity Tracking |
-| VII. Automated Quality Gates | CI runs fmt/validate/tflint/plan/smoke; fail-fast; no merge/promote on failure | PASS — FR-006/006a |
+| I. Specification-Driven Development | Clarified multi-service spec + this plan | PASS |
+| II. Test-Driven Development | Contract/validation + post-deploy smoke (incl. private-vs-public + aggregate health) written before modules/pipeline | PASS |
+| III. Security & Data Integrity First | Secrets in cloud secret managers per service/env; encryption at rest + TLS; backend services private; PROD PITR | PASS — FR-001c/013/014/014a |
+| IV. Environment Isolation | STG/PROD separate resources + state; no shared network/DB/storage/services; gated promotion | PASS |
+| V. Observability & Debuggability | Structured logs per service; aggregate health; deploy/promotion audit incl. Release Set | PASS |
+| VI. Simplicity & YAGNI | Managed multi-service runtimes over Kubernetes; static routing; one managed DB per env | PASS w/ justification |
+| VII. Automated Quality Gates | CI runs fmt/validate/tflint/plan/smoke; fail-fast; no merge/promote on failure | PASS |
 
-Initial Constitution Check: **PASS** (one justified complexity — multi-cloud provider modules).
-Post-Design Constitution Check (after Phase 1): **PASS** — the module-interface contract keeps
-provider detail isolated, remote state is keyed per `{client}-{env}`, and no new principle
-tension was introduced by the data model or contracts.
+Initial Constitution Check: **PASS** (justified complexity: multi-service topology × 3 clouds).
+Post-Design Check: **PASS** — the multi-service module contract and Release-Set pipeline keep
+provider detail isolated and preserve isolation/rollback guarantees.
 
 ## Project Structure
 
@@ -75,17 +66,12 @@ tension was introduced by the data model or contracts.
 
 ```text
 specs/001-multi-cloud-cicd/
-├── plan.md              # This file
-├── spec.md              # Feature spec (with Clarifications)
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output
-│   ├── config-schema.md         # Required input variables + validation (the tfvars contract)
-│   ├── module-interface.md      # Common inputs/outputs every per-cloud module MUST implement
-│   └── pipeline-operations.md   # deploy / promote / teardown pre/postconditions & gates
-└── checklists/
-    └── requirements.md  # Spec quality checklist
+├── plan.md  spec.md  research.md  data-model.md  quickstart.md
+├── contracts/
+│   ├── config-schema.md         # Release-set + env config (tfvars) contract
+│   ├── module-interface.md      # Common per-cloud multi-service module inputs/outputs
+│   └── pipeline-operations.md   # deploy / promote / teardown of a Release Set
+└── checklists/requirements.md
 ```
 
 ### Source Code (repository root)
@@ -93,52 +79,38 @@ specs/001-multi-cloud-cicd/
 ```text
 infra/
 └── terraform/
-    ├── main.tf                 # Root: selects the active per-cloud module by var.cloud_provider
-    ├── variables.tf            # The config contract (client_name, env, region, app_image, ...)
-    ├── outputs.tf              # Common outputs (app_url, db_endpoint_ref, ...)
-    ├── versions.tf             # Terraform + provider version pins
-    ├── backends/               # Remote-state backend config per cloud (state key = {client}-{env})
-    │   ├── aws.tfbackend
-    │   ├── gcp.tfbackend
-    │   └── azure.tfbackend
+    ├── main.tf                 # selects the active per-cloud module by var.cloud_provider
+    ├── variables.tf            # config contract incl. the service Release Set (map)
+    ├── outputs.tf              # gateway_url, per-service refs, db ref, aggregate health target
+    ├── versions.tf  backends/{aws,gcp,azure}.tfbackend
     ├── modules/
-    │   ├── common/             # Naming ({client}-{env}), tags/labels, validation locals
-    │   ├── aws/                # ECS Fargate + ALB + RDS PostgreSQL + S3 + Secrets Manager + ACM
-    │   ├── gcp/                # Cloud Run + Cloud SQL + GCS + Secret Manager + managed cert
-    │   └── azure/              # Container Apps + Azure DB for PostgreSQL + Blob + Key Vault
-    └── environments/           # Per-deployment variable files
-        └── <client-name>/
-            ├── stg.tfvars
-            └── prod.tfvars
+    │   ├── common/             # naming {client}-{env}[-service], tags, release-set validation
+    │   ├── aws/                # VPC, ECS Fargate service per app, ALB (public), Cloud Map,
+    │   │                       #   RDS PostgreSQL (private), S3, Secrets Manager, ACM
+    │   ├── gcp/                # Cloud Run per service (+VPC connector, internal ingress),
+    │   │                       #   Cloud SQL (private IP), GCS, Secret Manager, managed cert
+    │   └── azure/              # Container Apps env (ext/internal ingress), Azure DB PostgreSQL,
+    │                           #   Blob, Key Vault, managed cert
+    └── environments/<client-name>/{stg,prod}.tfvars   # incl. release_set = { service = version }
 
 scripts/
-├── deploy.sh                   # Provision + deploy to a {client}-{env}; runs smoke test
-├── promote.sh                  # Promote STG-validated version → PROD (enforces gate)
-├── teardown.sh                 # Destroy a {client}-{env} and confirm resource removal
-└── validate-config.sh          # Enforce config-schema contract before any plan/apply
+├── deploy.sh        # provision + deploy a Release Set to {client}-{env}; smoke test
+├── promote.sh       # promote a STG-validated Release Set → PROD (gate); health-gated
+├── teardown.sh      # destroy a {client}-{env}
+└── validate-config.sh
 
-tests/
-├── contract/                   # Naming-regex, required-variable, and module-interface checks
-├── integration/                # Post-deploy smoke tests (health endpoint, DB read/write, isolation)
-└── fixtures/                   # Sample tfvars for a throwaway test client
-
-.github/
-└── workflows/
-    ├── deploy-stg.yml          # On merge to main: deploy/refresh STG, run smoke tests
-    ├── promote-prod.yml        # Manual dispatch w/ approval: promote validated version to PROD
-    └── teardown.yml            # Manual dispatch: destroy a named {client}-{env}
+tests/{contract,integration,fixtures}
+.github/workflows/{deploy-stg.yml,promote-prod.yml,teardown.yml}
 ```
 
-**Structure Decision**: Infrastructure + pipeline layout. All infra lives under
-`infra/terraform/` with a provider-abstraction module tree (`modules/{common,aws,gcp,azure}`);
-orchestration lives in `scripts/`; quality gates and CI live in `tests/` and
-`.github/workflows/`. This satisfies FR-019 (everything version-controlled and reproducible)
-and keeps provider-specific detail confined to the three cloud modules behind one contract.
+**Structure Decision**: Same provider-abstraction Terraform layout, but the per-cloud module now
+provisions a **set of services** (iterating the Release Set) behind one public gateway with a
+private network and shared managed DB. `deploy.sh`/`promote.sh` operate on the Release Set.
 
 ## Complexity Tracking
 
-> Only the one complexity that appears to strain the Simplicity principle is recorded.
-
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|--------------------------------------|
-| Three parallel per-cloud implementation modules (`aws`/`gcp`/`azure`) behind a common contract | The core requirement (FR-002/FR-003) is that a client can pick any of the three clouds with config-only changes; provider APIs genuinely differ, so an abstraction layer is unavoidable | A single cloud (simplest) fails the multi-cloud requirement outright. A cross-cloud abstraction (Kubernetes on all three, Crossplane) adds a heavier always-on control plane and steeper operations than a solo maintainer should carry, and still needs per-cloud config — net more complex than three focused Terraform modules sharing one interface contract. |
+| Multi-service topology (N services + private networking + public gateway) across three clouds | The app is microservices (features 002/003); each cloud expresses multi-service + private networking differently, so each module implements it behind one contract | Single-image deploy (previous plan) no longer matches the app. Kubernetes (EKS/GKE/AKS) would unify it but adds a heavy control plane per client — rejected for a solo maintainer; managed multi-service runtimes (ECS/Cloud Run/Container Apps) are lighter and sufficient. |
+| Release Set as the deploy/promote unit | Services must be version-consistent across an environment (FR-022); promoting one image at a time risks incompatible mixes | Per-service independent promotion breaks the "validated together in STG" guarantee (SC-006) and complicates rollback. |
+| Shared managed PostgreSQL per environment (schema/db per service) | Cost and ops for a solo maintainer; matches feature-003 assumption | A database per service multiplies managed-DB cost and backup surface with little benefit at this scale. |

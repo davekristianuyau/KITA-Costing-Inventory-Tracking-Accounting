@@ -52,7 +52,8 @@
   with only the gateway public and a coordinated Release Set as the deploy/promote unit
   (new US6; FR-001c/004a/022; SC-013/014; entities Service, Gateway, Release Set).
   Spec re-validated — all items still pass.
-- STALE DOWNSTREAM ARTIFACTS: plan.md, research.md, data-model.md, contracts/, and
-  tasks.md for feature 001 were written for the single-image model and MUST be
-  regenerated via `/speckit.plan` then `/speckit.tasks` to reflect the multi-service
-  topology (multiple images, gateway/ingress, private service networking, Release Set).
+- REGENERATED (2026-07-10): plan.md, research.md, data-model.md, contracts/, quickstart.md, and
+  tasks.md were regenerated for the multi-service topology — per-service compute on managed
+  runtimes (ECS Fargate / Cloud Run / Container Apps), one public gateway with private backend
+  services, shared managed PostgreSQL, and a coordinated **Release Set** as the deploy/promote/
+  rollback unit with aggregate-health gating. Ready for implementation.

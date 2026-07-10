@@ -1,59 +1,54 @@
-# Contract: Per-Cloud Module Interface
+# Contract: Per-Cloud Module Interface (multi-service)
 
-**Feature**: 001-multi-cloud-cicd | **Date**: 2026-07-08
+**Feature**: 001-multi-cloud-cicd | **Date**: 2026-07-10
 
-This is the heart of the provider-abstraction pattern (R1). The `aws`, `gcp`, and `azure`
-modules under `infra/terraform/modules/` MUST each implement **exactly** these inputs and
-outputs. Because the interface is identical, the root config swaps providers with a
-config-only change (FR-003) and the pipeline/app never change. A contract test verifies all
-three modules declare the same variable and output names.
+The `aws`, `gcp`, and `azure` modules MUST each implement exactly these inputs/outputs so the root
+config swaps providers with config only (FR-003) and the pipeline never changes. Updated to
+provision a **set of services** behind one public gateway. A contract test verifies all three
+modules declare the same names.
 
-## Module inputs (identical across all three modules)
-
+## Module inputs (identical across modules)
 | Input | Type | Meaning |
 |-------|------|---------|
-| `client_name` | string | `{client-name}` naming token (FR-020) |
-| `env` | string | `stg` \| `prod` naming token (FR-008) |
-| `region` | string | Target region; all data-bearing resources confined here (FR-002a) |
-| `app_image` | string | Container image repository |
-| `app_version` | string | Immutable image tag/digest to run (R7) |
-| `size` | string | `small` \| `standard` \| `large` sizing profile (FR-008a) |
-| `custom_domain` | string | Optional FQDN for public TLS ingress (FR-001b) |
-| `db_backup_retention_days` | number | Backup retention; PITR implied for prod (FR-014a) |
-| `tags` | map(string) | Tags/labels applied to every resource (FR-021) |
+| `client_name` | string | `{client-name}` naming token |
+| `env` | string | `stg`\|`prod` naming token |
+| `region` | string | data-bearing resources confined here (FR-002a) |
+| `release_set` | map(object) | `service_name → { image, version, visibility, port, health_path }` (FR-022) |
+| `size` | string | sizing profile (FR-008a) |
+| `custom_domain` | string | optional FQDN for the public gateway (FR-001b) |
+| `db_backup_retention_days` | number | PITR/backups for prod (FR-014a) |
+| `tags` | map(string) | applied to every resource (FR-021) |
 
-## Module outputs (identical across all three modules)
-
+## Module outputs (identical across modules)
 | Output | Type | Meaning |
 |--------|------|---------|
-| `app_url` | string | Public HTTPS URL of the deployed app (used by smoke test) |
-| `health_check_url` | string | `/health` endpoint used to gate deploy + trigger rollback (FR-006a) |
-| `db_connection_secret_ref` | string | Reference (not value) to the DB credential in the secret store (FR-013) |
-| `object_storage_ref` | string | Identifier of the created object-storage bucket/container |
-| `environment_name` | string | Resolved `{client_name}-{env}` (must equal the naming convention) |
-| `resource_ids` | map(string) | Map of logical name → provider resource id, for audit/teardown verification |
+| `gateway_url` | string | public HTTPS URL of the gateway (single entry point) |
+| `aggregate_health_url` | string | endpoint reflecting gateway + required-service health (SC-014, FR-006a) |
+| `service_endpoints` | map(string) | `service_name → internal URL` (backend private) |
+| `db_connection_secret_ref` | string | reference (not value) to DB creds in the secret store (FR-013) |
+| `object_storage_ref` | string | created bucket/container id |
+| `environment_name` | string | resolved `{client_name}-{env}` |
+| `resource_ids` | map(string) | logical name → provider resource id (audit/teardown) |
 
 ## Behavioral guarantees each module MUST honor
+1. Provision one compute workload **per service** in `release_set`, on the cloud's managed
+   multi-service runtime, wired to the shared managed PostgreSQL and object storage.
+2. Expose **only** `public` services (gateway/frontend) via the public LB/ingress with managed TLS;
+   `private` services get no public ingress (FR-001c, SC-013).
+3. Route service-to-service and service-to-DB traffic over the **private network** only (FR-004a).
+4. Name/tag every resource from `{client-name}-{env}[-service]` (FR-020/021, SC-012).
+5. Isolation: own network, DB, storage, and service workloads — shared with no other env (SC-005/008).
+6. Encryption at rest + TLS in transit (FR-014); PROD DB PITR + daily backups (FR-014a).
+7. Idempotent: no changes on re-apply with unchanged inputs (FR-005, SC-003).
+8. Health-gated rollout per service; report success only when **aggregate health** is healthy;
+   otherwise auto-rollback to the previous Release Set (FR-006a, SC-014).
+9. Region containment (FR-002a); clean `destroy` removes 100% of resources (FR-015, SC-009).
 
-1. **Naming**: every created resource's name/tag derives from `{client_name}-{env}`; no
-   hard-coded names (FR-020, SC-012).
-2. **Isolation**: creates its own network boundary, database, and object storage; shares
-   none of them with any other module instance (FR-008, SC-005/SC-008).
-3. **Encryption**: enables encryption at rest and TLS in transit wherever supported (FR-014).
-4. **Idempotency**: no resource changes on re-apply with unchanged inputs (FR-005, SC-003).
-5. **Health-gated rollout**: new `app_version` receives traffic only after `health_check_url`
-   passes; otherwise the previous healthy version keeps serving (FR-006a).
-6. **Region containment**: no data-bearing resource is created outside `region` (FR-002a).
-7. **Clean destroy**: `terraform destroy` removes 100% of resources it created; `resource_ids`
-   lets the pipeline verify nothing remains (FR-015, SC-009).
-
-## Provider realization (informative — not part of the contract surface)
-
+## Provider realization (informative)
 | Concern | aws | gcp | azure |
 |---------|-----|-----|-------|
-| Compute | ECS Fargate + ALB | Cloud Run | Container Apps |
-| Database | RDS PostgreSQL | Cloud SQL PostgreSQL | Azure DB for PostgreSQL Flexible |
-| Object storage | S3 | GCS | Blob Storage |
-| Secrets | Secrets Manager | Secret Manager | Key Vault |
-| TLS cert | ACM | Google-managed cert | Container Apps managed cert |
-| Remote state | S3 + DynamoDB lock | GCS (versioned) | Azure Storage (blob lease) |
+| Per-service compute | ECS Fargate service | Cloud Run service | Container Apps app |
+| Public ingress | ALB (host/path) | Cloud Run external | Container Apps external ingress |
+| Private services | private subnets + Cloud Map | internal ingress + VPC connector | internal ingress |
+| Database | RDS PostgreSQL (private) | Cloud SQL (private IP) | Azure DB PostgreSQL (private) |
+| Secrets / TLS / state | Secrets Mgr / ACM / S3+DDB | Secret Mgr / managed cert / GCS | Key Vault / managed cert / Storage |

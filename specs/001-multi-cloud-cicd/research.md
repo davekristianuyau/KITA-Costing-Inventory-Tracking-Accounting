@@ -1,132 +1,83 @@
-# Phase 0 Research: Multi-Cloud CI/CD Infrastructure Scaffolding
+# Phase 0 Research: Multi-Cloud CI/CD Infrastructure Scaffolding (multi-service)
 
-**Feature**: 001-multi-cloud-cicd | **Date**: 2026-07-08
+**Feature**: 001-multi-cloud-cicd | **Date**: 2026-07-10
 
-This document resolves the technical unknowns implied by the spec and clarifications.
-Each entry records the decision, rationale, and alternatives considered.
+Resolves the technical approach now that KITA deploys as a **set of services** (features 002/003)
+rather than a single image. Prior single-image decisions are superseded where noted. Framework
+families (Terraform, the three clouds) and behavior (STG/PROD, gated promotion, single region,
+lot/PITR) remain as previously clarified.
 
-## R1. Multi-cloud IaC structure
+## R1. IaC structure (unchanged)
 
-- **Decision**: Single Terraform codebase using a **provider-abstraction pattern**: a thin
-  root config (`main.tf`) selects exactly one per-cloud module (`modules/aws|gcp|azure`)
-  based on `var.cloud_provider`; every module implements an identical input/output
-  contract (see `contracts/module-interface.md`). Shared naming/tagging/validation lives
+- **Decision**: One Terraform codebase; root selects a per-cloud module by `var.cloud_provider`;
+  all modules implement one contract (contracts/module-interface.md); shared naming/tags/validation
   in `modules/common`.
-- **Rationale**: Directly satisfies FR-002/FR-003 (config-only provider switch). Keeps
-  provider-specific resources encapsulated so the pipeline and app never change when the
-  target cloud changes. A single codebase (vs three) keeps the "minimal changes"
-  guarantee auditable in one place.
-- **Alternatives considered**:
-  - *Three independent codebases* — rejected: duplicates pipeline logic and makes the
-    "minimal changes" claim unverifiable.
-  - *Kubernetes (EKS/GKE/AKS) as a uniform layer* — rejected: heavy always-on control
-    plane and operational load inappropriate for a solo maintainer (Simplicity principle).
-  - *Crossplane / Pulumi multi-cloud abstractions* — rejected: adds a new control plane /
-    runtime and still requires per-cloud config; net more complex than three Terraform
-    modules behind a contract.
+- **Rationale**: Config-only provider switch (FR-003) with auditable "minimal changes".
 
-## R2. Compute (application runtime) per cloud
+## R2. Multi-service compute per cloud (supersedes single-image R2)
 
-- **Decision**: Managed container runtimes with always-on capability and native TLS
-  ingress + custom domains: **AWS ECS Fargate behind an ALB**, **GCP Cloud Run** (min
-  instances ≥ 1), **Azure Container Apps**. All consume the same container image.
-- **Rationale**: All three are serverless-container services (no node management), support
-  a single always-on web app, HTTPS ingress, custom domains, revisions, and rolling
-  updates with health checks — the primitives needed for FR-001/FR-001b and auto-rollback
-  (FR-006a). Preferring managed services satisfies the Simplicity principle.
-- **Alternatives considered**:
-  - *VMs (EC2/GCE/Azure VM)* — rejected: OS patching and process supervision add ongoing toil.
-  - *AWS App Runner* — viable but ALB+Fargate gives finer control over health checks and
-    blue/green rollback; chosen for parity with the other two.
+- **Decision**: Managed multi-service runtimes, one deployable per service in the Release Set:
+  - **AWS**: an **ECS Fargate service per app** in a VPC; a single public **ALB** routes to the
+    frontend + gateway (host/path rules); backend services run in private subnets and are reached
+    via **Cloud Map** service discovery / internal target groups.
+  - **GCP**: a **Cloud Run service per app**; frontend/gateway have external ingress, backend
+    services use **internal ingress** reachable via a **Serverless VPC connector**.
+  - **Azure**: one **Container Apps environment** with an app per service; frontend/gateway use
+    external ingress, backend apps use internal ingress; built-in service discovery by app name.
+- **Rationale**: Serverless-container runtimes give per-service scaling, private/public ingress,
+  revisions, and health-gated rollout without managing a cluster (Simplicity).
+- **Alternatives**: Kubernetes (EKS/GKE/AKS) — rejected (control-plane + ops weight per client);
+  VMs — rejected (patching/supervision toil).
 
-## R3. Database per cloud
+## R3. Network & exposure
 
-- **Decision**: Managed **PostgreSQL**: AWS RDS for PostgreSQL, GCP Cloud SQL for
-  PostgreSQL, Azure Database for PostgreSQL (Flexible Server). Single node. PROD enables
-  daily automated backups + point-in-time recovery; STG uses relaxed backups.
-- **Rationale**: PostgreSQL is available managed on all three clouds and is the native
-  database of the Odoo-class application referenced in the spec. Managed PITR maps
-  directly to the clarified recovery expectation (FR-014a). Single node matches the
-  chosen recovery model (no HA standby) and controls cost.
-- **Alternatives considered**:
-  - *Self-managed PostgreSQL on compute* — rejected: backups/patching become manual.
-  - *Cloud-native non-portable databases (Aurora-only features, Spanner, Cosmos DB)* —
-    rejected: would break portability and lock the schema to one provider.
-  - *HA multi-node* — deferred: clarification chose single-node + PITR; can be added later
-    via a sizing/HA variable without changing the contract.
+- **Decision**: Private network per environment (VPC / VPC + connector / Container Apps env). Only
+  the **gateway (and frontend)** are publicly reachable via the cloud LB/ingress with managed TLS
+  and the client's custom domain; **backend services are private** (FR-001c). Service-to-service
+  and service-to-DB traffic stays on the private network (FR-004a).
+- **Rationale**: Least exposure for a financial system; matches feature-003 gateway topology.
 
-## R4. Object storage, secrets, TLS/domains
+## R4. Service discovery & routing
 
-- **Decision**: Object storage = S3 / GCS / Azure Blob. Secrets = AWS Secrets Manager /
-  GCP Secret Manager / Azure Key Vault, scoped per environment. TLS = provider-managed
-  certificates (ACM / Google-managed certs / Azure Container Apps managed certs) bound to
-  the client's custom domain.
-- **Rationale**: Each is the first-party managed equivalent, satisfies encryption-at-rest
-  (FR-014), keeps secrets out of repo/logs (FR-013), and provides automatic cert renewal
-  for per-client domains (FR-001b).
-- **Alternatives considered**: Storing secrets in CI variables only — rejected: the
-  running app also needs runtime secret access, which the cloud secret manager provides
-  natively; CI holds only the bootstrap credential.
+- **Decision**: The gateway addresses backend services by stable internal names, injected as env
+  config (e.g., `OPERATIONS_SERVICE_URL`): AWS Cloud Map DNS, GCP internal Cloud Run URLs, Azure
+  Container Apps app names. Static configuration (no discovery server), per feature 003.
+- **Alternatives**: Eureka/Consul — rejected (extra moving part; YAGNI at this scale).
 
-## R5. Remote state & isolation
+## R5. Shared managed PostgreSQL (unchanged intent)
 
-- **Decision**: Remote Terraform state per cloud with locking — S3 + DynamoDB lock table
-  (AWS), GCS bucket with object versioning (GCP), Azure Storage with blob lease (Azure).
-  **State key = `{client-name}-{env}`**, giving each environment its own isolated state.
-- **Rationale**: Per-environment state is what makes STG/PROD and per-client isolation
-  real (FR-008/FR-009) and prevents concurrent-change conflicts via native locking
-  (FR-017). Keying by `{client}-{env}` reuses the naming convention (FR-020).
-- **Alternatives considered**:
-  - *Single state file with workspaces* — rejected: a blast-radius risk (one corrupt state
-    endangers all clients) and weaker isolation than separate state objects.
-  - *Local state* — rejected: not durable or lockable (fails the Dependencies section).
+- **Decision**: One managed PostgreSQL per environment (private), shared by services with schema/db
+  separation. PROD: daily backups + PITR; STG relaxed. Business logic lives in services.
+- **Alternatives**: DB per service — rejected (cost/backup surface at this scale).
 
-## R6. CI/CD pipeline
+## R6. Release Set as the unit of deploy/promote (new)
 
-- **Decision**: **GitHub Actions** with three workflows: `deploy-stg` (auto on merge to
-  main), `promote-prod` (manual `workflow_dispatch` gated by a GitHub Environment approval),
-  `teardown` (manual). Each job calls provider-agnostic scripts (`deploy.sh`/`promote.sh`/
-  `teardown.sh`) so CI holds orchestration, not cloud logic.
-- **Rationale**: The repo is Git-based; GitHub Environments provide the explicit approval
-  gate that enforces non-automatic promotion (FR-009/FR-010/FR-011) and per-environment
-  secret scoping. Keeping logic in scripts keeps the pipeline portable to another CI later.
-- **Alternatives considered**: Cloud-native CI (CodePipeline / Cloud Build / Azure
-  Pipelines) — rejected: would tie the pipeline itself to one cloud, contradicting the
-  multi-cloud goal.
+- **Decision**: A **Release Set** is a versioned map `{ service-name → immutable image tag/digest }`
+  expressed in each environment's tfvars (`release_set`). deploy/promote/rollback operate on the
+  whole set atomically; promotion carries the identical set validated in STG (FR-022, SC-006).
+- **Rationale**: Guarantees version-consistent environments and coherent rollback.
+- **Alternatives**: Per-service promotion — rejected (incompatible-version risk).
 
-## R7. Artifact build & promotion model
+## R7. Health gating & auto-rollback (extended to aggregate)
 
-- **Decision**: The application image is **built upstream** (out of scope) and published to
-  a single cloud-agnostic registry (e.g., GHCR) referenced by immutable tag/digest.
-  Promotion moves the **same digest** from STG to PROD — no rebuild.
-- **Rationale**: Promoting the identical artifact is what makes "validated in STG" mean
-  something in PROD (FR-010, SC-006). A single registry all clouds can pull from avoids
-  per-cloud image copies for the common case.
-- **Alternatives considered**: Per-cloud registries (ECR/Artifact Registry/ACR) — noted as
-  a future option if a client requires images to stay within their cloud; handled by an
-  optional image-mirror step, not needed for the MVP.
+- **Decision**: Deployment success requires **aggregate health** — the gateway healthy AND all
+  required backend services healthy (SC-014). On failure, auto-rollback the environment to the
+  previous Release Set (per-service revision rollback on each runtime) so the last healthy set keeps
+  serving (FR-006a); failed versions get no traffic.
+- **Alternatives**: Per-service health without an aggregate gate — rejected (partial/inconsistent
+  deploys reported as success).
 
-## R8. Deployment strategy & auto-rollback
+## R8. Remote state, region, CI, artifacts, secrets — carried over
 
-- **Decision**: Rolling update with a health-check gate on each cloud's revision mechanism
-  (ECS blue/green via CodeDeploy or rolling with circuit breaker; Cloud Run revision + traffic
-  shift; Container Apps revision + traffic weight). On failed health check, traffic stays on
-  (or reverts to) the last healthy revision; the new revision receives no traffic.
-- **Rationale**: Implements the clarified auto-rollback behavior (FR-006a) using native
-  primitives rather than bespoke tooling.
-- **Alternatives considered**: Manual rollback only — rejected by clarification (chose
-  auto-rollback for a live financial system).
-
-## R9. Region policy
-
-- **Decision**: A single default region applies to all clients; `var.region` overrides it
-  per client. Data-bearing resources (DB, storage, backups) are created only in that region.
-- **Rationale**: Matches the clarified single-default-region policy with per-client override
-  and in-region data (FR-002a); fits the near-term local-client focus.
-- **Alternatives considered**: Mandatory per-client region or multi-region HA — rejected by
-  clarification; multi-region can be added later behind the same variable.
+- **State**: per cloud, locked, keyed `{client}-{env}`.
+- **Region**: single default, per-client override, in-region data (FR-002a).
+- **CI/CD**: GitHub Actions; `deploy-stg` (auto on merge), `promote-prod` (manual, protected
+  Environment approval → gate), `teardown` (manual). Logic in provider-agnostic scripts.
+- **Artifacts**: all service images pulled from a registry by the Release Set; promotion reuses the
+  same tags/digests (no rebuild).
+- **Secrets**: cloud secret managers, per env and per service; never in repo/logs.
 
 ## Deferred (not blocking)
 
-- **Application runtime performance targets** (latency/throughput): app-level, set when the
-  KITA application feature is specified. Infra exposes a sizing variable to meet them later.
+- Multi-region HA, per-service databases, canary/blue-green beyond the runtime's native revision
+  rollback, and a self-service cloud-choice UI.
