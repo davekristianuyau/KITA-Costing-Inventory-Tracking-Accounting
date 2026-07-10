@@ -46,4 +46,3 @@ public abstract class AbstractIntegrationTest {
             + " uom_conversion, item, unit_of_measure, stock_location RESTART IDENTITY CASCADE");
   }
 }
-

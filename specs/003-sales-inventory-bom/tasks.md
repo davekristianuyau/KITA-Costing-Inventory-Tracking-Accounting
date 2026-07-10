@@ -246,11 +246,11 @@ returns the data needed to value inventory.
 
 ## Phase 11: Polish & Cross-Cutting Concerns
 
-- [ ] T066 [P] Add DB indexes/constraints review migration for hot paths (stock_movement by item+occurred_at; unique stock_level by item×location×lot)
-- [ ] T067 [P] Wire `operations-service` into `make test`/`make lint` and the CI workflow (Spotless/Checkstyle + tests)
-- [ ] T068 Run quickstart.md end-to-end (catalog → receipt → kit sale → build → costing → availability) and record results
-- [ ] T069 [P] Add a secret-leak check and confirm no secrets in config/logs (SC/constitution)
-- [ ] T070 [P] Map Success Criteria SC-001..SC-011 to their covering tests in `src/test/README.md`
+- [X] T066 [P] Add DB indexes/constraints review migration for hot paths (stock_movement by item+occurred_at; unique stock_level by item×location×lot)
+- [X] T067 [P] Wire `operations-service` into `make test`/`make lint` and the CI workflow (Spotless/Checkstyle + tests)
+- [X] T068 Run quickstart.md end-to-end (catalog → receipt → kit sale → build → costing → availability) and record results
+- [X] T069 [P] Add a secret-leak check and confirm no secrets in config/logs (SC/constitution)
+- [X] T070 [P] Map Success Criteria SC-001..SC-011 to their covering tests in `src/test/README.md`
 
 ---
 
