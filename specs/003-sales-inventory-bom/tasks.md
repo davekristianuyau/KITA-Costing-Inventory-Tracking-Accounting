@@ -232,13 +232,13 @@ returns the data needed to value inventory.
 
 ### Tests (write first, must FAIL) ⚠️
 
-- [ ] T062 [P] [US5] Integration: availability reconciles with movements + reservations for every item (SC-006)
-- [ ] T063 [P] [US5] Integration: movement period query returns valuation-ready data (SC-008)
+- [X] T062 [P] [US5] Integration: availability reconciles with movements + reservations for every item (SC-006)
+- [X] T063 [P] [US5] Integration: movement period query returns valuation-ready data (SC-008)
 
 ### Implementation
 
-- [ ] T064 [US5] Ensure availability endpoint returns on-hand/reserved/available per item×location; add movement period query params
-- [ ] T065 [US5] Document the data contract the Accounting feature consumes (in contracts/costing-model.md reference)
+- [X] T064 [US5] Ensure availability endpoint returns on-hand/reserved/available per item×location; add movement period query params
+- [X] T065 [US5] Document the data contract the Accounting feature consumes (in contracts/costing-model.md reference)
 
 **Checkpoint**: downstream domains can consume the data.
 
