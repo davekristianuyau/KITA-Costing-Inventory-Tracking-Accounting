@@ -1,0 +1,23 @@
+# Reference-service configuration (SCAFFOLDING SKELETON). All values env-overridable.
+server:
+  port: 8082
+
+spring:
+  application:
+    name: reference-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://postgres:5432/kita}
+    username: ${DATABASE_USER:kita}
+    password: ${DATABASE_PASSWORD:change-me}
+  jpa:
+    hibernate:
+      ddl-auto: validate   # schema owned by Flyway, never auto-generated
+  flyway:
+    enabled: true
+    locations: classpath:db/migration   # migration files added in a later feature
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
