@@ -155,7 +155,7 @@ failed aggregate health.
 ## Phase 8: Polish
 
 - [ ] T058 [P] Secret-leak scan in CI over repo + plan/log output (SC-010)
-- [ ] T059 [P] `infra/terraform/README.md` — provider-abstraction + Release-Set model + how to add a cloud/service
+- [X] T059 [P] `infra/terraform/README.md` — provider-abstraction + Release-Set model + how to add a cloud/service
 - [ ] T060 [P] Add `terraform fmt -check`, `validate`, `tflint` as blocking CI checks (Principle VII, FR-006)
 - [ ] T061 Run quickstart end-to-end on AWS (deploy → switch cloud → promote → update → teardown); record results
 - [ ] T062 [P] Map SC-001..SC-014 to covering tests in `tests/README.md`
