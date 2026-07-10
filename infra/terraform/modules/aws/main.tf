@@ -1,9 +1,6 @@
 # AWS module — provisions the KITA service set (Release Set) on ECS Fargate behind a public ALB,
 # with private backend services (Cloud Map), RDS PostgreSQL, S3, and Secrets Manager.
-#
-# STATUS: interface stub. Inputs/outputs match contracts/module-interface.md so the root config
-# validates and providers switch by config today. Resource bodies (network/db/storage/compute/
-# ingress/health) are implemented in the next increment (tasks T019–T027).
+# Inputs/outputs match contracts/module-interface.md.
 
 variable "client_name" { type = string }
 variable "env" { type = string }
@@ -29,14 +26,28 @@ module "naming" {
   tags        = var.tags
 }
 
-locals {
-  # Backend services are private; only public services front the gateway/ALB.
-  public_services  = { for k, v in var.release_set : k => v if v.visibility == "public" }
-  private_services = { for k, v in var.release_set : k => v if v.visibility == "private" }
+data "aws_availability_zones" "available" {
+  state = "available"
 }
 
-# Placeholders until resources are implemented; keep the module-interface outputs stable.
-output "gateway_url" { value = "" }
-output "aggregate_health_url" { value = "" }
-output "service_endpoints" { value = { for k, v in var.release_set : k => "" } }
-output "environment_name" { value = module.naming.name_prefix }
+locals {
+  name = module.naming.name_prefix
+  tags = module.naming.tags
+  azs  = slice(data.aws_availability_zones.available.names, 0, 2)
+
+  public_services  = { for k, v in var.release_set : k => v if v.visibility == "public" }
+  private_services = { for k, v in var.release_set : k => v if v.visibility == "private" }
+  image_ref        = { for k, v in var.release_set : k => "${v.image}:${v.version}" }
+
+  sizing = {
+    small    = { cpu = 256, memory = 512 }
+    standard = { cpu = 512, memory = 1024 }
+    large    = { cpu = 1024, memory = 2048 }
+  }
+  cpu    = local.sizing[var.size].cpu
+  memory = local.sizing[var.size].memory
+
+  # The gateway is the public entry; prefer a service literally named "gateway", else any public one.
+  gateway_key = contains(keys(local.public_services), "gateway") ? "gateway" : keys(local.public_services)[0]
+  use_tls     = var.custom_domain != ""
+}

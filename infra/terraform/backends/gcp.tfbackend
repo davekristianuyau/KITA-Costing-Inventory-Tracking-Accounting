@@ -1,0 +1,2 @@
+# Partial GCS backend config; deploy.sh adds -backend-config="prefix=<client>-<env>".
+bucket = "kita-tfstate"

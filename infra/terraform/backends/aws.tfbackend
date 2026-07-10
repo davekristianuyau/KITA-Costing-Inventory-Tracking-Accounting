@@ -1,0 +1,5 @@
+# Partial S3 backend config; deploy.sh adds -backend-config="key=<client>-<env>/terraform.tfstate".
+bucket         = "kita-tfstate"
+region         = "us-east-1"
+dynamodb_table = "kita-tflock"
+encrypt        = true

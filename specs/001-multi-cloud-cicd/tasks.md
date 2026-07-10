@@ -24,22 +24,22 @@ gateway. Reference cloud = **AWS**; GCP/Azure added in US3.
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `infra/terraform/{modules/{common,aws,gcp,azure},backends,environments}`, `scripts/`, `tests/{contract,integration,fixtures}`, `.github/workflows/`
-- [ ] T002 `infra/terraform/versions.tf` pinning Terraform >= 1.9 and providers aws ~>5, google ~>5, azurerm ~>4
+- [X] T001 Create `infra/terraform/{modules/{common,aws,gcp,azure},backends,environments}`, `scripts/`, `tests/{contract,integration,fixtures}`, `.github/workflows/`
+- [X] T002 `infra/terraform/versions.tf` pinning Terraform >= 1.9 and providers aws ~>5, google ~>5, azurerm ~>4
 - [ ] T003 [P] `.tflint.hcl` + `terraform fmt`/`validate` config
 - [ ] T004 [P] `tests/run.sh` runner for contract/smoke bash assertions
-- [ ] T005 [P] `.gitignore` for `.terraform/`, `*.tfstate*`, secret tfvars, plan files
+- [X] T005 [P] `.gitignore` for `.terraform/`, `*.tfstate*`, secret tfvars, plan files
 
 ---
 
 ## Phase 2: Foundational (Blocking)
 
-- [ ] T006 `infra/terraform/variables.tf` — the config contract incl. `release_set` map (service → image/version/visibility/port/health_path), with validation (enums, client_name regex, immutable versions, ≥1 public) per contracts/config-schema.md
-- [ ] T007 `infra/terraform/main.tf` — select per-cloud module by `var.cloud_provider`, passing the module-interface inputs
-- [ ] T008 `infra/terraform/outputs.tf` — `gateway_url`, `aggregate_health_url`, `service_endpoints`, `db_connection_secret_ref`, `object_storage_ref`, `environment_name`, `resource_ids`
-- [ ] T009 [P] `modules/common/` — naming `{client}-{env}[-service]`, mandatory tags, release-set validation locals (FR-020/021/022)
-- [ ] T010 [P] `scripts/validate-config.sh` — enforce config-schema incl. Release-Set rules; fail-fast (FR-006/007/013)
-- [ ] T011 [P] `backends/{aws,gcp,azure}.tfbackend` — remote state keyed `{client}-{env}`, locking
+- [X] T006 `infra/terraform/variables.tf` — the config contract incl. `release_set` map (service → image/version/visibility/port/health_path), with validation (enums, client_name regex, immutable versions, ≥1 public) per contracts/config-schema.md
+- [X] T007 `infra/terraform/main.tf` — select per-cloud module by `var.cloud_provider`, passing the module-interface inputs
+- [X] T008 `infra/terraform/outputs.tf` — `gateway_url`, `aggregate_health_url`, `service_endpoints`, `db_connection_secret_ref`, `object_storage_ref`, `environment_name`, `resource_ids`
+- [X] T009 [P] `modules/common/` — naming `{client}-{env}[-service]`, mandatory tags, release-set validation locals (FR-020/021/022)
+- [X] T010 [P] `scripts/validate-config.sh` — enforce config-schema incl. Release-Set rules; fail-fast (FR-006/007/013)
+- [X] T011 [P] `backends/{aws,gcp,azure}.tfbackend` — remote state keyed `{client}-{env}`, locking
 - [ ] T012 [P] `scripts/record-deployment.sh` — append audit incl. Release Set (FR-016)
 
 **Checkpoint**: contract + config layer ready.
@@ -60,18 +60,18 @@ service is NOT publicly reachable; gateway→service round trip works; re-run = 
 - [ ] T015 [P] [US1] `tests/integration/test_deploy_health.sh` — after deploy, gateway aggregate health UP; gateway→operations-service round trip
 - [ ] T016 [P] [US1] `tests/integration/test_backend_private.sh` — backend service has no public endpoint (SC-013)
 - [ ] T017 [P] [US1] `tests/integration/test_idempotent_apply.sh` — second apply = zero changes (SC-003)
-- [ ] T018 [P] [US1] `tests/fixtures/aws-stg.tfvars` — sample Release Set for a throwaway client
+- [X] T018 [P] [US1] `tests/fixtures/aws-stg.tfvars` — sample Release Set for a throwaway client
 
 ### Implementation
-- [ ] T019 [US1] `modules/aws/network.tf` — VPC, public+private subnets, security groups (FR-001/008)
-- [ ] T020 [US1] `modules/aws/database.tf` — RDS PostgreSQL (private, encrypted, creds→Secrets Manager) (FR-013/014)
-- [ ] T021 [P] [US1] `modules/aws/storage.tf` — S3 (encrypted)
-- [ ] T022 [US1] `modules/aws/compute.tf` — one ECS Fargate service **per Release-Set entry** (`for_each`), task defs from image/version, env incl. service URLs + DB secret; Cloud Map for private discovery
-- [ ] T023 [US1] `modules/aws/ingress.tf` — public ALB + ACM cert + custom domain routing to `public` services only; backend services private (FR-001c/001b/004a)
-- [ ] T024 [US1] `modules/aws/health.tf` + module `variables.tf`/`outputs.tf` — aggregate health target; outputs matching the contract (makes T013 pass)
-- [ ] T025 [US1] Wire `modules/aws` into root `main.tf`; ensure `validate-config.sh` runs before plan
-- [ ] T026 [US1] `scripts/deploy.sh` — init (`{client}-{env}` state) → validate → plan → apply → wait aggregate health → smoke test → record deployment
-- [ ] T027 [US1] Ship per-service structured logs to CloudWatch; scrub secrets from output (FR-018/013)
+- [X] T019 [US1] `modules/aws/network.tf` — VPC, public+private subnets, security groups (FR-001/008)
+- [X] T020 [US1] `modules/aws/database.tf` — RDS PostgreSQL (private, encrypted, creds→Secrets Manager) (FR-013/014)
+- [X] T021 [P] [US1] `modules/aws/storage.tf` — S3 (encrypted)
+- [X] T022 [US1] `modules/aws/compute.tf` — one ECS Fargate service **per Release-Set entry** (`for_each`), task defs from image/version, env incl. service URLs + DB secret; Cloud Map for private discovery
+- [X] T023 [US1] `modules/aws/ingress.tf` — public ALB + ACM cert + custom domain routing to `public` services only; backend services private (FR-001c/001b/004a)
+- [X] T024 [US1] `modules/aws/health.tf` + module `variables.tf`/`outputs.tf` — aggregate health target; outputs matching the contract (makes T013 pass)
+- [X] T025 [US1] Wire `modules/aws` into root `main.tf`; ensure `validate-config.sh` runs before plan
+- [X] T026 [US1] `scripts/deploy.sh` — init (`{client}-{env}` state) → validate → plan → apply → wait aggregate health → smoke test → record deployment
+- [X] T027 [US1] Ship per-service structured logs to CloudWatch; scrub secrets from output (FR-018/013)
 
 **Checkpoint**: full multi-service stack deploys to AWS from one command. **MVP.**
 
