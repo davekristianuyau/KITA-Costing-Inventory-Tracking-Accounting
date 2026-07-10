@@ -18,13 +18,19 @@ npm-debug.log*
 .env.*
 !.env.example
 
+# --- Terraform ---
+**/.terraform/
+*.tfstate
+*.tfstate.*
+# keep .terraform.lock.hcl tracked (pins provider versions)
+
 # --- Docker ---
 # (no build artifacts tracked)
 
 # --- IDE / OS ---
 .idea/
-.vscode/
 *.iml
 .DS_Store
 Thumbs.db
 *.swp
+# .vscode/ is intentionally tracked so shared editor settings sync across machines
