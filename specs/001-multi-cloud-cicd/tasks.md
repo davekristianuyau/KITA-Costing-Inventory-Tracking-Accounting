@@ -113,9 +113,9 @@ failed aggregate health.
 - [ ] T043 [P] [US3] `tests/fixtures/{gcp,azure}-stg.tfvars`
 
 ### Implementation
-- [ ] T044 [P] [US3] `modules/gcp/` — Cloud Run per service (+ Serverless VPC connector, internal ingress for backend), Cloud SQL (private IP), GCS, Secret Manager, managed cert — to the module-interface contract
-- [ ] T045 [P] [US3] `modules/azure/` — Container Apps env (external/internal ingress per visibility), Azure DB for PostgreSQL Flexible (private), Blob, Key Vault, managed cert — to the contract
-- [ ] T046 [US3] Extend root `main.tf` to route gcp/azure; verify identical output surface across modules
+- [X] T044 [P] [US3] `modules/gcp/` — Cloud Run per service (+ Serverless VPC connector, internal ingress for backend), Cloud SQL (private IP), GCS, Secret Manager, managed cert — to the module-interface contract
+- [X] T045 [P] [US3] `modules/azure/` — Container Apps env (external/internal ingress per visibility), Azure DB for PostgreSQL Flexible (private), Blob, Key Vault, managed cert — to the contract
+- [X] T046 [US3] Extend root `main.tf` to route gcp/azure; verify identical output surface across modules
 - [ ] T047 [US3] Add GCP/Azure remote-state backends to `deploy.sh`/`promote.sh`
 - [ ] T048 [US3] Verify single-region/in-region-data policy across all three modules (FR-002a)
 

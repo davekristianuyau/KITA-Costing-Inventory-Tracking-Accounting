@@ -1,7 +1,5 @@
-# GCP module — Cloud Run service per Release-Set entry (backend internal ingress + VPC connector),
-# Cloud SQL (private IP), GCS, Secret Manager, managed cert.
-#
-# STATUS: interface stub (task T044). Inputs/outputs match contracts/module-interface.md.
+# GCP module — Cloud Run service per Release-Set entry (public external / backend internal),
+# Cloud SQL private IP, GCS, Secret Manager, Serverless VPC connector. Matches the module contract.
 
 variable "client_name" { type = string }
 variable "env" { type = string }
@@ -27,7 +25,12 @@ module "naming" {
   tags        = var.tags
 }
 
-output "gateway_url" { value = "" }
-output "aggregate_health_url" { value = "" }
-output "service_endpoints" { value = { for k, v in var.release_set : k => "" } }
-output "environment_name" { value = module.naming.name_prefix }
+locals {
+  name             = module.naming.name_prefix
+  labels           = module.naming.tags
+  region           = var.region != "" ? var.region : "us-central1"
+  public_services  = { for k, v in var.release_set : k => v if v.visibility == "public" }
+  private_services = { for k, v in var.release_set : k => v if v.visibility == "private" }
+  image_ref        = { for k, v in var.release_set : k => "${v.image}:${v.version}" }
+  gateway_key      = contains(keys(local.public_services), "gateway") ? "gateway" : keys(local.public_services)[0]
+}
