@@ -1,0 +1,63 @@
+# Local orchestration (SCAFFOLDING SKELETON).
+# Defines the intended service graph: postgres + reference-service + gateway + frontend(nginx).
+# Service images are placeholders until each service is implemented in a later feature.
+# `docker compose up` will not yield a working application yet — this fixes the shape.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kita}
+      POSTGRES_USER: ${POSTGRES_USER:-kita}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "5432:5432"      # exposed for local dev convenience only
+    networks: [kita]
+
+  reference-service:
+    build:
+      context: ./backend
+      dockerfile: reference-service/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-jdbc:postgresql://postgres:5432/kita}
+      DATABASE_USER: ${DATABASE_USER:-kita}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-change-me}
+    depends_on: [postgres]
+    networks: [kita]      # private — no host port published
+
+  operations-service:
+    build:
+      context: ./backend
+      dockerfile: operations-service/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-jdbc:postgresql://postgres:5432/kita}
+      DATABASE_USER: ${DATABASE_USER:-kita}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-change-me}
+      PARTY_SERVICE_URL: ${PARTY_SERVICE_URL:-http://party-service:8084}
+      PARTY_STUB: ${PARTY_STUB:-true}
+    depends_on: [postgres]
+    networks: [kita]      # private — no host port published
+
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: gateway/Dockerfile
+    environment:
+      REFERENCE_SERVICE_URL: ${REFERENCE_SERVICE_URL:-http://reference-service:8082}
+      OPERATIONS_SERVICE_URL: ${OPERATIONS_SERVICE_URL:-http://operations-service:8083}
+    depends_on: [reference-service, operations-service]
+    networks: [kita]      # reached via the frontend/edge; kept internal
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      GATEWAY_URL: ${GATEWAY_URL:-http://gateway:8081}
+    ports:
+      - "8080:8080"       # public entry (Nginx)
+    depends_on: [gateway]
+    networks: [kita]
+
+networks:
+  kita:
+    driver: bridge

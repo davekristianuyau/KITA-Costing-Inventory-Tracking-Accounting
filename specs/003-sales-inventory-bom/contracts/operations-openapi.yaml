@@ -1,0 +1,309 @@
+openapi: 3.1.0
+info:
+  title: KITA Operations Service API
+  version: 0.1.0
+  description: >
+    Contract-first API for the KITA operations service (inventory, BOM, production, sales,
+    costing). Source of truth for the frontend client and for backend contract tests. Money and
+    quantities are decimal strings to preserve exactness. Reached via the gateway at /api.
+servers:
+  - url: /api/operations
+tags:
+  - { name: catalog }
+  - { name: inventory }
+  - { name: bom }
+  - { name: production }
+  - { name: sales }
+  - { name: costing }
+  - { name: system }
+
+paths:
+  /items:
+    get: { tags: [catalog], operationId: listItems, responses: { "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Item" } } } } } } }
+    post:
+      tags: [catalog]
+      operationId: createItem
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ItemCreate" } } } }
+      responses: { "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/Item" } } } }, "400": { $ref: "#/components/responses/Problem" } }
+
+  /items/{id}/availability:
+    get:
+      tags: [inventory]
+      operationId: getAvailability
+      parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses: { "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Availability" } } } } }, "404": { $ref: "#/components/responses/Problem" } }
+
+  /movements:
+    get:
+      tags: [inventory]
+      operationId: listMovements
+      parameters:
+        - { name: itemId, in: query, schema: { type: string, format: uuid } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses: { "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/StockMovement" } } } } } }
+
+  /receipts:
+    post:
+      tags: [inventory]
+      operationId: postGoodsReceipt
+      description: Record inbound stock from a supplier (increases on-hand).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/GoodsReceiptCreate" } } } }
+      responses: { "201": { description: Posted, content: { application/json: { schema: { $ref: "#/components/schemas/GoodsReceipt" } } } }, "400": { $ref: "#/components/responses/Problem" } }
+
+  /transfers:
+    post:
+      tags: [inventory]
+      operationId: postTransfer
+      description: Move stock between two locations (paired issue/receipt, conserves quantity).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TransferCreate" } } } }
+      responses: { "201": { description: Posted }, "400": { $ref: "#/components/responses/Problem" } }
+
+  /adjustments:
+    post:
+      tags: [inventory]
+      operationId: postAdjustment
+      description: Adjust stock with a reason (cannot drive on-hand negative).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AdjustmentCreate" } } } }
+      responses: { "201": { description: Posted }, "400": { $ref: "#/components/responses/Problem" } }
+
+  /boms:
+    post:
+      tags: [bom]
+      operationId: createBom
+      description: Define a BOM (KIT/phantom or MANUFACTURED); rejects cycles.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/BomCreate" } } } }
+      responses: { "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/Bom" } } } }, "400": { $ref: "#/components/responses/Problem" } }
+
+  /boms/{parentItemId}/explosion:
+    get:
+      tags: [bom]
+      operationId: explodeBom
+      parameters:
+        - { name: parentItemId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: quantity, in: query, schema: { type: string, description: "decimal build/sell qty" } }
+      responses: { "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/ComponentRequirement" } } } } } }
+
+  /builds:
+    post:
+      tags: [production]
+      operationId: createBuild
+      description: Atomically consume components and produce finished stock (MANUFACTURED). Fails wholesale if any component is short.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/BuildCreate" } } } }
+      responses: { "201": { description: Built, content: { application/json: { schema: { $ref: "#/components/schemas/Build" } } } }, "409": { $ref: "#/components/responses/Problem" } }
+
+  /sales-orders:
+    post:
+      tags: [sales]
+      operationId: createSalesOrder
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/SalesOrderCreate" } } } }
+      responses: { "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/SalesOrder" } } } }, "400": { $ref: "#/components/responses/Problem" } }
+
+  /sales-orders/{id}/confirm:
+    post:
+      tags: [sales]
+      operationId: confirmSalesOrder
+      description: Hard-reserve stock (or exploded components for KIT lines). Rejects if short (no oversell).
+      parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses: { "200": { description: Confirmed, content: { application/json: { schema: { $ref: "#/components/schemas/SalesOrder" } } } }, "409": { $ref: "#/components/responses/Problem" } }
+
+  /sales-orders/{id}/fulfill:
+    post:
+      tags: [sales]
+      operationId: fulfillSalesOrder
+      description: Issue reserved stock (partial fulfillment allowed); decrements on-hand.
+      parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses: { "200": { description: Fulfilled, content: { application/json: { schema: { $ref: "#/components/schemas/SalesOrder" } } } }, "409": { $ref: "#/components/responses/Problem" } }
+
+  /sales-orders/{id}/cancel:
+    post:
+      tags: [sales]
+      operationId: cancelSalesOrder
+      description: Release reservations and cancel.
+      parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses: { "200": { description: Cancelled } }
+
+  /items/{id}/cost:
+    get:
+      tags: [costing]
+      operationId: getItemCost
+      description: Rolled-up cost (from components for BOM items) plus optional margin vs a price.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: salePrice, in: query, schema: { type: string, description: "decimal; if set, returns margin" } }
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/CostMargin" } } } } }
+
+  /health:
+    get: { tags: [system], operationId: getHealth, responses: { "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } } } }
+
+components:
+  responses:
+    Problem:
+      description: RFC 9457 problem detail
+      content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } }
+  schemas:
+    Decimal: { type: string, description: "Exact decimal serialized as a string (no float).", example: "12.500" }
+    Item:
+      type: object
+      required: [id, sku, name, type, baseUom, valuationMethod]
+      properties:
+        id: { type: string, format: uuid }
+        sku: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [RAW_MATERIAL, COMPONENT, FINISHED_GOOD, KIT] }
+        baseUom: { type: string }
+        valuationMethod: { type: string, enum: [AVCO, FIFO] }
+        perishable: { type: boolean }
+        standardCost: { $ref: "#/components/schemas/Decimal" }
+    ItemCreate:
+      type: object
+      required: [sku, name, type, baseUom]
+      properties:
+        sku: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [RAW_MATERIAL, COMPONENT, FINISHED_GOOD, KIT] }
+        baseUom: { type: string }
+        valuationMethod: { type: string, enum: [AVCO, FIFO], default: AVCO }
+        perishable: { type: boolean, default: false }
+    Availability:
+      type: object
+      required: [itemId, locationId, onHand, reserved, available]
+      properties:
+        itemId: { type: string, format: uuid }
+        locationId: { type: string, format: uuid }
+        lotId: { type: string, format: uuid, nullable: true }
+        onHand: { $ref: "#/components/schemas/Decimal" }
+        reserved: { $ref: "#/components/schemas/Decimal" }
+        available: { $ref: "#/components/schemas/Decimal" }
+    StockMovement:
+      type: object
+      required: [id, itemId, locationId, type, quantity, unitCost, occurredAt]
+      properties:
+        id: { type: string, format: uuid }
+        itemId: { type: string, format: uuid }
+        locationId: { type: string, format: uuid }
+        lotId: { type: string, format: uuid, nullable: true }
+        type: { type: string, enum: [RECEIPT, ISSUE, ADJUSTMENT, TRANSFER_OUT, TRANSFER_IN, BUILD_CONSUME, BUILD_PRODUCE, SALE_ISSUE] }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        unitCost: { $ref: "#/components/schemas/Decimal" }
+        reason: { type: string }
+        sourceType: { type: string }
+        sourceId: { type: string }
+        occurredAt: { type: string, format: date-time }
+    GoodsReceiptCreate:
+      type: object
+      required: [supplierRef, locationId, lines]
+      properties:
+        supplierRef: { type: string }
+        locationId: { type: string, format: uuid }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [itemId, quantity, uom, unitCost]
+            properties:
+              itemId: { type: string, format: uuid }
+              lotCode: { type: string }
+              expiryDate: { type: string, format: date }
+              quantity: { $ref: "#/components/schemas/Decimal" }
+              uom: { type: string }
+              unitCost: { $ref: "#/components/schemas/Decimal" }
+    GoodsReceipt:
+      allOf: [ { $ref: "#/components/schemas/GoodsReceiptCreate" }, { type: object, properties: { id: { type: string, format: uuid }, receivedAt: { type: string, format: date-time } } } ]
+    TransferCreate:
+      type: object
+      required: [itemId, fromLocationId, toLocationId, quantity, uom]
+      properties:
+        itemId: { type: string, format: uuid }
+        fromLocationId: { type: string, format: uuid }
+        toLocationId: { type: string, format: uuid }
+        lotId: { type: string, format: uuid }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        uom: { type: string }
+    AdjustmentCreate:
+      type: object
+      required: [itemId, locationId, quantity, reason]
+      properties:
+        itemId: { type: string, format: uuid }
+        locationId: { type: string, format: uuid }
+        lotId: { type: string, format: uuid }
+        quantity: { $ref: "#/components/schemas/Decimal", description: "signed; may not drive on-hand < 0" }
+        reason: { type: string }
+    BomCreate:
+      type: object
+      required: [parentItemId, type, components]
+      properties:
+        parentItemId: { type: string, format: uuid }
+        type: { type: string, enum: [KIT, MANUFACTURED] }
+        outputQuantity: { $ref: "#/components/schemas/Decimal", default: "1" }
+        components:
+          type: array
+          items:
+            type: object
+            required: [componentItemId, quantity, uom]
+            properties:
+              componentItemId: { type: string, format: uuid }
+              quantity: { $ref: "#/components/schemas/Decimal" }
+              uom: { type: string }
+    Bom:
+      allOf: [ { $ref: "#/components/schemas/BomCreate" }, { type: object, properties: { id: { type: string, format: uuid }, active: { type: boolean } } } ]
+    ComponentRequirement:
+      type: object
+      required: [componentItemId, requiredQuantity, uom]
+      properties:
+        componentItemId: { type: string, format: uuid }
+        requiredQuantity: { $ref: "#/components/schemas/Decimal" }
+        uom: { type: string }
+    BuildCreate:
+      type: object
+      required: [finishedItemId, locationId, quantity]
+      properties:
+        finishedItemId: { type: string, format: uuid }
+        locationId: { type: string, format: uuid }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+    Build:
+      allOf: [ { $ref: "#/components/schemas/BuildCreate" }, { type: object, properties: { id: { type: string, format: uuid }, status: { type: string, enum: [COMPLETED, FAILED] }, producedLotId: { type: string, format: uuid } } } ]
+    SalesOrderCreate:
+      type: object
+      required: [customerRef, lines]
+      properties:
+        customerRef: { type: string }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [itemId, quantity, uom, unitPrice]
+            properties:
+              itemId: { type: string, format: uuid }
+              quantity: { $ref: "#/components/schemas/Decimal" }
+              uom: { type: string }
+              unitPrice: { $ref: "#/components/schemas/Decimal" }
+    SalesOrder:
+      type: object
+      required: [id, customerRef, status, lines]
+      properties:
+        id: { type: string, format: uuid }
+        customerRef: { type: string }
+        status: { type: string, enum: [DRAFT, CONFIRMED, FULFILLED, CLOSED, CANCELLED] }
+        lines: { type: array, items: { type: object } }
+    CostMargin:
+      type: object
+      required: [itemId, unitCost]
+      properties:
+        itemId: { type: string, format: uuid }
+        unitCost: { $ref: "#/components/schemas/Decimal" }
+        salePrice: { $ref: "#/components/schemas/Decimal" }
+        profit: { $ref: "#/components/schemas/Decimal" }
+        profitPercent: { $ref: "#/components/schemas/Decimal" }
+    Health:
+      type: object
+      required: [status]
+      properties: { status: { type: string, enum: [UP, DOWN] }, version: { type: string } }
+    Problem:
+      type: object
+      required: [status, title]
+      properties:
+        status: { type: integer }
+        title: { type: string }
+        detail: { type: string }
+        errors: { type: array, items: { type: string } }

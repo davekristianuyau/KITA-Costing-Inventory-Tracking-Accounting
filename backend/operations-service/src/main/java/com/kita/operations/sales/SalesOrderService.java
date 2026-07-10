@@ -1,0 +1,123 @@
+package com.kita.operations.sales;
+
+import com.kita.operations.catalog.CatalogService;
+import com.kita.operations.catalog.Item;
+import com.kita.operations.catalog.UomConversionService;
+import com.kita.operations.common.DomainException;
+import com.kita.operations.party.PartyClient;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Sales-order lifecycle: create → confirm (reserve) → fulfill (issue) / cancel (release). */
+@Service
+public class SalesOrderService {
+
+  /** A requested order line (quantity in the given UoM, converted to the item's base on create). */
+  public record LineRequest(UUID itemId, BigDecimal quantity, String uom, BigDecimal unitPrice) {}
+
+  private final SalesOrderRepository orders;
+  private final CatalogService catalog;
+  private final UomConversionService uomConversion;
+  private final ReservationService reservations;
+  private final PartyClient party;
+
+  public SalesOrderService(
+      SalesOrderRepository orders,
+      CatalogService catalog,
+      UomConversionService uomConversion,
+      ReservationService reservations,
+      PartyClient party) {
+    this.orders = orders;
+    this.catalog = catalog;
+    this.uomConversion = uomConversion;
+    this.reservations = reservations;
+    this.party = party;
+  }
+
+  @Transactional
+  public SalesOrder create(String customerRef, List<LineRequest> lineRequests) {
+    validateCustomer(customerRef);
+    if (lineRequests == null || lineRequests.isEmpty()) {
+      throw new DomainException.Validation("A sales order must have at least one line");
+    }
+    SalesOrder order = new SalesOrder(customerRef);
+    for (LineRequest lr : lineRequests) {
+      Item item = catalog.requireItem(lr.itemId());
+      BigDecimal baseQty =
+          lr.uom() == null
+              ? lr.quantity()
+              : uomConversion.convert(lr.quantity(), lr.uom(), item.getBaseUom().getCode());
+      if (baseQty.signum() <= 0) {
+        throw new DomainException.Validation("Line quantity must be positive");
+      }
+      order.addLine(new SalesOrderLine(item, baseQty, lr.unitPrice()));
+    }
+    return orders.save(order);
+  }
+
+  @Transactional
+  public SalesOrder confirm(UUID orderId) {
+    SalesOrder order = require(orderId);
+    if (order.getStatus() != OrderStatus.DRAFT) {
+      throw new DomainException.Validation("Only a DRAFT order can be confirmed");
+    }
+    validateCustomer(order.getCustomerRef());
+    // Reserve every line; if any is short the whole transaction rolls back (no partial reserve).
+    for (SalesOrderLine line : order.getLines()) {
+      reservations.reserve(line);
+    }
+    order.setStatus(OrderStatus.CONFIRMED);
+    order.setConfirmedAt(Instant.now());
+    return orders.save(order);
+  }
+
+  @Transactional
+  public SalesOrder fulfill(UUID orderId) {
+    SalesOrder order = require(orderId);
+    if (order.getStatus() != OrderStatus.CONFIRMED) {
+      throw new DomainException.Validation("Only a CONFIRMED order can be fulfilled");
+    }
+    for (SalesOrderLine line : order.getLines()) {
+      reservations.fulfill(line);
+    }
+    order.setStatus(OrderStatus.FULFILLED);
+    order.setFulfilledAt(Instant.now());
+    return orders.save(order);
+  }
+
+  @Transactional
+  public SalesOrder cancel(UUID orderId) {
+    SalesOrder order = require(orderId);
+    if (order.getStatus() == OrderStatus.FULFILLED || order.getStatus() == OrderStatus.CLOSED) {
+      throw new DomainException.Validation("A fulfilled/closed order cannot be cancelled");
+    }
+    for (SalesOrderLine line : order.getLines()) {
+      reservations.release(line);
+    }
+    order.setStatus(OrderStatus.CANCELLED);
+    return orders.save(order);
+  }
+
+  @Transactional(readOnly = true)
+  public SalesOrder get(UUID orderId) {
+    SalesOrder order = require(orderId);
+    order.getLines().size(); // initialize lazy lines within the transaction
+    return order;
+  }
+
+  private SalesOrder require(UUID orderId) {
+    return orders
+        .findById(orderId)
+        .orElseThrow(() -> new DomainException.NotFound("Sales order not found: " + orderId));
+  }
+
+  private void validateCustomer(String customerRef) {
+    if (!party.validateCustomer(customerRef).isValid()) {
+      throw new DomainException.Validation("Unknown or inactive customer: " + customerRef);
+    }
+  }
+}
