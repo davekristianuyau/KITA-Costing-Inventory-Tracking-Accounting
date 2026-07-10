@@ -185,14 +185,14 @@ short component → whole build fails (no partial).
 
 ### Tests (write first, must FAIL) ⚠️
 
-- [ ] T050 [P] [US7] Integration: build consumes exploded components and increases finished on-hand atomically (SC-010, dresses example)
-- [ ] T051 [P] [US7] Integration: build with a short component fails wholesale, no partial consumption (FR-026)
+- [X] T050 [P] [US7] Integration: build consumes exploded components and increases finished on-hand atomically (SC-010, dresses example)
+- [X] T051 [P] [US7] Integration: build with a short component fails wholesale, no partial consumption (FR-026)
 
 ### Implementation
 
-- [ ] T052 [US7] Flyway `V5__build.sql`: `build`
-- [ ] T053 [P] [US7] JPA entity + repository: `Build`
-- [ ] T054 [US7] `BuildService`: atomic consume (BUILD_CONSUME) + produce (BUILD_PRODUCE); finished unit cost = Σ consumed component costs / qty; controller endpoint
+- [X] T052 [US7] Flyway `V5__build.sql`: `build`
+- [X] T053 [P] [US7] JPA entity + repository: `Build`
+- [X] T054 [US7] `BuildService`: atomic consume (BUILD_CONSUME) + produce (BUILD_PRODUCE); finished unit cost = Σ consumed component costs / qty; controller endpoint
 
 **Checkpoint**: make-to-stock production works.
 
