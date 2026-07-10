@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-source-scaffold`
 **Created**: 2026-07-08
-**Status**: Draft
+**Status**: Implemented (scaffold delivered)
 **Input**: User description: "scaffolding the source code, this will be in JS, react, vue if possible, and java springboot and microservices, frontend and backend runs in 1 container" + "this should be scaffolding only, no code involved yet — folder structure and config skeletons only"
 **Resolved decisions**: Frontend = React (to share patterns with a planned React Native
 Android app); Backend = true microservices (multiple containers); Gateway = Nginx edge +

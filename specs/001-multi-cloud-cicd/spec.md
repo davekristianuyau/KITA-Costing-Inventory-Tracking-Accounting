@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-multi-cloud-cicd`
 **Created**: 2026-07-08
-**Status**: Draft
+**Status**: In Progress (spec/plan/tasks complete; implementation started — validated Terraform skeleton, AWS module + GCP/Azure pending)
 **Input**: User description: "for our first spec this will be the scaffolding of CICD the infra its architecture, we will use terraform, i want the CICD to be able to deploy to AWS GCP Azure with minimal changes, if possible, a client can choose the cloud platform to deploy the application, the application will be like odoo or SAP Hana." + "also include that this will have a STG and PROD environment deployments" + "fold in the multi-service deployment (the application is a set of microservices + a web frontend behind a gateway, per feature 002-source-scaffold), not a single container"
 
 ## Overview

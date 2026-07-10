@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-sales-inventory-bom`
 **Created**: 2026-07-08
-**Status**: Draft
+**Status**: Implemented (all user stories; tested against real PostgreSQL)
 **Input**: User description: "this is spec 003 backend service for the sales, inventory, bill of materials system, also make suggestions for the customer and supplier profile/details — should it be in a separate service that connects to this?"
 
 ## Overview
