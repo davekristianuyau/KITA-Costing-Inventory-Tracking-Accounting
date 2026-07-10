@@ -4,6 +4,8 @@ import com.kita.operations.catalog.Item;
 import com.kita.operations.common.DomainException;
 import java.math.BigDecimal;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class StockLedgerService {
+
+  private static final Logger log = LoggerFactory.getLogger(StockLedgerService.class);
 
   private final StockLevelRepository levels;
   private final StockMovementRepository movements;
@@ -58,10 +62,21 @@ public class StockLedgerService {
     level.setOnHand(newOnHand);
     levels.save(level);
 
-    StockMovement movement =
-        new StockMovement(
-            item, location, lot, type, signedQuantity, unitCost, reason, sourceType, sourceId);
-    return movements.save(movement);
+    StockMovement saved =
+        movements.save(
+            new StockMovement(
+                item, location, lot, type, signedQuantity, unitCost, reason, sourceType, sourceId));
+    log.atInfo()
+        .addKeyValue("event", "stock_movement")
+        .addKeyValue("item", item.getSku())
+        .addKeyValue("location", location.getCode())
+        .addKeyValue("type", type)
+        .addKeyValue("quantity", signedQuantity)
+        .addKeyValue("unitCost", unitCost)
+        .addKeyValue("sourceType", sourceType)
+        .addKeyValue("sourceId", sourceId)
+        .log("stock movement recorded");
+    return saved;
   }
 
   private StockLevel findOrCreateLevel(Item item, StockLocation location, Lot lot) {

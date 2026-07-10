@@ -40,8 +40,8 @@ US4(P2) → US7(P2) → US8(P2) → US5(P3). US6/US7/US8 depend on US3 (BOM), so
 **⚠️ CRITICAL**: complete before user stories.
 
 - [X] T007 Implement `common/` money & quantity decimal support (BigDecimal helpers, scales/rounding) and a global RFC-9457 `Problem` exception handler
-- [ ] T008 [P] Configure structured JSON logging (Logback) and expose Actuator `/health` + `/info` (version)
-- [ ] T009 [P] Define `party/PartyClient` port (`validateCustomer`/`validateSupplier`) + HTTP adapter (`PARTY_SERVICE_URL`) + an in-memory fake for tests, per contracts/party-integration.md
+- [X] T008 [P] Configure structured JSON logging (Logback) and expose Actuator `/health` + `/info` (version)
+- [X] T009 [P] Define `party/PartyClient` port (`validateCustomer`/`validateSupplier`) + HTTP adapter (`PARTY_SERVICE_URL`) + an in-memory fake for tests, per contracts/party-integration.md
 - [X] T010 [P] Create Testcontainers PostgreSQL base test class in `src/test/java/.../support/`
 - [X] T011 [P] Create an OpenAPI contract-test harness that validates responses against `operations-openapi.yaml`
 
@@ -72,7 +72,7 @@ on-hand reconciles to Σ movements; issuing below zero is rejected.
 - [X] T019 [US1] `UomConversionService` (convert to item base UoM; reject cross-family)
 - [X] T020 [US1] `StockLedgerService`: record a movement and update the cached `StockLevel` atomically in one transaction; enforce non-negative on-hand
 - [X] T021 [US1] Catalog + inventory controllers in `api/`: create/list items & UoM, get availability, list movements (period filter), post adjustment — conforming to OpenAPI (makes T012 pass)
-- [ ] T022 [US1] Wire structured audit logging for stock changes
+- [X] T022 [US1] Wire structured audit logging for stock changes
 
 **Checkpoint**: inventory ledger works standalone. **MVP reached.**
 
