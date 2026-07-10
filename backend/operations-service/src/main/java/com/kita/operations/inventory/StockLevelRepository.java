@@ -26,4 +26,9 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select s from StockLevel s where s.item = :item order by s.id")
   List<StockLevel> lockAllByItem(@Param("item") Item item);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select s from StockLevel s where s.item = :item and s.location = :loc")
+  List<StockLevel> lockByItemAndLocation(
+      @Param("item") Item item, @Param("loc") StockLocation location);
 }

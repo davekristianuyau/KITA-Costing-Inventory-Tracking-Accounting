@@ -12,6 +12,8 @@ import com.kita.operations.inventory.StockLedgerService;
 import com.kita.operations.inventory.StockLevel;
 import com.kita.operations.inventory.StockLevelRepository;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -64,6 +66,21 @@ public class ReservationService {
 
   private void reserveItemQuantity(SalesOrderLine line, Item item, BigDecimal need) {
     List<StockLevel> locked = levels.lockAllByItem(item);
+    if (item.isPerishable()) {
+      // FEFO: consume earliest-expiry first, skip expired lots.
+      locked =
+          locked.stream()
+              .filter(
+                  l ->
+                      l.getLot() == null
+                          || l.getLot().getExpiryDate() == null
+                          || !l.getLot().getExpiryDate().isBefore(LocalDate.now()))
+              .sorted(
+                  Comparator.comparing(
+                      l -> l.getLot() == null ? null : l.getLot().getExpiryDate(),
+                      Comparator.nullsLast(LocalDate::compareTo)))
+              .toList();
+    }
     BigDecimal available =
         locked.stream().map(StockLevel::getAvailable).reduce(BigDecimal.ZERO, BigDecimal::add);
     if (available.compareTo(need) < 0) {
@@ -106,7 +123,11 @@ public class ReservationService {
   public void fulfill(SalesOrderLine line) {
     for (Reservation r : reservations.findByOrderLine(line)) {
       BigDecimal unitCost =
-          r.getItem().getStandardCost() == null ? BigDecimal.ZERO : r.getItem().getStandardCost();
+          r.getLot() != null && r.getLot().getUnitCost() != null
+              ? r.getLot().getUnitCost()
+              : (r.getItem().getStandardCost() == null
+                  ? BigDecimal.ZERO
+                  : r.getItem().getStandardCost());
       ledger.apply(
           r.getItem(),
           r.getLocation(),

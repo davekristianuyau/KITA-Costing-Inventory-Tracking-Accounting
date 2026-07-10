@@ -208,16 +208,16 @@ consume/cost FEFO across lots; expired excluded.
 
 ### Tests (write first, must FAIL) ⚠️
 
-- [ ] T055 [P] [US8] Unit test: multi-level BOM cost roll-up equals hand calculation (SC-011)
-- [ ] T056 [P] [US8] Unit test: margin = (price − cost) and profit% exact (FR-029, SC-007)
-- [ ] T057 [P] [US8] Integration: FIFO item consumed FEFO across lots, each costed at its lot cost; expired lot excluded (FR-031)
+- [X] T055 [P] [US8] Unit test: multi-level BOM cost roll-up equals hand calculation (SC-011)
+- [X] T056 [P] [US8] Unit test: margin = (price − cost) and profit% exact (FR-029, SC-007)
+- [X] T057 [P] [US8] Integration: FIFO item consumed FEFO across lots, each costed at its lot cost; expired lot excluded (FR-031)
 
 ### Implementation
 
-- [ ] T058 [US8] Extend `ValuationService`: FIFO lot costing + FEFO lot selection (skip expired)
-- [ ] T059 [US8] `CostingService`: recursive rolled-up `cost(item)` from components; margin computation
-- [ ] T060 [US8] Cost/margin controller endpoint `/items/{id}/cost` (makes contract pass)
-- [ ] T061 [US8] Apply FEFO consumption in reservation/consume paths for perishable items (integrate with US2/US6)
+- [X] T058 [US8] Extend `ValuationService`: FIFO lot costing + FEFO lot selection (skip expired)
+- [X] T059 [US8] `CostingService`: recursive rolled-up `cost(item)` from components; margin computation
+- [X] T060 [US8] Cost/margin controller endpoint `/items/{id}/cost` (makes contract pass)
+- [X] T061 [US8] Apply FEFO consumption in reservation/consume paths for perishable items (integrate with US2/US6)
 
 **Checkpoint**: costing and margin from raw materials.
 
