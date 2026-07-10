@@ -4,9 +4,8 @@ This directory provisions and deploys the KITA multi-service application to **AW
 or Azure** from one Terraform codebase. You pick the cloud with a single config value; the same
 pipeline and application deploy to any of the three.
 
-> Status: the **AWS** module is implemented and `terraform validate`-clean. **GCP/Azure** are
-> valid interface stubs (implemented in a later increment). Nothing has been `apply`-ed yet —
-> that requires cloud credentials.
+> Status: the **AWS, GCP, and Azure** modules are all implemented and `terraform validate`-clean.
+> Nothing has been `apply`-ed yet — that requires cloud credentials and bootstrapped remote state.
 
 ---
 
@@ -68,8 +67,8 @@ infra/terraform/
 └── modules/
     ├── common/            naming ({client}-{env}) + tags
     ├── aws/               VPC, ECS Fargate (service per Release-Set entry), ALB, RDS, S3, Cloud Map
-    ├── gcp/               Cloud Run + Cloud SQL + GCS (stub)
-    └── azure/             Container Apps + Azure DB for PostgreSQL + Blob (stub)
+    ├── gcp/               Cloud Run + Cloud SQL (private IP) + GCS + Secret Manager + VPC connector
+    └── azure/             Container Apps + Azure DB for PostgreSQL Flexible + Blob + Key Vault
 ```
 
 Orchestration scripts live at the repo root under `scripts/` (`validate-config.sh`, `deploy.sh`).
@@ -164,27 +163,119 @@ never go in tfvars. Validate anytime: `scripts/validate-config.sh --client acme 
 
 ---
 
-## Deploy / switch cloud / promote / tear down
+## Deploy — step by step
 
-From the repo root, with credentials exported:
+`scripts/deploy.sh` runs the whole flow: it reads `cloud_provider` from the tfvars, initializes the
+matching remote-state backend with a per-environment key (`{client}-{env}`), applies the Release Set,
+prints the gateway URL, and curls the aggregate health endpoint. Do this once per environment.
+
+### 0. One-time per cloud — bootstrap remote state
+
+Create the backend store named in `backends/<cloud>.tfbackend` (edit those files to your own names).
 
 ```bash
-# provision + deploy the Release Set to STG (init + apply + health check)
-scripts/deploy.sh --client acme --env stg
+# AWS — versioned S3 bucket + DynamoDB lock table
+aws s3api create-bucket --bucket kita-tfstate --region us-east-1
+aws s3api put-bucket-versioning --bucket kita-tfstate --versioning-configuration Status=Enabled
+aws dynamodb create-table --table-name kita-tflock \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH --billing-mode PAY_PER_REQUEST
 
-# switch clouds: change cloud_provider (+ region) in the tfvars and re-run — no other changes
-# promote the STG-validated Release Set to PROD (gated; same image versions, no rebuild)
-scripts/promote.sh --client acme --env prod        # (added with the promotion increment)
+# GCP — versioned GCS bucket (state locking is automatic)
+gcloud storage buckets create gs://kita-tfstate --location=US
+gcloud storage buckets update gs://kita-tfstate --versioning
 
-# remove an environment entirely
-scripts/teardown.sh --client acme --env stg        # (added with the lifecycle increment)
+# Azure — resource group + storage account + container
+az group create --name kita-tfstate --location eastus
+az storage account create --name kitatfstate --resource-group kita-tfstate --sku Standard_LRS
+az storage container create --name tfstate --account-name kitatfstate
 ```
 
-Manual equivalent:
+### Step-by-step (any cloud)
+
+1. **Authenticate** to the target cloud (see [Set up credentials](#set-up-credentials)).
+   Confirm: `aws sts get-caller-identity` / `gcloud auth list` / `az account show`.
+2. **Write the environment file** `environments/<client>/<env>.tfvars` with `cloud_provider` set to
+   the target cloud and `env` to `stg` or `prod` (see [Configure a deployment](#configure-a-deployment)).
+3. **Validate the config** (no cloud calls):
+   ```bash
+   scripts/validate-config.sh --client acme --env stg
+   ```
+4. **Deploy**:
+   ```bash
+   scripts/deploy.sh --client acme --env stg
+   ```
+   On success it prints `deployed acme-stg (<cloud>): https://…` and `healthy`.
+
+### Per-cloud specifics
+
+Everything below is identical *except* the credential step and the two cloud-specific tfvars fields.
+
+**AWS** — `region` is an AWS region (`us-east-1`). Nothing else cloud-specific.
+```bash
+export AWS_PROFILE=kita          # or AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+scripts/deploy.sh --client acme --env stg
+```
+
+**Google Cloud** — set `gcp_project` and use a GCP `region` (`us-central1`). Enable the APIs once:
+```bash
+gcloud auth application-default login
+gcloud services enable run.googleapis.com sqladmin.googleapis.com \
+  secretmanager.googleapis.com compute.googleapis.com vpcaccess.googleapis.com \
+  servicenetworking.googleapis.com
+# in the tfvars: cloud_provider = "gcp", region = "us-central1", gcp_project = "my-project-id"
+scripts/deploy.sh --client acme --env stg
+```
+
+**Azure** — use an Azure `region` (`eastus`). No extra tfvars field; the module creates its own
+resource group, VNet, and Key Vault.
+```bash
+az login
+az account set --subscription <SUBSCRIPTION_ID>
+# in the tfvars: cloud_provider = "azure", region = "eastus"
+scripts/deploy.sh --client acme --env stg
+```
+
+### Deploy to PROD
+
+Copy the STG tfvars to `prod.tfvars`, set `env = "prod"`, keep the **same image versions** you
+validated in STG, then deploy. PROD gets its own isolated state key (`acme-prod`); the modules also
+harden PROD automatically — AWS enables RDS deletion protection + a final snapshot, and Azure raises
+the DB backup retention to a 7-day minimum.
+```bash
+cp environments/acme/stg.tfvars environments/acme/prod.tfvars
+# edit prod.tfvars: env = "prod"  (optionally size = "standard", a real custom_domain)
+scripts/deploy.sh --client acme --env prod
+```
+
+### Switch clouds
+
+Change `cloud_provider` (and `region`, plus `gcp_project` for GCP) in the tfvars, authenticate to the
+new cloud, and re-run `deploy.sh` — no module or Release-Set changes needed. Note this provisions a
+fresh stack on the new cloud; it does not migrate data from the old one.
+
+### Update, roll back, tear down
+
+```bash
+# Update / roll back: bump (or revert) the version fields in the tfvars, then re-deploy.
+scripts/deploy.sh --client acme --env stg
+
+# Tear down an environment (destroys its stack; state store is left intact):
+cd infra/terraform
+terraform destroy -var-file=environments/acme/stg.tfvars
+```
+
+### Manual equivalent (what deploy.sh runs)
+
 ```bash
 cd infra/terraform
-terraform init -backend-config=backends/aws.tfbackend -backend-config="key=acme-stg/terraform.tfstate"
+# AWS
+terraform init -reconfigure -backend-config=backends/aws.tfbackend \
+  -backend-config="key=acme-stg/terraform.tfstate"
+# GCP:   -backend-config=backends/gcp.tfbackend   -backend-config="prefix=acme-stg"
+# Azure: -backend-config=backends/azure.tfbackend -backend-config="key=acme-stg.tfstate"
 terraform apply -var-file=environments/acme/stg.tfvars
+terraform output -raw gateway_url
 ```
 
 ---
@@ -199,8 +290,11 @@ terraform apply -var-file=environments/acme/stg.tfvars
 
 ## Current limitations
 
-- Only the **AWS** module is implemented; GCP/Azure are interface stubs.
-- No environment has been `apply`-ed (no credentials in the dev environment). `terraform validate`
-  passes; real provisioning + smoke tests run once credentials and remote state exist.
-- Promotion (`promote.sh`) and teardown (`teardown.sh`) scripts and the CI workflows arrive with
-  the STG/PROD and lifecycle increments (see `../../specs/001-multi-cloud-cicd/tasks.md`).
+- All three modules (**AWS/GCP/Azure**) are implemented and `terraform validate`-clean, but no
+  environment has been `apply`-ed yet (no credentials in the dev environment). Real provisioning +
+  smoke tests run once credentials and remote state exist.
+- Only `environments/acme/stg.tfvars` ships as a sample; create `prod.tfvars` (and other clients)
+  as shown above.
+- Promotion and teardown are done via re-deploy / `terraform destroy` today; dedicated gated
+  `promote.sh`/`teardown.sh` scripts and CI workflows arrive with the lifecycle increment (see
+  `../../specs/001-multi-cloud-cicd/tasks.md`).
