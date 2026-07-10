@@ -14,3 +14,17 @@ output "service_endpoints" {
 output "environment_name" {
   value = one(concat(module.aws[*].environment_name, module.gcp[*].environment_name, module.azure[*].environment_name))
 }
+
+output "db_connection_secret_ref" {
+  description = "Reference (not value) to the DB credentials in the cloud secret store."
+  value       = one(concat(module.aws[*].db_connection_secret_ref, module.gcp[*].db_connection_secret_ref, module.azure[*].db_connection_secret_ref))
+}
+
+output "object_storage_ref" {
+  value = one(concat(module.aws[*].object_storage_ref, module.gcp[*].object_storage_ref, module.azure[*].object_storage_ref))
+}
+
+output "resource_ids" {
+  description = "Logical name → provider resource id (audit/teardown)."
+  value       = one(concat(module.aws[*].resource_ids, module.gcp[*].resource_ids, module.azure[*].resource_ids))
+}

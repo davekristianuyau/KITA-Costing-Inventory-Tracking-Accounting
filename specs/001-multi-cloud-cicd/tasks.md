@@ -26,8 +26,8 @@ gateway. Reference cloud = **AWS**; GCP/Azure added in US3.
 
 - [X] T001 Create `infra/terraform/{modules/{common,aws,gcp,azure},backends,environments}`, `scripts/`, `tests/{contract,integration,fixtures}`, `.github/workflows/`
 - [X] T002 `infra/terraform/versions.tf` pinning Terraform >= 1.9 and providers aws ~>5, google ~>5, azurerm ~>4
-- [ ] T003 [P] `.tflint.hcl` + `terraform fmt`/`validate` config
-- [ ] T004 [P] `tests/run.sh` runner for contract/smoke bash assertions
+- [X] T003 [P] `.tflint.hcl` + `terraform fmt`/`validate` config
+- [X] T004 [P] `tests/run.sh` runner for contract/smoke bash assertions
 - [X] T005 [P] `.gitignore` for `.terraform/`, `*.tfstate*`, secret tfvars, plan files
 
 ---
@@ -55,8 +55,8 @@ services private, aggregate health green.
 service is NOT publicly reachable; gateway→service round trip works; re-run = no changes.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T013 [P] [US1] `tests/contract/test_aws_module_interface.sh` — aws module declares the module-interface inputs/outputs
-- [ ] T014 [P] [US1] `tests/contract/test_config_schema.sh` — validate-config accepts a valid Release Set, rejects floating tags / no-public / bad provider
+- [X] T013 [P] [US1] `tests/contract/test_aws_module_interface.sh` — aws module declares the module-interface inputs/outputs
+- [X] T014 [P] [US1] `tests/contract/test_config_schema.sh` — validate-config accepts a valid Release Set, rejects floating tags / no-public / bad provider
 - [ ] T015 [P] [US1] `tests/integration/test_deploy_health.sh` — after deploy, gateway aggregate health UP; gateway→operations-service round trip
 - [ ] T016 [P] [US1] `tests/integration/test_backend_private.sh` — backend service has no public endpoint (SC-013)
 - [ ] T017 [P] [US1] `tests/integration/test_idempotent_apply.sh` — second apply = zero changes (SC-003)
@@ -106,11 +106,11 @@ failed aggregate health.
 **Goal**: deploy the same service set to GCP and Azure by config only; reject unsupported providers.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T039 [P] [US3] `test_gcp_module_interface.sh`
-- [ ] T040 [P] [US3] `test_azure_module_interface.sh`
-- [ ] T041 [P] [US3] `test_provider_switch.sh` — only config changes to switch providers (FR-003, SC-002)
-- [ ] T042 [P] [US3] `test_invalid_provider.sh` — unsupported provider rejected before provisioning (FR-007)
-- [ ] T043 [P] [US3] `tests/fixtures/{gcp,azure}-stg.tfvars`
+- [X] T039 [P] [US3] `test_gcp_module_interface.sh`
+- [X] T040 [P] [US3] `test_azure_module_interface.sh`
+- [X] T041 [P] [US3] `test_provider_switch.sh` — only config changes to switch providers (FR-003, SC-002)
+- [X] T042 [P] [US3] `test_invalid_provider.sh` — unsupported provider rejected before provisioning (FR-007)
+- [X] T043 [P] [US3] `tests/fixtures/{gcp,azure}-stg.tfvars`
 
 ### Implementation
 - [X] T044 [P] [US3] `modules/gcp/` — Cloud Run per service (+ Serverless VPC connector, internal ingress for backend), Cloud SQL (private IP), GCS, Secret Manager, managed cert — to the module-interface contract
@@ -158,7 +158,7 @@ failed aggregate health.
 - [X] T059 [P] `infra/terraform/README.md` — provider-abstraction + Release-Set model + how to add a cloud/service
 - [ ] T060 [P] Add `terraform fmt -check`, `validate`, `tflint` as blocking CI checks (Principle VII, FR-006)
 - [ ] T061 Run quickstart end-to-end on AWS (deploy → switch cloud → promote → update → teardown); record results
-- [ ] T062 [P] Map SC-001..SC-014 to covering tests in `tests/README.md`
+- [X] T062 [P] Map SC-001..SC-014 to covering tests in `tests/README.md`
 
 ---
 
