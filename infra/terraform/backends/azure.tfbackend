@@ -1,0 +1,4 @@
+# Partial Azure backend config; deploy.sh adds -backend-config="key=<client>-<env>.tfstate".
+resource_group_name  = "kita-tfstate"
+storage_account_name = "kitatfstate"
+container_name       = "tfstate"
