@@ -63,7 +63,8 @@ infra/terraform/
 ├── main.tf                selects the active per-cloud module
 ├── outputs.tf             gateway_url, aggregate_health_url, service_endpoints, …
 ├── backends/              partial remote-state configs (aws/gcp/azure)
-├── environments/<client>/{stg,prod}.tfvars   per-deployment config (the Release Set)
+├── clouds/{aws,gcp,azure}.tfvars   platform overlays — pick one with `--cloud`, never edit to switch
+├── environments/<client>/{stg,prod}.tfvars   cloud-agnostic config (client + the Release Set)
 └── modules/
     ├── common/            naming ({client}-{env}) + tags
     ├── aws/               VPC, ECS Fargate (service per Release-Set entry), ALB, RDS, S3, Cloud Map
@@ -143,14 +144,28 @@ environment gets isolated state.
 
 ## Configure a deployment
 
-Create `environments/<client>/<env>.tfvars` (see `environments/acme/stg.tfvars` for a template):
+Config is split in two so **you never edit a tfvars file just to change cloud**:
+
+**1. Platform overlays** — `clouds/{aws,gcp,azure}.tfvars` — hold only the cloud + region (and
+`gcp_project` for GCP). They ship ready; you pick one at deploy time with `--cloud`. Never edit these
+to switch clouds — you just choose a different one.
 
 ```hcl
-cloud_provider = "aws"        # aws | gcp | azure
-client_name    = "acme"
-env            = "stg"        # stg | prod
+# clouds/aws.tfvars
+cloud_provider = "aws"
 region         = "us-east-1"
-custom_domain  = "erp.acme.example"   # optional; served at the public gateway with TLS
+```
+
+**2. Env config** — `environments/<client>/<env>.tfvars` — is **cloud-agnostic**: the client, the
+sizing, and the Release Set. The same file deploys to any of the three clouds.
+
+```hcl
+# environments/acme/stg.tfvars   (see this file for the full template)
+client_name              = "acme"
+env                      = "stg"        # stg | prod
+size                     = "small"
+db_backup_retention_days = 1
+custom_domain            = "erp.acme.example"   # optional; served at the public gateway with TLS
 release_set = {
   frontend           = { image = "ghcr.io/kita/frontend",           version = "0.1.0", visibility = "public",  port = 8080, health_path = "/" }
   gateway            = { image = "ghcr.io/kita/gateway",            version = "0.1.0", visibility = "public",  port = 8081, health_path = "/actuator/health" }
@@ -159,15 +174,16 @@ release_set = {
 ```
 
 Rules: pin **immutable** versions (no `latest`); at least one service must be `public`; secrets
-never go in tfvars. Validate anytime: `scripts/validate-config.sh --client acme --env stg`.
+never go in tfvars. Validate anytime: `scripts/validate-config.sh --client acme --env stg --cloud aws`.
 
 ---
 
 ## Deploy — step by step
 
-`scripts/deploy.sh` runs the whole flow: it reads `cloud_provider` from the tfvars, initializes the
-matching remote-state backend with a per-environment key (`{client}-{env}`), applies the Release Set,
-prints the gateway URL, and curls the aggregate health endpoint. Do this once per environment.
+`scripts/deploy.sh --client <c> --env <e> --cloud <aws|gcp|azure>` runs the whole flow: it validates
+config, initializes the matching remote-state backend with a per-environment key (`{client}-{env}`),
+applies the env Release Set **plus** the chosen platform overlay, prints the gateway URL, and
+health-checks it. **Switching cloud = changing the `--cloud` flag** — no file edits.
 
 ### 0. One-time per cloud — bootstrap remote state
 
@@ -195,53 +211,56 @@ az storage container create --name tfstate --account-name kitatfstate
 
 1. **Authenticate** to the target cloud (see [Set up credentials](#set-up-credentials)).
    Confirm: `aws sts get-caller-identity` / `gcloud auth list` / `az account show`.
-2. **Write the environment file** `environments/<client>/<env>.tfvars` with `cloud_provider` set to
-   the target cloud and `env` to `stg` or `prod` (see [Configure a deployment](#configure-a-deployment)).
-3. **Validate the config** (no cloud calls):
+2. **Write the env file** `environments/<client>/<env>.tfvars` — client, size, Release Set. It's
+   cloud-agnostic; you do **not** put the cloud here (see [Configure a deployment](#configure-a-deployment)).
+3. **Validate the config** (no cloud calls) — name the platform with `--cloud`:
    ```bash
-   scripts/validate-config.sh --client acme --env stg
+   scripts/validate-config.sh --client acme --env stg --cloud aws
    ```
-4. **Deploy**:
+4. **Deploy** — pick the platform with `--cloud`:
    ```bash
-   scripts/deploy.sh --client acme --env stg
+   scripts/deploy.sh --client acme --env stg --cloud aws
    ```
-   On success it prints `deployed acme-stg (<cloud>): https://…` and `healthy`.
+   On success it prints `deployed acme-stg on aws: https://…` and `healthy`.
 
-### Per-cloud specifics
+### Deploy to a specific platform
 
-Everything below is identical *except* the credential step and the two cloud-specific tfvars fields.
+Same env file, same command — only `--cloud` changes. Authenticate to that cloud first.
 
-**AWS** — `region` is an AWS region (`us-east-1`). Nothing else cloud-specific.
+**AWS** (`clouds/aws.tfvars`, region `us-east-1`):
 ```bash
 export AWS_PROFILE=kita          # or AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
-scripts/deploy.sh --client acme --env stg
+scripts/deploy.sh --client acme --env stg --cloud aws
 ```
 
-**Google Cloud** — set `gcp_project` and use a GCP `region` (`us-central1`). Enable the APIs once:
+**Google Cloud** (`clouds/gcp.tfvars` — set `gcp_project` there once; region `us-central1`). Enable
+the APIs once:
 ```bash
 gcloud auth application-default login
 gcloud services enable run.googleapis.com sqladmin.googleapis.com \
   secretmanager.googleapis.com compute.googleapis.com vpcaccess.googleapis.com \
   servicenetworking.googleapis.com
-# in the tfvars: cloud_provider = "gcp", region = "us-central1", gcp_project = "my-project-id"
-scripts/deploy.sh --client acme --env stg
+scripts/deploy.sh --client acme --env stg --cloud gcp
 ```
 
-**Azure** — use an Azure `region` (`eastus`). No extra tfvars field; the module creates its own
-resource group, VNet, and Key Vault.
+**Azure** (`clouds/azure.tfvars`, region `eastus`; the module creates its own resource group, VNet,
+and Key Vault):
 ```bash
 az login
 az account set --subscription <SUBSCRIPTION_ID>
-# in the tfvars: cloud_provider = "azure", region = "eastus"
-scripts/deploy.sh --client acme --env stg
+scripts/deploy.sh --client acme --env stg --cloud azure
 ```
+
+To move a client from one cloud to another, just run the command again with a different `--cloud`
+(this provisions a fresh stack on the new cloud; it does not migrate data).
 
 ### Promote STG → PROD
 
 PROD is promoted from a **validated** STG, never deployed blind. Keep `environments/<client>/prod.tfvars`
-with the **same image versions** as `stg.tfvars` (bump STG first, validate, then mirror), then:
+with the **same image versions** as `stg.tfvars` (bump STG first, validate, then mirror), then promote
+on the target platform:
 ```bash
-scripts/promote.sh --client acme
+scripts/promote.sh --client acme --cloud aws
 ```
 `promote.sh` enforces two gates before touching PROD, then delegates to `deploy.sh`:
 1. **Version match** — the PROD Release Set must equal the STG one (same images/versions, no rebuild).
@@ -254,15 +273,18 @@ key (`acme-prod`), network, DB, storage, and per-env secrets — nothing is shar
 
 ### Switch clouds
 
-Change `cloud_provider` (and `region`, plus `gcp_project` for GCP) in the tfvars, authenticate to the
-new cloud, and re-run `deploy.sh` — no module or Release-Set changes needed. Note this provisions a
+Re-run with a different `--cloud` — no file edits. The env Release Set is cloud-agnostic; the cloud
+and region come from `clouds/<cloud>.tfvars`. Authenticate to the new cloud first. This provisions a
 fresh stack on the new cloud; it does not migrate data from the old one.
+```bash
+scripts/deploy.sh --client acme --env stg --cloud gcp   # same client, now on GCP
+```
 
 ### Update, roll back, tear down
 
 ```bash
-# Update: bump the version fields in the tfvars, then re-deploy.
-scripts/deploy.sh --client acme --env stg
+# Update: bump the version fields in the env tfvars, then re-deploy (same --cloud).
+scripts/deploy.sh --client acme --env stg --cloud aws
 ```
 `deploy.sh` is **health-gated**: after `apply` it polls the aggregate-health endpoint, and if the new
 Release Set is unhealthy it **auto-rolls-back** to the last-good set (snapshotted under
@@ -271,11 +293,12 @@ Release Set is unhealthy it **auto-rolls-back** to the last-good set (snapshotte
 ```bash
 # Tear down an environment (destroys its stack; state store is left intact):
 cd infra/terraform
-terraform destroy -var-file=environments/acme/stg.tfvars
+terraform destroy -var-file=environments/acme/stg.tfvars -var-file=clouds/aws.tfvars
 ```
 
 ### Manual equivalent (what deploy.sh runs)
 
+Two `-var-file`s: the cloud-agnostic env config **plus** the platform overlay.
 ```bash
 cd infra/terraform
 # AWS
@@ -283,7 +306,7 @@ terraform init -reconfigure -backend-config=backends/aws.tfbackend \
   -backend-config="key=acme-stg/terraform.tfstate"
 # GCP:   -backend-config=backends/gcp.tfbackend   -backend-config="prefix=acme-stg"
 # Azure: -backend-config=backends/azure.tfbackend -backend-config="key=acme-stg.tfstate"
-terraform apply -var-file=environments/acme/stg.tfvars
+terraform apply -var-file=environments/acme/stg.tfvars -var-file=clouds/aws.tfvars
 terraform output -raw gateway_url
 ```
 
@@ -292,29 +315,30 @@ terraform output -raw gateway_url
 ## CI/CD pipeline
 
 Two GitHub Actions workflows under `.github/workflows/` wrap the same `deploy.sh`/`promote.sh` used
-locally, so a pipeline run does exactly what you can reproduce by hand. Both pick the target cloud
-from the client's tfvars, so one pipeline serves AWS, GCP, and Azure.
+locally, so a pipeline run does exactly what you can reproduce by hand. Each takes a **`cloud` input**
+(`aws`/`gcp`/`azure`), so one pipeline serves all three platforms — you pick the target when you run it.
 
 ### `deploy-stg.yml` — continuous deployment to STG
 
 ```
-merge to main ──▶ detect cloud ──▶ auth (OIDC) ──▶ deploy.sh --env stg ──▶ health gate ──▶ (auto-rollback on fail)
+merge to main ──▶ auth (OIDC) for chosen cloud ──▶ deploy.sh --env stg --cloud <cloud> ──▶ health gate ──▶ (auto-rollback on fail)
 ```
 
 - **Trigger**: push to `main` touching `infra/terraform/**` or `scripts/**` (or manual
-  `workflow_dispatch` with a `client` input). STG is continuously delivered; it is **never** gated.
+  `workflow_dispatch` with `client` + `cloud` inputs). STG is continuously delivered; it is **never** gated.
 - **`environment: stg`** — a GitHub Environment with no required reviewers.
-- **Detect cloud** — reads `cloud_provider` from `environments/<client>/stg.tfvars` and runs only the
-  matching auth step, so the same job deploys to any cloud.
+- **Choose platform** — the `cloud` dispatch input (push runs use repo variable `DEFAULT_CLOUD`, else
+  `aws`); only the matching auth step runs, so the same job deploys to any cloud.
 - **Auth via OIDC** — no long-lived keys in the repo. Federate the runner to your cloud and store the
   provider references as repo secrets (see below).
-- **Deploy** — `deploy.sh` validates config → `terraform apply` → polls aggregate health → auto-rolls-
-  back to the last-good Release Set if unhealthy. A red pipeline means STG kept serving the old set.
+- **Deploy** — `deploy.sh` validates config → `terraform apply` (env + platform overlay) → polls
+  aggregate health → auto-rolls-back to the last-good Release Set if unhealthy. A red pipeline means
+  STG kept serving the old set.
 
 ### `promote-prod.yml` — gated promotion to PROD
 
 ```
-manual dispatch ──▶ PROD env approval ──▶ auth ──▶ promote.sh (version-match + STG-healthy gates) ──▶ deploy.sh --env prod
+manual dispatch (client + cloud) ──▶ PROD env approval ──▶ auth ──▶ promote.sh (version-match + STG-healthy gates) ──▶ deploy.sh --env prod
 ```
 
 - **Trigger**: `workflow_dispatch` only — PROD is **never** touched by a merge (FR-009). A separate

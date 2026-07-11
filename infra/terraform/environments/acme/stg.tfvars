@@ -1,7 +1,7 @@
-cloud_provider           = "aws"
+# Cloud-agnostic env config. The cloud/region come from a platform overlay (clouds/<cloud>.tfvars),
+# selected at deploy time with `--cloud`. You never edit this file to switch clouds.
 client_name              = "acme"
 env                      = "stg"
-region                   = "us-east-1"
 size                     = "small"
 db_backup_retention_days = 1
 

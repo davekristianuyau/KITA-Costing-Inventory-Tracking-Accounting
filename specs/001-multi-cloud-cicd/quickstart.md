@@ -12,31 +12,32 @@ KITA **service set** (frontend, gateway, backend services) as a coordinated Rele
 - Per-environment credentials available to CI (STG and PROD separate).
 
 ## 1. Onboard a client
-Create `infra/terraform/environments/acme/{stg,prod}.tfvars` with `cloud_provider`, `client_name`,
-`env`, and the `release_set` map (frontend/gateway/operations-service → image+version+visibility).
-Optionally `region`, `custom_domain`, `size`. Validate:
+Create `infra/terraform/environments/acme/{stg,prod}.tfvars` — **cloud-agnostic**: `client_name`,
+`env`, `size`, and the `release_set` map (frontend/gateway/operations-service → image+version+visibility);
+optionally `custom_domain`. The cloud + region live in the ready-made platform overlays
+`infra/terraform/clouds/{aws,gcp,azure}.tfvars` — you never edit a tfvars to switch cloud. Validate:
 ```bash
-scripts/validate-config.sh --client acme --env stg
+scripts/validate-config.sh --client acme --env stg --cloud aws
 ```
 
 ## 2. Deploy the service set to STG
 ```bash
-scripts/deploy.sh --client acme --env stg
+scripts/deploy.sh --client acme --env stg --cloud aws
 ```
 Expected: private network + per-service compute + shared PostgreSQL + public gateway provisioned as
 `acme-stg-*`; the gateway URL is reachable; **backend services are NOT public**; aggregate health
 green; smoke test passes (gateway → operations-service round trip). Re-run ⇒ no changes (idempotent).
 
 ## 3. Switch cloud (portability)
-Change only `cloud_provider` (+ provider settings) and re-run `deploy.sh` → equivalent multi-service
-stack on the new provider, no pipeline/app changes (FR-003, SC-002).
+Re-run with a different `--cloud` (e.g. `--cloud gcp`) → equivalent multi-service stack on the new
+provider, no file/pipeline/app changes (FR-003, SC-002).
 
 ## 4. Promote the Release Set to PROD (gated)
 ```bash
-scripts/promote.sh --client acme --release-set <the-set-validated-in-stg>
+scripts/promote.sh --client acme --cloud aws
 ```
-Expected: refused unless that Release Set is healthy in `acme-stg`; on approval, PROD serves the
-**same** set; failed aggregate health auto-rolls back to the previous set.
+Expected: refused unless the PROD Release Set matches STG's and STG is healthy; on approval, PROD
+serves the **same** set; failed aggregate health auto-rolls back to the previous set.
 
 ## 5. Update to a new Release Set
 Bump image versions in tfvars → deploy (STG) → promote (PROD). Health-gated rollout; a bad set never

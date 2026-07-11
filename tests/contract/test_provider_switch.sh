@@ -18,4 +18,11 @@ for o in "${MODULE_OUTPUTS[@]}"; do
     grep -qE "module\.$c\[\*\]\.$o" "$out" || die "root outputs.tf: $o not wired from module.$c"
   done
 done
-pass "provider switch is config-only; all outputs wired from aws/gcp/azure"
+
+# A ready-to-use platform overlay exists for each cloud — switching is picking a file, not editing one.
+for c in aws gcp azure; do
+  f="$TF/clouds/$c.tfvars"
+  [ -f "$f" ] || die "missing platform overlay: clouds/$c.tfvars"
+  grep -qE "^\s*cloud_provider\s*=\s*\"$c\"" "$f" || die "clouds/$c.tfvars must set cloud_provider = \"$c\""
+done
+pass "provider switch is config-only; overlays present; all outputs wired from aws/gcp/azure"
