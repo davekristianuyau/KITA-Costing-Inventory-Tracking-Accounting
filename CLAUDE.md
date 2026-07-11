@@ -4,17 +4,66 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-KITA - Costing, Inventory Tracking, and Accounting system.
-
-**Current Status**: Initial repository setup - no code or architecture established yet.
+KITA — Costing, Inventory Tracking, and Accounting. An Odoo/SAP-HANA-class ERP built with the
+**Spec Kit** workflow (`/speckit.*`: constitution → specify → clarify → plan → tasks → implement).
+Solo developer; clients are mostly local. Each client picks a cloud (AWS/GCP/Azure) and gets an
+isolated deployment.
 
 ## Architecture
 
-Architecture and tech stack to be determined.
+- **Frontend**: React (SPA; also targets a future React Native Android app), served by Nginx.
+- **API gateway**: Spring Cloud Gateway — the single public entry point.
+- **Backend**: Spring Boot 3.5 / Java 17 microservices (Gradle). Only the gateway + frontend are
+  public; backend services are private.
+- **Data**: managed PostgreSQL per cloud (RDS / Cloud SQL / Azure DB for PostgreSQL Flexible).
+- **Infra**: one Terraform codebase deploys to AWS/GCP/Azure; the cloud is chosen by a `--cloud`
+  flag (platform overlay), not a code change. Services deploy as a version-consistent **Release Set**.
+
+## Current State (specs)
+
+Specs live in `specs/`; each has spec/plan/tasks/contracts. Status:
+
+- **002-source-scaffold** — ✅ Implemented. Folder structure + config skeletons only (no app code).
+- **003-sales-inventory-bom** — ✅ Implemented + tested vs real PostgreSQL. The `operations-service`
+  (`backend/operations-service/`) is a combined Odoo/SAP-style service: catalog, inventory (movement
+  ledger, pessimistic-lock reservations, multi-location), BOM (explosion, cycle detection), production
+  builds, sales, procurement, party (customer/supplier), and costing (AVCO default + FIFO/FEFO for
+  perishables, cost roll-up/margin). All 70 tasks done.
+- **001-multi-cloud-cicd** — 🚧 In progress (~46/62 tasks). DONE: all three cloud modules
+  (`infra/terraform/modules/{aws,gcp,azure}`, `validate`-clean), config contract, AWS multi-service
+  MVP, US2 gated STG/PROD promotion + health-gated deploy w/ auto-rollback, CI workflows, platform
+  overlays, contract test suite. PENDING: US4 client isolation (onboard-client.sh, isolation/naming
+  tests), US5 lifecycle (teardown.sh + workflow), and live-only integration tests + quickstart run.
+  **Nothing has been `terraform apply`-ed** — that needs cloud credentials not present in dev.
+
+## Key commands
+
+```bash
+# Backend (from backend/): JDK 17, Gradle wrapper 8.10.2
+./gradlew :operations-service:build          # build + test + lint (Spotless/Checkstyle)
+# Windows/Docker-Desktop Testcontainers workaround is baked into build.gradle.kts (needs TCP daemon)
+
+# Infra (from repo root): Terraform >= 1.9
+scripts/validate-config.sh --client acme --env stg --cloud aws
+scripts/deploy.sh  --client acme --env stg  --cloud aws   # switch cloud = change --cloud
+scripts/promote.sh --client acme --cloud aws              # gated STG→PROD
+bash tests/run.sh all                                     # infra contract tests (live ones skip)
+```
+
+Infra config is split: `infra/terraform/clouds/{aws,gcp,azure}.tfvars` (platform: cloud+region, pick
+with `--cloud`, never edit to switch) + `environments/<client>/{stg,prod}.tfvars` (cloud-agnostic:
+client + Release Set). Deep dive: `infra/terraform/README.md`.
 
 ## Development Workflow
 
-To be established as the project is initialized.
+- Spec-driven: use `/speckit.*`. Commit + push specs when created/updated.
+- **Commits**: simple messages, no AI/Co-Authored-By attribution (PR bodies may include it).
+- **Comments**: short and minimal.
+- Each feature on its own branch `NNN-short-name`; PR → merge to `main`. Don't sync `main` into
+  branches whose spec is already implemented/done — only active ones.
+- **Secrets** never in the repo, tfvars, or logs — DB credentials live in each cloud's secret store,
+  scoped per environment (`{client}-{env}`).
+- One folder/module per microservice under `backend/`; repositories are top-level interfaces.
 
 ## Session Management
 
@@ -82,3 +131,4 @@ shell commands, and other important information, read the current plan
 [2026-07-10 10:18] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-10 10:33] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-11 09:52] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-11 12:03] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
