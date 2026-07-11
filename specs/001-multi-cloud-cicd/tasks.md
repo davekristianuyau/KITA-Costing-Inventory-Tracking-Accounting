@@ -40,7 +40,7 @@ gateway. Reference cloud = **AWS**; GCP/Azure added in US3.
 - [X] T009 [P] `modules/common/` — naming `{client}-{env}[-service]`, mandatory tags, release-set validation locals (FR-020/021/022)
 - [X] T010 [P] `scripts/validate-config.sh` — enforce config-schema incl. Release-Set rules; fail-fast (FR-006/007/013)
 - [X] T011 [P] `backends/{aws,gcp,azure}.tfbackend` — remote state keyed `{client}-{env}`, locking
-- [ ] T012 [P] `scripts/record-deployment.sh` — append audit incl. Release Set (FR-016)
+- [X] T012 [P] `scripts/record-deployment.sh` — append audit incl. Release Set (FR-016)
 
 **Checkpoint**: contract + config layer ready.
 
@@ -83,19 +83,19 @@ service is NOT publicly reachable; gateway→service round trip works; re-run = 
 failed aggregate health.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T028 [P] [US2] `test_stg_prod_isolation.sh` — STG/PROD share no network/DB/storage/services (SC-005)
-- [ ] T029 [P] [US2] `test_promotion_gate.sh` — promote refuses a Release Set not healthy in STG (FR-011, SC-006)
-- [ ] T030 [P] [US2] `test_no_auto_promote.sh` — STG deploy/merge never changes PROD (FR-009, SC-007)
-- [ ] T031 [P] [US2] `test_auto_rollback.sh` — failed aggregate health keeps previous Release Set serving (FR-006a, SC-014)
+- [X] T028 [P] [US2] `test_stg_prod_isolation.sh` — STG/PROD share no network/DB/storage/services (SC-005)
+- [X] T029 [P] [US2] `test_promotion_gate.sh` — promote refuses a Release Set not healthy in STG (FR-011, SC-006)
+- [X] T030 [P] [US2] `test_no_auto_promote.sh` — STG deploy/merge never changes PROD (FR-009, SC-007)
+- [X] T031 [P] [US2] `test_auto_rollback.sh` — failed aggregate health keeps previous Release Set serving (FR-006a, SC-014)
 
 ### Implementation
-- [ ] T032 [US2] Per-env sizing (STG small / PROD standard) in `modules/aws` without architecture change (FR-008a)
-- [ ] T033 [US2] PROD DB daily backups + PITR gated on `env==prod` (FR-014a)
-- [ ] T034 [US2] Health-gated per-service rollout + aggregate-health auto-rollback to previous Release Set (FR-006a) — makes T031 pass
-- [ ] T035 [US2] `scripts/promote.sh` — enforce STG-healthy gate for the exact Release Set, apply PROD with same versions (no rebuild) — makes T029 pass
-- [ ] T036 [P] [US2] `.github/workflows/deploy-stg.yml` (auto on merge → deploy.sh stg → smoke)
-- [ ] T037 [P] [US2] `.github/workflows/promote-prod.yml` (manual dispatch, protected Environment approval → promote.sh) (FR-010)
-- [ ] T038 [US2] Per-env, per-service secret scoping (STG vs PROD distinct) (FR-013)
+- [X] T032 [US2] Per-env sizing (STG small / PROD standard) in `modules/aws` without architecture change (FR-008a)
+- [X] T033 [US2] PROD DB daily backups + PITR gated on `env==prod` (FR-014a)
+- [X] T034 [US2] Health-gated per-service rollout + aggregate-health auto-rollback to previous Release Set (FR-006a) — makes T031 pass
+- [X] T035 [US2] `scripts/promote.sh` — enforce STG-healthy gate for the exact Release Set, apply PROD with same versions (no rebuild) — makes T029 pass
+- [X] T036 [P] [US2] `.github/workflows/deploy-stg.yml` (auto on merge → deploy.sh stg → smoke)
+- [X] T037 [P] [US2] `.github/workflows/promote-prod.yml` (manual dispatch, protected Environment approval → promote.sh) (FR-010)
+- [X] T038 [US2] Per-env, per-service secret scoping (STG vs PROD distinct) (FR-013)
 
 **Checkpoint**: gated multi-service promotion + auto-rollback on AWS.
 

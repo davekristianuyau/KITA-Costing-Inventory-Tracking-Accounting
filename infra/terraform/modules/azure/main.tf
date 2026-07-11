@@ -36,10 +36,12 @@ locals {
   image_ref        = { for k, v in var.release_set : k => "${v.image}:${v.version}" }
   gateway_key      = contains(keys(local.public_services), "gateway") ? "gateway" : keys(local.public_services)[0]
 
-  sizing       = { small = { cpu = 0.5, memory = "1Gi" }, standard = { cpu = 1.0, memory = "2Gi" }, large = { cpu = 2.0, memory = "4Gi" } }
-  cpu          = local.sizing[var.size].cpu
-  memory       = local.sizing[var.size].memory
-  sa_name      = substr(lower(replace("${var.client_name}${var.env}sa", "-", "")), 0, 24)
-  kv_name      = substr(lower(replace("${var.client_name}${var.env}kv", "-", "")), 0, 24)
-  backend_urls = { for k, v in local.private_services : "${upper(replace(k, "-", "_"))}_URL" => "https://${k}.internal.${azurerm_container_app_environment.main.default_domain}" }
+  # PROD never runs the "small" profile (FR-008a).
+  effective_size = var.env == "prod" && var.size == "small" ? "standard" : var.size
+  sizing         = { small = { cpu = 0.5, memory = "1Gi" }, standard = { cpu = 1.0, memory = "2Gi" }, large = { cpu = 2.0, memory = "4Gi" } }
+  cpu            = local.sizing[local.effective_size].cpu
+  memory         = local.sizing[local.effective_size].memory
+  sa_name        = substr(lower(replace("${var.client_name}${var.env}sa", "-", "")), 0, 24)
+  kv_name        = substr(lower(replace("${var.client_name}${var.env}kv", "-", "")), 0, 24)
+  backend_urls   = { for k, v in local.private_services : "${upper(replace(k, "-", "_"))}_URL" => "https://${k}.internal.${azurerm_container_app_environment.main.default_domain}" }
 }

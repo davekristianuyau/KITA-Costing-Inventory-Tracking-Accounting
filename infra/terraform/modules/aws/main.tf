@@ -44,8 +44,10 @@ locals {
     standard = { cpu = 512, memory = 1024 }
     large    = { cpu = 1024, memory = 2048 }
   }
-  cpu    = local.sizing[var.size].cpu
-  memory = local.sizing[var.size].memory
+  # PROD never runs the "small" profile — same architecture, right-sized per env (FR-008a).
+  effective_size = var.env == "prod" && var.size == "small" ? "standard" : var.size
+  cpu            = local.sizing[local.effective_size].cpu
+  memory         = local.sizing[local.effective_size].memory
 
   # The gateway is the public entry; prefer a service literally named "gateway", else any public one.
   gateway_key = contains(keys(local.public_services), "gateway") ? "gateway" : keys(local.public_services)[0]

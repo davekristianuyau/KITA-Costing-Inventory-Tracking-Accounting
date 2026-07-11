@@ -12,7 +12,7 @@ resource "azurerm_postgresql_flexible_server" "main" {
   private_dns_zone_id           = azurerm_private_dns_zone.pg.id
   administrator_login           = "kita"
   administrator_password        = random_password.db.result
-  sku_name                      = var.size == "small" ? "B_Standard_B1ms" : "GP_Standard_D2s_v3"
+  sku_name                      = local.effective_size == "small" ? "B_Standard_B1ms" : "GP_Standard_D2s_v3"
   storage_mb                    = 32768
   backup_retention_days         = var.env == "prod" ? max(var.db_backup_retention_days, 7) : var.db_backup_retention_days
   public_network_access_enabled = false

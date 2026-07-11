@@ -1,0 +1,65 @@
+name: Deploy STG
+
+# Auto-deploy the STG tier when infra/app config lands on main. Never touches PROD.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/terraform/**"
+      - "scripts/**"
+      - ".github/workflows/deploy-stg.yml"
+  workflow_dispatch:
+    inputs:
+      client:
+        description: "Client to deploy"
+        required: true
+        default: acme
+
+permissions:
+  id-token: write # OIDC federation to the cloud
+  contents: read
+
+env:
+  TF_VERSION: "1.9.8"
+  CLIENT: ${{ github.event.inputs.client || 'acme' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: stg # STG GitHub Environment (no approval gate)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      # Pick the cloud from the client's tfvars so one workflow serves all three providers.
+      - id: prov
+        run: echo "cloud=$(grep -oE '"(aws|gcp|azure)"' infra/terraform/environments/$CLIENT/stg.tfvars | head -1 | tr -d '\"')" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to AWS
+        if: steps.prov.outputs.cloud == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE }}
+          aws-region: us-east-1
+
+      - name: Authenticate to Google Cloud
+        if: steps.prov.outputs.cloud == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+
+      - name: Authenticate to Azure
+        if: steps.prov.outputs.cloud == 'azure'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Deploy the Release Set to STG; deploy.sh validates, applies, health-checks, auto-rolls-back.
+      - name: Deploy to STG
+        run: scripts/deploy.sh --client "$CLIENT" --env stg
