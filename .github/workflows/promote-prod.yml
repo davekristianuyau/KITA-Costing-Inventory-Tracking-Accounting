@@ -1,0 +1,60 @@
+name: Promote to PROD
+
+# Manual, gated promotion of the STG-validated Release Set to PROD. The `prod` GitHub Environment
+# must require reviewers (Settings → Environments → prod → Required reviewers) — that is the approval
+# gate (FR-010). promote.sh additionally refuses unless STG is healthy and versions match STG.
+on:
+  workflow_dispatch:
+    inputs:
+      client:
+        description: "Client to promote"
+        required: true
+        default: acme
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_VERSION: "1.9.8"
+  CLIENT: ${{ github.event.inputs.client }}
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: prod # PROD GitHub Environment — configure required reviewers here
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - id: prov
+        run: echo "cloud=$(grep -oE '"(aws|gcp|azure)"' infra/terraform/environments/$CLIENT/prod.tfvars | head -1 | tr -d '\"')" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to AWS
+        if: steps.prov.outputs.cloud == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE }}
+          aws-region: us-east-1
+
+      - name: Authenticate to Google Cloud
+        if: steps.prov.outputs.cloud == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+
+      - name: Authenticate to Azure
+        if: steps.prov.outputs.cloud == 'azure'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Gated promotion: refuses unless the STG Release Set is healthy and PROD versions match STG.
+      - name: Promote STG → PROD
+        run: scripts/promote.sh --client "$CLIENT"

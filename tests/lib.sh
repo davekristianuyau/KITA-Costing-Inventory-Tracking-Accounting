@@ -10,6 +10,12 @@ die() {
   echo "FAIL: $1" >&2
   exit 1
 }
+skip() {
+  echo "SKIP: $1"
+  exit 0
+}
+# Integration tests that need a live deployment are skipped unless KITA_LIVE=1.
+need_live() { [ "${KITA_LIVE:-0}" = "1" ] || skip "$1 — set KITA_LIVE=1 against a deployed env to run"; }
 
 # The module-interface contract: every per-cloud module declares these exact names.
 MODULE_INPUTS=(client_name env region release_set size custom_domain db_backup_retention_days tags)

@@ -33,4 +33,6 @@ locals {
   private_services = { for k, v in var.release_set : k => v if v.visibility == "private" }
   image_ref        = { for k, v in var.release_set : k => "${v.image}:${v.version}" }
   gateway_key      = contains(keys(local.public_services), "gateway") ? "gateway" : keys(local.public_services)[0]
+  # PROD never runs the "small" profile (FR-008a).
+  effective_size = var.env == "prod" && var.size == "small" ? "standard" : var.size
 }

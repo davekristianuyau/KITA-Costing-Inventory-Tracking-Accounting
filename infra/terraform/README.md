@@ -236,17 +236,21 @@ az account set --subscription <SUBSCRIPTION_ID>
 scripts/deploy.sh --client acme --env stg
 ```
 
-### Deploy to PROD
+### Promote STG → PROD
 
-Copy the STG tfvars to `prod.tfvars`, set `env = "prod"`, keep the **same image versions** you
-validated in STG, then deploy. PROD gets its own isolated state key (`acme-prod`); the modules also
-harden PROD automatically — AWS enables RDS deletion protection + a final snapshot, and Azure raises
-the DB backup retention to a 7-day minimum.
+PROD is promoted from a **validated** STG, never deployed blind. Keep `environments/<client>/prod.tfvars`
+with the **same image versions** as `stg.tfvars` (bump STG first, validate, then mirror), then:
 ```bash
-cp environments/acme/stg.tfvars environments/acme/prod.tfvars
-# edit prod.tfvars: env = "prod"  (optionally size = "standard", a real custom_domain)
-scripts/deploy.sh --client acme --env prod
+scripts/promote.sh --client acme
 ```
+`promote.sh` enforces two gates before touching PROD, then delegates to `deploy.sh`:
+1. **Version match** — the PROD Release Set must equal the STG one (same images/versions, no rebuild).
+2. **STG healthy** — STG's aggregate-health endpoint must currently be UP.
+
+PROD also hardens automatically vs. STG: it never runs the `small` profile (auto-upgraded to
+`standard`), RDS gets deletion protection + a final snapshot, and all three clouds raise DB backup
+retention to a 7-day minimum with point-in-time recovery enabled. PROD has its own isolated state
+key (`acme-prod`), network, DB, storage, and per-env secrets — nothing is shared with STG.
 
 ### Switch clouds
 
@@ -257,9 +261,14 @@ fresh stack on the new cloud; it does not migrate data from the old one.
 ### Update, roll back, tear down
 
 ```bash
-# Update / roll back: bump (or revert) the version fields in the tfvars, then re-deploy.
+# Update: bump the version fields in the tfvars, then re-deploy.
 scripts/deploy.sh --client acme --env stg
-
+```
+`deploy.sh` is **health-gated**: after `apply` it polls the aggregate-health endpoint, and if the new
+Release Set is unhealthy it **auto-rolls-back** to the last-good set (snapshotted under
+`infra/terraform/.last-good/`) and exits non-zero. Every deploy is recorded to
+`infra/terraform/.deployments/<client>-<env>.log` (FR-016).
+```bash
 # Tear down an environment (destroys its stack; state store is left intact):
 cd infra/terraform
 terraform destroy -var-file=environments/acme/stg.tfvars
@@ -280,6 +289,58 @@ terraform output -raw gateway_url
 
 ---
 
+## CI/CD pipeline
+
+Two GitHub Actions workflows under `.github/workflows/` wrap the same `deploy.sh`/`promote.sh` used
+locally, so a pipeline run does exactly what you can reproduce by hand. Both pick the target cloud
+from the client's tfvars, so one pipeline serves AWS, GCP, and Azure.
+
+### `deploy-stg.yml` — continuous deployment to STG
+
+```
+merge to main ──▶ detect cloud ──▶ auth (OIDC) ──▶ deploy.sh --env stg ──▶ health gate ──▶ (auto-rollback on fail)
+```
+
+- **Trigger**: push to `main` touching `infra/terraform/**` or `scripts/**` (or manual
+  `workflow_dispatch` with a `client` input). STG is continuously delivered; it is **never** gated.
+- **`environment: stg`** — a GitHub Environment with no required reviewers.
+- **Detect cloud** — reads `cloud_provider` from `environments/<client>/stg.tfvars` and runs only the
+  matching auth step, so the same job deploys to any cloud.
+- **Auth via OIDC** — no long-lived keys in the repo. Federate the runner to your cloud and store the
+  provider references as repo secrets (see below).
+- **Deploy** — `deploy.sh` validates config → `terraform apply` → polls aggregate health → auto-rolls-
+  back to the last-good Release Set if unhealthy. A red pipeline means STG kept serving the old set.
+
+### `promote-prod.yml` — gated promotion to PROD
+
+```
+manual dispatch ──▶ PROD env approval ──▶ auth ──▶ promote.sh (version-match + STG-healthy gates) ──▶ deploy.sh --env prod
+```
+
+- **Trigger**: `workflow_dispatch` only — PROD is **never** touched by a merge (FR-009). A separate
+  human action is always required.
+- **`environment: prod`** — configure **Required reviewers** on this GitHub Environment
+  (Settings → Environments → prod). That approval is the human gate (FR-010); the job pauses until an
+  approver clicks through.
+- **`promote.sh` gates** — refuses unless (1) the PROD Release Set equals the STG-validated one and
+  (2) STG is currently healthy. Only then does it apply PROD (health-gated, with the same
+  auto-rollback as STG).
+
+### One-time CI setup
+
+1. **Bootstrap remote state** per cloud (see the deploy steps above) — the runners share it.
+2. **Federate the runner** to your cloud with OIDC (no static keys):
+   - AWS: an IAM role trusting GitHub's OIDC provider → secret `AWS_DEPLOY_ROLE`.
+   - GCP: a Workload Identity Provider + service account → secrets `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`.
+   - Azure: an app registration with federated credentials → secrets `AZURE_CLIENT_ID`,
+     `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`.
+3. **Create the `stg` and `prod` GitHub Environments**; add **Required reviewers** to `prod`.
+4. **Runtime app secrets** (DB credentials, etc.) are created by Terraform in the cloud's secret store
+   and are **per-env** (`{client}-{env}`) — STG and PROD never share a secret. Nothing sensitive is
+   stored in the repo or in tfvars.
+
+---
+
 ## Adding a new cloud or service
 
 - **New service** — add an entry to `release_set` in the tfvars (image/version/visibility/port/
@@ -291,10 +352,10 @@ terraform output -raw gateway_url
 ## Current limitations
 
 - All three modules (**AWS/GCP/Azure**) are implemented and `terraform validate`-clean, but no
-  environment has been `apply`-ed yet (no credentials in the dev environment). Real provisioning +
-  smoke tests run once credentials and remote state exist.
-- Only `environments/acme/stg.tfvars` ships as a sample; create `prod.tfvars` (and other clients)
-  as shown above.
-- Promotion and teardown are done via re-deploy / `terraform destroy` today; dedicated gated
-  `promote.sh`/`teardown.sh` scripts and CI workflows arrive with the lifecycle increment (see
-  `../../specs/001-multi-cloud-cicd/tasks.md`).
+  environment has been `apply`-ed yet (no credentials in the dev environment). Real provisioning and
+  the integration/smoke tests (marked *live* in `tests/README.md`) run once credentials and remote
+  state exist.
+- Gated STG→PROD promotion (`promote.sh`), health-gated deploy with auto-rollback, and the
+  `deploy-stg`/`promote-prod` CI workflows are implemented. A dedicated `teardown.sh` script +
+  teardown workflow (US5) are still pending; teardown today is `terraform destroy`.
+- `environments/acme/{stg,prod}.tfvars` ship as samples; add other clients as shown above.

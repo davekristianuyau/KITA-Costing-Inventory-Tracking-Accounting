@@ -24,6 +24,10 @@ npm-debug.log*
 *.tfstate.*
 # keep .terraform.lock.hcl tracked (pins provider versions)
 
+# --- Deploy runtime state (local, per-machine) ---
+infra/terraform/.last-good/    # last-good Release Set snapshots (auto-rollback)
+infra/terraform/.deployments/  # deployment audit logs (FR-016)
+
 # --- Docker ---
 # (no build artifacts tracked)
 
