@@ -18,3 +18,31 @@ jobs:
       - name: Build, test and lint backend
         working-directory: backend
         run: ./gradlew :operations-service:build --no-daemon
+
+  # Blocking infra quality gates (Principle VII, FR-006). No cloud credentials needed.
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: terraform fmt (check)
+        run: terraform -chdir=infra/terraform fmt -check -recursive
+
+      - name: terraform validate
+        run: |
+          terraform -chdir=infra/terraform init -backend=false
+          terraform -chdir=infra/terraform validate
+
+      - uses: terraform-linters/setup-tflint@v4
+      - name: tflint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # plugin downloads
+        run: |
+          tflint --init
+          tflint --recursive
+
+      - name: Infra contract tests
+        run: bash tests/run.sh contract

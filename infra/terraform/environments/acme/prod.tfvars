@@ -1,7 +1,6 @@
-cloud_provider           = "aws"
+# Cloud-agnostic env config. Cloud/region come from clouds/<cloud>.tfvars, chosen with `--cloud`.
 client_name              = "acme"
 env                      = "prod"
-region                   = "us-east-1"
 size                     = "standard"
 db_backup_retention_days = 7
 

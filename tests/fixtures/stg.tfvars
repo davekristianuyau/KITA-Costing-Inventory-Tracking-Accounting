@@ -1,8 +1,7 @@
-# Throwaway Azure Release Set for contract/smoke tests.
-cloud_provider           = "azure"
+# Throwaway cloud-agnostic env config for contract/smoke tests. Pair with any platform overlay
+# (clouds/aws.tfvars | gcp.tfvars | azure.tfvars) via `--cloud` — the same file deploys to any cloud.
 client_name              = "testco"
 env                      = "stg"
-region                   = "eastus"
 size                     = "small"
 db_backup_retention_days = 1
 

@@ -14,6 +14,12 @@ on:
         description: "Client to deploy"
         required: true
         default: acme
+      cloud:
+        description: "Target platform"
+        required: true
+        default: aws
+        type: choice
+        options: [aws, gcp, azure]
 
 permissions:
   id-token: write # OIDC federation to the cloud
@@ -22,6 +28,8 @@ permissions:
 env:
   TF_VERSION: "1.9.8"
   CLIENT: ${{ github.event.inputs.client || 'acme' }}
+  # Platform for push-triggered runs; override per run via the workflow_dispatch input.
+  CLOUD: ${{ github.event.inputs.cloud || vars.DEFAULT_CLOUD || 'aws' }}
 
 jobs:
   deploy:
@@ -34,26 +42,22 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      # Pick the cloud from the client's tfvars so one workflow serves all three providers.
-      - id: prov
-        run: echo "cloud=$(grep -oE '"(aws|gcp|azure)"' infra/terraform/environments/$CLIENT/stg.tfvars | head -1 | tr -d '\"')" >> "$GITHUB_OUTPUT"
-
       - name: Authenticate to AWS
-        if: steps.prov.outputs.cloud == 'aws'
+        if: env.CLOUD == 'aws'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE }}
           aws-region: us-east-1
 
       - name: Authenticate to Google Cloud
-        if: steps.prov.outputs.cloud == 'gcp'
+        if: env.CLOUD == 'gcp'
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOY_SA }}
 
       - name: Authenticate to Azure
-        if: steps.prov.outputs.cloud == 'azure'
+        if: env.CLOUD == 'azure'
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -62,4 +66,4 @@ jobs:
 
       # Deploy the Release Set to STG; deploy.sh validates, applies, health-checks, auto-rolls-back.
       - name: Deploy to STG
-        run: scripts/deploy.sh --client "$CLIENT" --env stg
+        run: scripts/deploy.sh --client "$CLIENT" --env stg --cloud "$CLOUD"
