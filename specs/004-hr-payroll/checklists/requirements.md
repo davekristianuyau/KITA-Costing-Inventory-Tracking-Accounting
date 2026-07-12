@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,5 +31,6 @@
 
 ## Notes
 
-- Two [NEEDS CLARIFICATION] markers remain (FR-025 time & attendance ownership; FR-026 statutory
-  jurisdiction). Both are scope-defining and are surfaced as questions below. All other items pass.
+- All items pass. Both prior clarifications are resolved (Session 2026-07-12): hr-service computes
+  time & attendance (FR-025/027/028/029, US6); statutory deductions use a generic engine with a
+  Philippines seed ruleset (FR-026). Ready for `/speckit.plan`.

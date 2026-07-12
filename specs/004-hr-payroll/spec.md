@@ -14,6 +14,16 @@ deductions and government-mandated statutory contributions/tax), and manages lea
 and balances. It is a distinct bounded context from the sales/inventory `operations-service`; it
 shares nothing but the platform (auth, gateway) and has its own database schema.
 
+## Clarifications
+
+### Session 2026-07-12
+- Q: Does hr-service compute time & attendance, or consume already-computed worked time? →
+  A: **Compute it** — the service owns worked-time, overtime, tardiness, holiday, and
+  night-differential computation from raw daily time records (device capture stays external).
+- Q: How are government-mandated statutory deductions handled? → A: A **generic configurable rule
+  engine** with a **Philippines ruleset shipped as adoptable seed data** (SSS, PhilHealth, Pag-IBIG,
+  BIR withholding), not hardwired.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Maintain employee records (Priority: P1)
@@ -154,6 +164,34 @@ sum of that deduction across employees).
 
 ---
 
+### User Story 6 - Capture attendance and compute worked time & premiums (Priority: P2)
+
+Raw attendance (daily time records / clock in-out punches) is provided per employee. Against each
+employee's work schedule/shift, the service computes regular worked hours, tardiness, undertime, and
+absences, and derives premium pay: overtime (by configurable multipliers), holiday pay (from a holiday
+calendar), and night differential. These computed amounts flow into the payroll run's gross earnings.
+
+**Why this priority**: This makes payroll accurate for hourly and premium-earning staff. Basic
+salaried payroll (US2) can run without it, so it enriches rather than blocks the MVP.
+
+**Independent Test**: Load a period of attendance for an employee on a defined schedule that includes
+late arrivals, overtime hours, and a holiday; compute worked time; and verify regular hours, tardiness,
+overtime pay, holiday pay, and night differential each match the schedule, holiday calendar, and
+premium rules — then confirm those amounts appear on that employee's payslip.
+
+**Acceptance Scenarios**:
+
+1. **Given** an employee on a defined shift with attendance punches, **When** worked time is computed,
+   **Then** regular hours, tardiness, undertime, and absences match the schedule.
+2. **Given** hours worked beyond the shift and an overtime rule, **When** computed, **Then** overtime
+   pay equals overtime hours × rate × the applicable multiplier.
+3. **Given** a day marked in the holiday calendar and hours in the night window, **When** computed,
+   **Then** holiday pay and night differential are applied at their configured multipliers.
+4. **Given** missing or incomplete attendance for an employee in the period, **When** computed, **Then**
+   the employee is flagged for review rather than assumed fully present.
+
+---
+
 ### Edge Cases
 
 - Retroactive pay change effective within an already-finalized period → handled via an adjustment run,
@@ -226,13 +264,23 @@ sum of that deduction across employees).
 - **FR-024**: System MUST restrict payroll and employee-record actions to authorized roles (HR admin,
   payroll officer, manager, employee-self) — employees may only see their own records and payslips.
 
-*Open items (see Clarifications):*
-- **FR-025**: System MUST derive worked time for pay from [NEEDS CLARIFICATION: does hr-service compute
-  time & attendance — overtime, tardiness, holiday/night-differential pay — from raw attendance, or
-  consume already-computed worked days/hours and adjustments as inputs?]
-- **FR-026**: Statutory deductions MUST follow [NEEDS CLARIFICATION: a specific jurisdiction's built-in
-  ruleset (e.g., Philippines SSS/PhilHealth/Pag-IBIG + BIR withholding), or a generic configurable rule
-  engine with no built-in jurisdiction shipped?]
+**Time & attendance** (hr-service owns this computation)
+- **FR-025**: System MUST ingest raw attendance (daily time records / clock in-out punches) per
+  employee and compute, against each employee's work schedule/shift, their regular worked hours,
+  tardiness, undertime, and absences for the pay period.
+- **FR-027**: System MUST compute overtime pay from configurable overtime rules (e.g., ordinary-day,
+  rest-day, and premium multipliers) applied to overtime hours.
+- **FR-028**: System MUST compute holiday pay from a configurable holiday calendar (regular vs. special
+  holidays with their multipliers) and night-differential pay for hours worked within the configured
+  night window.
+- **FR-029**: System MUST feed computed worked time and premiums into the pay period's gross earnings,
+  and flag employees with missing/incomplete attendance for review rather than assuming full attendance.
+
+**Deductions (statutory engine)**
+- **FR-026**: Statutory deductions and withholding tax MUST be computed by a **generic, configurable,
+  effective-dated rule engine** with no jurisdiction hardwired into the computation. A **Philippines
+  ruleset (SSS, PhilHealth, Pag-IBIG, BIR withholding tax) MUST ship as adoptable seed/sample data** a
+  client can use as-is or replace.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -248,7 +296,15 @@ sum of that deduction across employees).
 - **EarningComponent / DeductionComponent**: named lines on a payslip (e.g., basic, allowance;
   statutory contribution, tax, loan installment) with amount and category (earning/voluntary/statutory).
 - **DeductionRule**: a versioned, effective-dated table/bracket defining how a statutory or tax
-  deduction is computed from a base.
+  deduction is computed from a base (generic engine; Philippines rules provided as seed data).
+- **WorkSchedule / Shift**: an employee's expected working days, hours, and night window used to judge
+  attendance.
+- **AttendanceRecord (Daily Time Record)**: raw clock in-out punches for an employee on a date, the
+  input to worked-time computation.
+- **WorkedTime**: computed per employee per period — regular hours, overtime hours, tardiness,
+  undertime, absences, and night-window hours.
+- **HolidayCalendar**: dated holidays (regular vs. special) with pay multipliers.
+- **PremiumRule**: configurable multipliers for overtime, rest-day, holiday, and night-differential pay.
 - **Loan/Advance**: an employee obligation with principal, installment schedule, and outstanding
   balance drawn down by payroll.
 - **LeaveType**: a category of leave with an accrual policy and pay treatment (paid/unpaid/convertible).
@@ -273,6 +329,9 @@ sum of that deduction across employees).
   reflecting the decision, and approved unpaid leave correctly reduces the next run's pay.
 - **SC-007**: Every payroll finalize and leave approval is attributable to a user and timestamp in the
   audit trail; employees can access only their own records and payslips.
+- **SC-008**: For a period of attendance with lateness, overtime, a holiday, and night hours, the
+  computed regular hours, tardiness, overtime pay, holiday pay, and night differential each match the
+  schedule, holiday calendar, and premium rules, and appear correctly on the payslip.
 
 ## Assumptions
 
@@ -280,13 +339,14 @@ sum of that deduction across employees).
   **semi-monthly** (e.g., 15th / end-of-month) periods.
 - **Currency** is a single currency per client (the client's local currency); multi-currency payroll is
   out of scope.
-- **Attendance capture** (biometrics/time clocks) is out of scope as a data source; worked-time inputs
-  are provided to the service (pending FR-025 clarification on how much T&A computation it owns).
+- **hr-service computes time & attendance** (worked hours, tardiness, overtime, holiday, night
+  differential) from raw daily time records. The **physical capture device integration** (biometric
+  hardware / time-clock firmware) is out of scope — raw punches are provided to the service via its
+  API/import; it owns the computation from that point.
 - **Payment disbursement** (bank files/ACH) is out of scope for this spec; the service computes and
   records pay, producing register/remittance outputs a later integration can consume.
-- **Statutory rules are data, not code**: rules/tables are configurable and effective-dated so updates
-  to government tables do not require a code change (pending FR-026 on whether a jurisdiction ships
-  built-in).
+- **Statutory rules are data, not code**: the deduction engine is generic and effective-dated; a
+  Philippines ruleset ships as adoptable seed data, so government-table updates need no code change.
 - This service is separate from `operations-service`; employee data here is not the same as the
   `party` (customer/supplier) data there.
 
@@ -296,7 +356,8 @@ sum of that deduction across employees).
 - Supplier records and purchase orders (spec 006).
 - Recruitment/applicant tracking, performance reviews, training, and benefits administration beyond
   statutory contributions.
-- Time & attendance hardware/capture; bank disbursement file generation.
+- Time & attendance **hardware/device** integration (raw punches are fed in; computation is in scope);
+  bank disbursement file generation.
 
 ## Dependencies
 
