@@ -20,22 +20,22 @@ concurrency test (no double-pay / double-finalize) are written before the code t
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `:hr-service` to `backend/settings.gradle.kts` and create `backend/hr-service/build.gradle.kts` mirroring `operations-service` (Spring Web, Data JPA, Validation, Actuator, Flyway, PostgreSQL driver, Testcontainers; Spotless/Checkstyle; Windows Testcontainers workaround)
-- [ ] T002 Create package skeleton under `backend/hr-service/src/main/java/com/kita/hr/{employee,attendance,payroll,deduction,leave,remittance,common,api}` and the `HrServiceApplication` entry point
-- [ ] T003 [P] Add `backend/hr-service/src/main/resources/application.yml` (datasource via env, JPA, Flyway, Actuator health, JSON logging) — no secrets in file
-- [ ] T004 [P] Create Flyway baseline `backend/hr-service/src/main/resources/db/migration/V1__init_hr_schema.sql` (schema `hr`, extensions, common columns)
-- [ ] T005 [P] Add the `hr-service` build to CI `.github/workflows/ci.yml` (build + test job)
+- [X] T001 Add `:hr-service` to `backend/settings.gradle.kts` and create `backend/hr-service/build.gradle.kts` mirroring `operations-service` (Spring Web, Data JPA, Validation, Actuator, Flyway, PostgreSQL driver, Testcontainers; Spotless/Checkstyle; Windows Testcontainers workaround)
+- [X] T002 Create package skeleton under `backend/hr-service/src/main/java/com/kita/hr/{employee,attendance,payroll,deduction,leave,remittance,common,api}` and the `HrServiceApplication` entry point
+- [X] T003 [P] Add `backend/hr-service/src/main/resources/application.yml` (datasource via env, JPA, Flyway, Actuator health, JSON logging) — no secrets in file
+- [X] T004 [P] Create Flyway baseline `backend/hr-service/src/main/resources/db/migration/V1__init_hr_schema.sql` (schema `hr`, extensions, common columns)
+- [X] T005 [P] Add the `hr-service` build to CI `.github/workflows/ci.yml` (build + test job)
 
 ---
 
 ## Phase 2: Foundational (Blocking)
 
-- [ ] T006 [P] `common/Money.java` + rounding policy (half-up to minor unit) and shared `BigDecimal` helpers, with unit tests
-- [ ] T007 [P] `common/EffectiveDated` support (query "record effective for date") used by compensation, deduction/premium rules, holidays
-- [ ] T008 [P] `common/AuditEvent` entity + repository + append-only writer (who/when/action/detail, PII/secret-scrubbed)
-- [ ] T009 [P] `common/` global exception handler + validation error DTO (RFC-7807 style) for the API boundary
-- [ ] T010 Role model + API security scaffolding (HR_ADMIN, PAYROLL_OFFICER, MANAGER, EMPLOYEE_SELF) with method/route guards
-- [ ] T011 Testcontainers singleton base test (`AbstractHrIT`) with `@DynamicPropertySource` + per-test TRUNCATE, mirroring operations-service
+- [X] T006 [P] `common/Money.java` + rounding policy (half-up to minor unit) and shared `BigDecimal` helpers, with unit tests
+- [X] T007 [P] `common/EffectiveDated` support (query "record effective for date") used by compensation, deduction/premium rules, holidays
+- [X] T008 [P] `common/AuditEvent` entity + repository + append-only writer (who/when/action/detail, PII/secret-scrubbed)
+- [X] T009 [P] `common/` global exception handler + validation error DTO (RFC-7807 style) for the API boundary
+- [X] T010 Role model + API security scaffolding (HR_ADMIN, PAYROLL_OFFICER, MANAGER, EMPLOYEE_SELF) with method/route guards
+- [X] T011 Testcontainers singleton base test (`AbstractHrIT`) with `@DynamicPropertySource` + per-test TRUNCATE, mirroring operations-service
 
 **Checkpoint**: build compiles; migrations apply; base test harness runs.
 
@@ -48,15 +48,15 @@ concurrency test (no double-pay / double-finalize) are written before the code t
 read back the record and its history.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T012 [P] [US1] Contract test for `/employees` + `/employees/{id}` + `/employees/{id}/compensation` in `.../employee/EmployeeApiContractTest`
-- [ ] T013 [P] [US1] Migration/integration test: employee + compensation persistence and history retention (Testcontainers)
+- [X] T012 [P] [US1] Contract test for `/employees` + `/employees/{id}` + `/employees/{id}/compensation` in `.../employee/EmployeeApiContractTest`
+- [X] T013 [P] [US1] Migration/integration test: employee + compensation persistence and history retention (Testcontainers)
 
 ### Implementation
-- [ ] T014 [P] [US1] Flyway `V2__employee.sql` (employee, compensation_record, attribute/status history)
-- [ ] T015 [P] [US1] `employee/Employee` + `employee/CompensationRecord` entities + top-level repositories
-- [ ] T016 [US1] `employee/EmployeeService` (create/update, status lifecycle, effective-dated compensation, history)
-- [ ] T017 [US1] `api/EmployeeController` + DTOs; validation (unique employee_no, required fields); statutory/tax IDs never in responses/logs
-- [ ] T018 [US1] Enforce EMPLOYEE_SELF read-only-own on employee endpoints
+- [X] T014 [P] [US1] Flyway `V2__employee.sql` (employee, compensation_record, attribute/status history)
+- [X] T015 [P] [US1] `employee/Employee` + `employee/CompensationRecord` entities + top-level repositories
+- [X] T016 [US1] `employee/EmployeeService` (create/update, status lifecycle, effective-dated compensation, history)
+- [X] T017 [US1] `api/EmployeeController` + DTOs; validation (unique employee_no, required fields); statutory/tax IDs never in responses/logs
+- [X] T018 [US1] Enforce EMPLOYEE_SELF read-only-own on employee endpoints
 
 **Checkpoint**: employee directory works end-to-end and is independently testable. **(MVP part 1)**
 
