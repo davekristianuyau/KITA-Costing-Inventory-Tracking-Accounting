@@ -4,6 +4,7 @@ import com.kita.hr.common.AuditWriter;
 import com.kita.hr.common.ConflictException;
 import com.kita.hr.common.Money;
 import com.kita.hr.common.NotFoundException;
+import com.kita.hr.deduction.LoanService;
 import com.kita.hr.payroll.dto.ComputeResultResponse;
 import com.kita.hr.payroll.dto.CreatePayrollRunRequest;
 import com.kita.hr.payroll.dto.PayComponentResponse;
@@ -25,6 +26,7 @@ public class PayrollRunService {
   private final PayslipRepository payslips;
   private final PayComponentRepository components;
   private final PayrollComputationService computation;
+  private final LoanService loans;
   private final AuditWriter audit;
 
   public PayrollRunService(
@@ -33,12 +35,14 @@ public class PayrollRunService {
       PayslipRepository payslips,
       PayComponentRepository components,
       PayrollComputationService computation,
+      LoanService loans,
       AuditWriter audit) {
     this.periods = periods;
     this.runs = runs;
     this.payslips = payslips;
     this.components = components;
     this.computation = computation;
+    this.loans = loans;
     this.audit = audit;
   }
 
@@ -89,6 +93,7 @@ public class PayrollRunService {
     PayrollRunStateMachine.assertCanFinalize(run.getStatus());
     run.markFinalized(actor);
     runs.save(run);
+    loans.settleForRun(runId); // draw down loan installments once, at finalize (FR-012)
     audit.record(actor, "PAYROLL_RUN_FINALIZED", runId.toString(), null);
     return run;
   }

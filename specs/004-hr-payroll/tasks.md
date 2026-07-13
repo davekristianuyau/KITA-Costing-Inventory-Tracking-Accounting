@@ -94,17 +94,17 @@ engine; PH seed.
 matches the rule and the loan balance decreases.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T029 [P] [US3] Unit tests for the rule engine (TABLE/BRACKET/PERCENT/FIXED) per `contracts/statutory-engine.md`
-- [ ] T030 [P] [US3] Golden-value tests for the PH seed (SSS/PhilHealth/Pag-IBIG/BIR) and base ordering (pre-tax before tax) (SC-003)
-- [ ] T031 [P] [US3] Loan installment test: N finalized runs settle the balance exactly, no over-deduction (SC-005)
+- [X] T029 [P] [US3] Unit tests for the rule engine (TABLE/BRACKET/PERCENT/FIXED) per `contracts/statutory-engine.md`
+- [X] T030 [P] [US3] Golden-value tests for the PH seed (SSS/PhilHealth/Pag-IBIG/BIR) and base ordering (pre-tax before tax) (SC-003)
+- [X] T031 [P] [US3] Loan installment test: N finalized runs settle the balance exactly, no over-deduction (SC-005)
 
 ### Implementation
-- [ ] T032 [P] [US3] Flyway `V4__deductions.sql` (deduction_rule + versions, loan/advance) and `V5__seed_ph_statutory.sql` (PH rules as data)
-- [ ] T033 [P] [US3] `deduction/` entities + repositories (DeductionRule, Loan)
-- [ ] T034 [US3] `deduction/DeductionRuleEngine` (effective-dated selection + TABLE/BRACKET/PERCENT/FIXED evaluation)
-- [ ] T035 [US3] `deduction/LoanService` (installment draw-down to zero → SETTLED)
-- [ ] T036 [US3] Integrate deductions into `PayrollComputationService` (pre-tax statutory → taxable income → tax → voluntary); employer contributions as components; net-pay floor guard (FR-015)
-- [ ] T037 [US3] `api/DeductionRuleController` (list/create effective-dated rules) + `/employees/{id}/loans`
+- [X] T032 [P] [US3] Flyway `V4__deductions.sql` (deduction_rule + versions, loan/advance) and `V5__seed_ph_statutory.sql` (PH rules as data)
+- [X] T033 [P] [US3] `deduction/` entities + repositories (DeductionRule, Loan)
+- [X] T034 [US3] `deduction/DeductionRuleEngine` (effective-dated selection + TABLE/BRACKET/PERCENT/FIXED evaluation)
+- [X] T035 [US3] `deduction/LoanService` (installment draw-down to zero → SETTLED)
+- [X] T036 [US3] Integrate deductions into `PayrollComputationService` (pre-tax statutory → taxable income → tax → voluntary); employer contributions as components; net-pay floor guard (FR-015)
+- [X] T037 [US3] `api/DeductionRuleController` (list/create effective-dated rules) + `/employees/{id}/loans`
 
 **Checkpoint**: payslips carry correct statutory, tax, and loan deductions.
 
