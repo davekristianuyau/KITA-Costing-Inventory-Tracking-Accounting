@@ -39,6 +39,7 @@ public abstract class AbstractHrIT {
   @BeforeEach
   void resetDatabase() {
     jdbc.execute(
-        "TRUNCATE TABLE compensation_record, employee, audit_event RESTART IDENTITY CASCADE");
+        "TRUNCATE TABLE pay_component, payslip, payroll_run, pay_period, compensation_record,"
+            + " employee, audit_event RESTART IDENTITY CASCADE");
   }
 }

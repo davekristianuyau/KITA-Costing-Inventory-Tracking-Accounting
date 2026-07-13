@@ -69,18 +69,18 @@ read back the record and its history.
 re-finalize rejected.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T019 [P] [US2] Contract test for `/payroll/runs`, `/compute`, `/finalize`, `/register`, `/payslips`
-- [ ] T020 [P] [US2] Unit tests for basic gross/net computation + pro-ration (per `contracts/payroll-computation.md`), incl. rounding/reconciliation (SC-002)
-- [ ] T021 [P] [US2] Concurrency integration test: duplicate finalize / same-period pay is rejected (SC-004)
+- [X] T019 [P] [US2] Contract test for `/payroll/runs`, `/compute`, `/finalize`, `/register`, `/payslips`
+- [X] T020 [P] [US2] Unit tests for basic gross/net computation + pro-ration (per `contracts/payroll-computation.md`), incl. rounding/reconciliation (SC-002)
+- [X] T021 [P] [US2] Concurrency integration test: duplicate finalize / same-period pay is rejected (SC-004)
 
 ### Implementation
-- [ ] T022 [P] [US2] Flyway `V3__payroll.sql` (pay_period, payroll_run, payslip, pay_component; idempotency key)
-- [ ] T023 [P] [US2] `payroll/` entities + repositories (PayPeriod, PayrollRun, Payslip, PayComponent)
-- [ ] T024 [US2] `payroll/PayrollRunStateMachine` (DRAFT→COMPUTED→FINALIZED, CANCELLED) with guarded transitions
-- [ ] T025 [US2] `payroll/PayrollComputationService` — basic gross (pro-rated basic + allowances) → net; produces payslips + components
-- [ ] T026 [US2] `payroll/FinalizeService` — atomic, idempotent finalize (locks figures, idempotency key, duplicate rejected) with row locking
-- [ ] T027 [US2] `payroll/RegisterService` — register totals reconciling to payslips (SC-002)
-- [ ] T028 [US2] `api/PayrollController` + DTOs (create/compute/finalize/register/payslips); flag/exclude invalid-compensation employees (FR-010)
+- [X] T022 [P] [US2] Flyway `V3__payroll.sql` (pay_period, payroll_run, payslip, pay_component; idempotency key)
+- [X] T023 [P] [US2] `payroll/` entities + repositories (PayPeriod, PayrollRun, Payslip, PayComponent)
+- [X] T024 [US2] `payroll/PayrollRunStateMachine` (DRAFT→COMPUTED→FINALIZED, CANCELLED) with guarded transitions
+- [X] T025 [US2] `payroll/PayrollComputationService` — basic gross (pro-rated basic + allowances) → net; produces payslips + components
+- [X] T026 [US2] `payroll/FinalizeService` — atomic, idempotent finalize (locks figures, idempotency key, duplicate rejected) with row locking
+- [X] T027 [US2] `payroll/RegisterService` — register totals reconciling to payslips (SC-002)
+- [X] T028 [US2] `api/PayrollController` + DTOs (create/compute/finalize/register/payslips); flag/exclude invalid-compensation employees (FR-010)
 
 **Checkpoint**: salaried payroll runs and finalizes correctly. **(MVP complete with US1)**
 
