@@ -35,6 +35,20 @@ Specs live in `specs/`; each has spec/plan/tasks/contracts. Status:
   overlays, contract test suite. PENDING: US4 client isolation (onboard-client.sh, isolation/naming
   tests), US5 lifecycle (teardown.sh + workflow), and live-only integration tests + quickstart run.
   **Nothing has been `terraform apply`-ed** — that needs cloud credentials not present in dev.
+- **004-hr-payroll** — 📝 Spec drafted (on branch `004-hr-payroll`, not yet merged). `hr-service`:
+  employee records, payroll runs, time & attendance (hr-service computes OT/tardiness/holiday/night-diff
+  from raw daily-time-records; device capture external), salary + statutory deductions (generic engine,
+  Philippines seed ruleset), leave. Pending plan/tasks/implement.
+- **005-customer-discounts** — 📝 Spec drafted (branch `005-customer-discounts`). `crm-service`:
+  customer records, multi-tier **cascading** discounts (‑25% then ‑5%), loyalty/repeat tiers,
+  government-mandated discounts (generic engine + PH senior/PWD seed). Pending plan/tasks/implement.
+- **006-supplier-purchasing** — 📝 Spec drafted (branch `006-supplier-purchasing`). `procurement-service`:
+  supplier master, purchase-order lifecycle, receiving (posts goods receipt to operations-service),
+  restock/reorder suggestions. Pending plan/tasks/implement.
+
+> Specs 004–006 split the "customers, suppliers, employees" request into three services. They live on
+> their feature branches; `main` won't contain their `specs/` until merged. Plan happens after all
+> three specs exist (this milestone).
 
 ## Key commands
 
@@ -57,6 +71,9 @@ client + Release Set). Deep dive: `infra/terraform/README.md`.
 ## Development Workflow
 
 - Spec-driven: use `/speckit.*`. Commit + push specs when created/updated.
+- **Implementing a spec**: follow the `/speckit.implement` workflow/rules even when the command isn't
+  typed — work in `tasks.md` order, respect dependencies and `[P]`, follow TDD where tests are defined,
+  build/verify, and mark tasks `[X]` as they complete.
 - **Commits**: simple messages, no AI/Co-Authored-By attribution (PR bodies may include it).
 - **Comments**: short and minimal.
 - Each feature on its own branch `NNN-short-name`; PR → merge to `main`. Don't sync `main` into
