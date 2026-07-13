@@ -1,0 +1,81 @@
+openapi: 3.0.3
+info:
+  title: KITA crm-service API
+  version: 0.1.0
+  description: >
+    Customer master + discount computation. Behind the gateway. Money as decimal strings.
+    Also serves as the customer Party master referenced by operations-service.
+servers:
+  - url: /api/crm
+tags: [ { name: customers }, { name: loyalty }, { name: entitlements }, { name: discounts } ]
+paths:
+  /customers:
+    get: { tags: [customers], summary: List/search customers, responses: { '200': { description: OK } } }
+    post:
+      tags: [customers]
+      summary: Create a customer
+      responses: { '201': { description: Created }, '400': { description: Validation error }, '409': { description: Duplicate customer_code } }
+  /customers/{id}:
+    get: { tags: [customers], summary: Get a customer (used by operations-service party validation), responses: { '200': { description: OK }, '404': { description: Not found } } }
+    patch: { tags: [customers], summary: Update customer (history retained), responses: { '200': { description: OK } } }
+  /customers/{id}/entitlements:
+    post: { tags: [entitlements], summary: Record a government-mandated entitlement (senior/PWD) + supporting ID, responses: { '201': { description: Created } } }
+
+  /loyalty/tiers:
+    post: { tags: [loyalty], summary: Define a loyalty/repeat tier + qualifying criteria + discount, responses: { '201': { description: Created } } }
+  /customers/{id}/loyalty/evaluate:
+    post: { tags: [loyalty], summary: Re-evaluate a customer's loyalty tier from qualifying activity, responses: { '200': { description: OK, tier assigned } } }
+
+  /discount-rules:
+    get: { tags: [discounts], summary: List effective discount rules, responses: { '200': { description: OK } } }
+    post: { tags: [discounts], summary: Create/version an effective-dated discount rule, responses: { '201': { description: Created } } }
+  /discount-policy:
+    get: { tags: [discounts], summary: Get active stacking policy, responses: { '200': { description: OK } } }
+    put: { tags: [discounts], summary: Set stacking policy (MOST_FAVORABLE default), responses: { '200': { description: OK } } }
+
+  /discounts/compute:
+    post:
+      tags: [discounts]
+      summary: Compute final price + per-tier breakdown for a customer + line items (stateless)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customerId: { type: string, nullable: true, description: null/absent = walk-in }
+                saleDate: { type: string, format: date }
+                lineItems:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      itemRef: { type: string }
+                      quantity: { type: string }
+                      unitPrice: { type: string }
+      responses:
+        '200':
+          description: Computed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  baseTotal: { type: string }
+                  finalPrice: { type: string }
+                  stackingMode: { type: string }
+                  breakdown:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tierCode: { type: string }
+                        origin: { type: string, enum: [STATUTORY, PROMOTIONAL, LOYALTY] }
+                        baseApplied: { type: string }
+                        amountRemoved: { type: string }
+                  flags: { type: array, items: { type: string } }
+        '400': { description: Validation error }
+
+  /actuator/health:
+    get: { summary: Health check, responses: { '200': { description: UP } } }
