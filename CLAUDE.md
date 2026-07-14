@@ -35,20 +35,48 @@ Specs live in `specs/`; each has spec/plan/tasks/contracts. Status:
   overlays, contract test suite. PENDING: US4 client isolation (onboard-client.sh, isolation/naming
   tests), US5 lifecycle (teardown.sh + workflow), and live-only integration tests + quickstart run.
   **Nothing has been `terraform apply`-ed** — that needs cloud credentials not present in dev.
-- **004-hr-payroll** — 📝 Spec drafted (on branch `004-hr-payroll`, not yet merged). `hr-service`:
-  employee records, payroll runs, time & attendance (hr-service computes OT/tardiness/holiday/night-diff
-  from raw daily-time-records; device capture external), salary + statutory deductions (generic engine,
-  Philippines seed ruleset), leave. Pending plan/tasks/implement.
-- **005-customer-discounts** — 📝 Spec drafted (branch `005-customer-discounts`). `crm-service`:
+- **004-hr-payroll** — 🚧 **Implementing** on branch `004-hr-payroll` (spec+plan+tasks done; **45/60
+  tasks**). `hr-service` (`backend/hr-service/`, port 8085, schema-in-public via Flyway V1–V6). DONE &
+  committed: US1 employee records + effective-dated compensation; US2 payroll run (state machine
+  DRAFT→COMPUTED→FINALIZED, idempotent finalize under pessimistic lock, register reconciliation);
+  US3 deductions (generic TABLE/BRACKET/PERCENT/FIXED rule engine, **PH statutory seed** SSS/PhilHealth/
+  Pag-IBIG/BIR in `V5`, loans drawn down at finalize); US6 time & attendance (worked-time + OT/holiday/
+  night-diff premiums from raw DTRs feeding gross). **PENDING**: US4 leave (T046–T051), US5 payslips/
+  register/remittance outputs (T052–T055), polish (T056–T060: JSON-log PII scrub, OpenAPI contract
+  tests, README, adjustment-run path, CI gate).
+- **005-customer-discounts** — 📝 Spec+plan+tasks done (branch `005-customer-discounts`). `crm-service`:
   customer records, multi-tier **cascading** discounts (‑25% then ‑5%), loyalty/repeat tiers,
-  government-mandated discounts (generic engine + PH senior/PWD seed). Pending plan/tasks/implement.
-- **006-supplier-purchasing** — 📝 Spec drafted (branch `006-supplier-purchasing`). `procurement-service`:
-  supplier master, purchase-order lifecycle, receiving (posts goods receipt to operations-service),
-  restock/reorder suggestions. Pending plan/tasks/implement.
+  government-mandated discounts (generic engine + PH senior/PWD seed). **Not yet implemented.**
+- **006-supplier-purchasing** — 📝 Spec+plan+tasks done (branch `006-supplier-purchasing`).
+  `procurement-service`: supplier master, purchase-order lifecycle, receiving (posts goods receipt to
+  operations-service), restock/reorder suggestions. **Not yet implemented.**
 
-> Specs 004–006 split the "customers, suppliers, employees" request into three services. They live on
-> their feature branches; `main` won't contain their `specs/` until merged. Plan happens after all
-> three specs exist (this milestone).
+> Specs 004–006 split the "customers, suppliers, employees" request into three services. Each lives on
+> its own feature branch (not merged to `main`); `main` won't contain their `specs/` or `backend/`
+> modules until merged.
+
+## Resume — where we left off (2026-07-14)
+
+Implementing all three new services in verified, committed slices (MVP-first), one user story per turn.
+**Currently on `004-hr-payroll`.** To continue on another device:
+
+```bash
+git fetch origin && git checkout 004-hr-payroll
+sed -n '/## Phase 7/,/## Phase 9/p' specs/004-hr-payroll/tasks.md   # next: US4 leave (T046+)
+cd backend && ./gradlew :hr-service:compileJava :hr-service:compileTestJava   # verify baseline
+```
+
+- **Order**: finish 004 (US4 → US5 → polish), then implement 005, then 006 — each MVP-first.
+- **Per-slice rhythm** (follow `/speckit.implement` even without the command): write failing tests →
+  implement → `:hr-service:compileJava`+`compileTestJava` → run pure unit tests → mark tasks `[X]` →
+  commit + push to the feature branch.
+- **Local test caveat**: Testcontainers integration tests need Docker Desktop's *Expose daemon on
+  tcp://localhost:2375 without TLS* toggle (Windows). It's currently OFF here, so only pure unit tests
+  run locally; the ITs run in **CI** (Linux). Enable the toggle to run the full suite locally.
+- **Conventions in `hr-service`**: pure calculators (`PayrollCalculator`, `DeductionRuleEngine`/
+  `DeductionCalculator`, `AttendanceCalculator`) hold the math and are unit-tested without a DB;
+  `common/Money` does half-up-to-cents rounding; `common/security/CallerContext` reads gateway role
+  headers with a dev stub; repositories are top-level interfaces; entities use `@UuidGenerator`.
 
 ## Key commands
 
