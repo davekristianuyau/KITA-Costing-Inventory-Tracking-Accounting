@@ -117,16 +117,16 @@ matches the rule and the loan balance decreases.
 their appearance on the payslip.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T038 [P] [US6] Unit tests for worked-time computation (regular/tardiness/undertime/absence/night) vs schedule
-- [ ] T039 [P] [US6] Unit tests for premium pay (overtime, holiday by type, night differential) per `PremiumRule`/`HolidayCalendar`
-- [ ] T040 [P] [US6] Contract test for `/attendance` + `/attendance/worked-time`
+- [X] T038 [P] [US6] Unit tests for worked-time computation (regular/tardiness/undertime/absence/night) vs schedule
+- [X] T039 [P] [US6] Unit tests for premium pay (overtime, holiday by type, night differential) per `PremiumRule`/`HolidayCalendar`
+- [X] T040 [P] [US6] Contract test for `/attendance` + `/attendance/worked-time`
 
 ### Implementation
-- [ ] T041 [P] [US6] Flyway `V6__attendance.sql` (work_schedule, attendance_record, premium_rule, holiday_calendar)
-- [ ] T042 [P] [US6] `attendance/` entities + repositories (WorkSchedule, AttendanceRecord, PremiumRule, HolidayCalendar)
-- [ ] T043 [US6] `attendance/WorkedTimeService` — compute worked time from DTR × schedule × holiday calendar; flag incomplete attendance
-- [ ] T044 [US6] `attendance/PremiumService` — overtime/holiday/night-differential pay
-- [ ] T045 [US6] Feed worked-time + premiums into `PayrollComputationService` gross; `api/AttendanceController` (ingest + worked-time query)
+- [X] T041 [P] [US6] Flyway `V6__attendance.sql` (work_schedule, attendance_record, premium_rule, holiday_calendar)
+- [X] T042 [P] [US6] `attendance/` entities + repositories (WorkSchedule, AttendanceRecord, PremiumRule, HolidayCalendar)
+- [X] T043 [US6] `attendance/WorkedTimeService` — compute worked time from DTR × schedule × holiday calendar; flag incomplete attendance
+- [X] T044 [US6] `attendance/PremiumService` — overtime/holiday/night-differential pay
+- [X] T045 [US6] Feed worked-time + premiums into `PayrollComputationService` gross; `api/AttendanceController` (ingest + worked-time query)
 
 **Checkpoint**: hourly/premium pay is computed and flows into payroll.
 

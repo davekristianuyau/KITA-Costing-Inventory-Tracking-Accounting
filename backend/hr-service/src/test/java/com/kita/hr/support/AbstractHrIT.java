@@ -41,7 +41,8 @@ public abstract class AbstractHrIT {
     // NOTE: deduction_rule / deduction_rule_row are intentionally NOT truncated — they hold the
     // seeded PH statutory ruleset that payroll computation depends on.
     jdbc.execute(
-        "TRUNCATE TABLE pay_component, payslip, payroll_run, pay_period, loan, compensation_record,"
-            + " employee, audit_event RESTART IDENTITY CASCADE");
+        "TRUNCATE TABLE pay_component, payslip, payroll_run, pay_period, loan, attendance_record,"
+            + " work_schedule, holiday_calendar, premium_rule, compensation_record, employee,"
+            + " audit_event RESTART IDENTITY CASCADE");
   }
 }

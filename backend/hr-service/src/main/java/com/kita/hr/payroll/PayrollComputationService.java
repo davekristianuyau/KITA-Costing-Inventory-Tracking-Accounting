@@ -1,5 +1,6 @@
 package com.kita.hr.payroll;
 
+import com.kita.hr.attendance.AttendanceService;
 import com.kita.hr.common.EffectiveDated;
 import com.kita.hr.common.Money;
 import com.kita.hr.deduction.DeductionCalculator;
@@ -34,6 +35,7 @@ public class PayrollComputationService {
   private final PayComponentRepository components;
   private final DeductionService deductions;
   private final LoanService loans;
+  private final AttendanceService attendance;
   private final BigDecimal netFloor;
 
   public PayrollComputationService(
@@ -43,6 +45,7 @@ public class PayrollComputationService {
       PayComponentRepository components,
       DeductionService deductions,
       LoanService loans,
+      AttendanceService attendance,
       @Value("${hr.payroll.net-floor:0}") BigDecimal netFloor) {
     this.employees = employees;
     this.compensations = compensations;
@@ -50,6 +53,7 @@ public class PayrollComputationService {
     this.components = components;
     this.deductions = deductions;
     this.loans = loans;
+    this.attendance = attendance;
     this.netFloor = netFloor;
   }
 
@@ -74,7 +78,7 @@ public class PayrollComputationService {
         flagged.add(e.getEmployeeNo() + ": no effective compensation");
         continue;
       }
-      BigDecimal gross =
+      BigDecimal basic =
           PayrollCalculator.grossBasic(
               comp.get().getBasicPay(),
               period.getFrequency(),
@@ -82,15 +86,30 @@ public class PayrollComputationService {
               period.getEndDate(),
               e.getDateHired(),
               e.getDateSeparated());
-      if (gross.signum() <= 0) {
+      if (basic.signum() <= 0) {
         flagged.add(e.getEmployeeNo() + ": not active in period");
         continue;
       }
 
-      // Deductions: statutory + tax (engine), then loan installments.
-      DeductionCalculator.Outcome ded = deductions.compute(gross, gross, period.getEndDate());
+      // Time & attendance premiums (US6). A schedule with no attendance flags the employee.
+      AttendanceService.PremiumOutcome prem =
+          attendance.premiumsFor(
+              e.getId(), comp.get().getBasicPay(), period.getStartDate(), period.getEndDate());
+      if (prem.incomplete()) {
+        flagged.add(e.getEmployeeNo() + ": incomplete attendance");
+        continue;
+      }
+      BigDecimal gross = Money.round(basic.add(prem.pay().total()));
+
+      // Earnings: basic + any premiums.
       List<DeductionLine> lines = new ArrayList<>();
-      lines.add(new DeductionLine(PayComponentCategory.EARNING, "BASIC", "Basic pay", gross, "pro-rated basic"));
+      lines.add(new DeductionLine(PayComponentCategory.EARNING, "BASIC", "Basic pay", basic, "pro-rated basic"));
+      addEarning(lines, "OVERTIME", "Overtime pay", prem.pay().overtimePay());
+      addEarning(lines, "HOLIDAY", "Holiday pay", prem.pay().holidayPay());
+      addEarning(lines, "NIGHT_DIFF", "Night differential", prem.pay().nightDiffPay());
+
+      // Deductions: statutory + tax (engine) on gross/basic, then loan installments.
+      DeductionCalculator.Outcome ded = deductions.compute(gross, basic, period.getEndDate());
       for (DeductionCalculator.Line l : ded.lines()) {
         lines.add(new DeductionLine(l.category(), l.code(), l.label(), l.amount(), l.basis()));
       }
@@ -129,6 +148,13 @@ public class PayrollComputationService {
       count++;
     }
     return new Outcome(count, flagged);
+  }
+
+  private static void addEarning(
+      List<DeductionLine> lines, String code, String label, BigDecimal amount) {
+    if (amount != null && amount.signum() > 0) {
+      lines.add(new DeductionLine(PayComponentCategory.EARNING, code, label, amount, "premium"));
+    }
   }
 
   private record DeductionLine(
