@@ -1,5 +1,6 @@
 package com.kita.hr.payroll;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -8,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kita.hr.support.AbstractHrIT;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -73,12 +75,33 @@ class PayrollApiContractTest extends AbstractHrIT {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("FINALIZED"));
 
-    mockMvc
-        .perform(get("/api/hr/payroll/runs/" + runId + "/register"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.employeeCount").value(1))
-        .andExpect(jsonPath("$.totalGross").value(30000.00))
-        .andExpect(jsonPath("$.totalNet").value(30000.00));
+    String json =
+        mockMvc
+            .perform(get("/api/hr/payroll/runs/" + runId + "/register"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.employeeCount").value(1))
+            .andExpect(jsonPath("$.totalGross").value(30000.00))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    // SC-002: the register reconciles to the cent — net = gross − deductions, and each register
+    // total is the sum of its payslips. Asserted as an invariant rather than a hard-coded net so
+    // the contract does not depend on the statutory rates in effect.
+    JsonNode reg = mapper.readTree(json);
+    BigDecimal gross = reg.get("totalGross").decimalValue();
+    BigDecimal deductions = reg.get("totalDeductions").decimalValue();
+    BigDecimal net = reg.get("totalNet").decimalValue();
+    assertThat(net).isEqualByComparingTo(gross.subtract(deductions));
+
+    BigDecimal slipGross = BigDecimal.ZERO;
+    BigDecimal slipNet = BigDecimal.ZERO;
+    for (JsonNode slip : reg.get("payslips")) {
+      slipGross = slipGross.add(slip.get("gross").decimalValue());
+      slipNet = slipNet.add(slip.get("netPay").decimalValue());
+    }
+    assertThat(slipGross).isEqualByComparingTo(gross);
+    assertThat(slipNet).isEqualByComparingTo(net);
   }
 
   @Test

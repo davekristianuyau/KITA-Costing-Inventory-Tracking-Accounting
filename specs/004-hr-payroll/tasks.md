@@ -139,14 +139,14 @@ their appearance on the payslip.
 unpaid approved leave reduces the period's pay.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T046 [P] [US4] Contract test for `/leave/types`, `/leave/requests`, `/decision`, `/leave/balances`
-- [ ] T047 [P] [US4] Integration tests: balance draw-down, overlap rejection, over-draw guard; unpaid-leave pay reduction (FR-020)
+- [X] T046 [P] [US4] Contract test for `/leave/types`, `/leave/requests`, `/decision`, `/leave/balances`
+- [X] T047 [P] [US4] Integration tests: balance draw-down, overlap rejection, over-draw guard; unpaid-leave pay reduction (FR-020)
 
 ### Implementation
-- [ ] T048 [P] [US4] Flyway `V7__leave.sql` (leave_type, leave_balance, leave_request)
-- [ ] T049 [P] [US4] `leave/` entities + repositories (LeaveType, LeaveBalance, LeaveRequest)
-- [ ] T050 [US4] `leave/LeaveService` (file, approve/reject, accrual, overlap + over-draw guards) transactional
-- [ ] T051 [US4] Couple approved UNPAID leave into `PayrollComputationService` (reduce covered days); `api/LeaveController`
+- [X] T048 [P] [US4] Flyway `V7__leave.sql` (leave_type, leave_balance, leave_request)
+- [X] T049 [P] [US4] `leave/` entities + repositories (LeaveType, LeaveBalance, LeaveRequest)
+- [X] T050 [US4] `leave/LeaveService` (file, approve/reject, accrual, overlap + over-draw guards) transactional
+- [X] T051 [US4] Couple approved UNPAID leave into `PayrollComputationService` (reduce covered days); `api/LeaveController`
 
 **Checkpoint**: leave works and correctly affects payroll.
 

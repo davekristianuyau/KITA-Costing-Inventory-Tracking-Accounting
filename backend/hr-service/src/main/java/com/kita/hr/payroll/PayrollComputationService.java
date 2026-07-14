@@ -11,6 +11,7 @@ import com.kita.hr.employee.CompensationRecord;
 import com.kita.hr.employee.CompensationRecordRepository;
 import com.kita.hr.employee.Employee;
 import com.kita.hr.employee.EmployeeRepository;
+import com.kita.hr.leave.LeaveService;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,7 @@ public class PayrollComputationService {
   private final DeductionService deductions;
   private final LoanService loans;
   private final AttendanceService attendance;
+  private final LeaveService leave;
   private final BigDecimal netFloor;
 
   public PayrollComputationService(
@@ -46,6 +48,7 @@ public class PayrollComputationService {
       DeductionService deductions,
       LoanService loans,
       AttendanceService attendance,
+      LeaveService leave,
       @Value("${hr.payroll.net-floor:0}") BigDecimal netFloor) {
     this.employees = employees;
     this.compensations = compensations;
@@ -54,6 +57,7 @@ public class PayrollComputationService {
     this.deductions = deductions;
     this.loans = loans;
     this.attendance = attendance;
+    this.leave = leave;
     this.netFloor = netFloor;
   }
 
@@ -91,6 +95,26 @@ public class PayrollComputationService {
         continue;
       }
 
+      // Approved unpaid leave in the period reduces the covered (paid) days (FR-020).
+      String basicBasis = "pro-rated basic";
+      BigDecimal unpaidDays =
+          leave.approvedUnpaidDays(e.getId(), period.getStartDate(), period.getEndDate());
+      if (unpaidDays.signum() > 0) {
+        BigDecimal reduction =
+            PayrollCalculator.unpaidLeaveReduction(
+                comp.get().getBasicPay(),
+                period.getFrequency(),
+                period.getStartDate(),
+                period.getEndDate(),
+                unpaidDays);
+        if (reduction.compareTo(basic) > 0) {
+          reduction = basic;
+        }
+        basic = Money.round(basic.subtract(reduction));
+        basicBasis = "pro-rated basic less " + unpaidDays.stripTrailingZeros().toPlainString()
+            + " unpaid leave day(s)";
+      }
+
       // Time & attendance premiums (US6). A schedule with no attendance flags the employee.
       AttendanceService.PremiumOutcome prem =
           attendance.premiumsFor(
@@ -103,7 +127,7 @@ public class PayrollComputationService {
 
       // Earnings: basic + any premiums.
       List<DeductionLine> lines = new ArrayList<>();
-      lines.add(new DeductionLine(PayComponentCategory.EARNING, "BASIC", "Basic pay", basic, "pro-rated basic"));
+      lines.add(new DeductionLine(PayComponentCategory.EARNING, "BASIC", "Basic pay", basic, basicBasis));
       addEarning(lines, "OVERTIME", "Overtime pay", prem.pay().overtimePay());
       addEarning(lines, "HOLIDAY", "Holiday pay", prem.pay().holidayPay());
       addEarning(lines, "NIGHT_DIFF", "Night differential", prem.pay().nightDiffPay());

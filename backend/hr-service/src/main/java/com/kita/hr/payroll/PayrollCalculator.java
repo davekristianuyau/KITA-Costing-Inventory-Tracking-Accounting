@@ -55,4 +55,23 @@ public final class PayrollCalculator {
         BigDecimal.valueOf(active).divide(BigDecimal.valueOf(total), 12, RoundingMode.HALF_UP);
     return Money.round(periodBasic.multiply(fraction));
   }
+
+  /**
+   * Pay reduction for approved unpaid-leave days in the period (FR-020), by the same calendar-day
+   * basis as {@link #grossBasic}. Zero if there are no unpaid days.
+   */
+  public static BigDecimal unpaidLeaveReduction(
+      BigDecimal monthlyBasic,
+      PayFrequency periodFrequency,
+      LocalDate start,
+      LocalDate end,
+      BigDecimal unpaidDays) {
+    long total = totalDays(start, end);
+    if (unpaidDays == null || unpaidDays.signum() <= 0 || total <= 0) {
+      return Money.zero();
+    }
+    BigDecimal periodBasic = monthlyBasic.multiply(periodFactor(periodFrequency));
+    BigDecimal fraction = unpaidDays.divide(BigDecimal.valueOf(total), 12, RoundingMode.HALF_UP);
+    return Money.round(periodBasic.multiply(fraction));
+  }
 }

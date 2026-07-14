@@ -42,7 +42,7 @@ public abstract class AbstractHrIT {
     // seeded PH statutory ruleset that payroll computation depends on.
     jdbc.execute(
         "TRUNCATE TABLE pay_component, payslip, payroll_run, pay_period, loan, attendance_record,"
-            + " work_schedule, holiday_calendar, premium_rule, compensation_record, employee,"
-            + " audit_event RESTART IDENTITY CASCADE");
+            + " work_schedule, holiday_calendar, premium_rule, leave_request, leave_balance,"
+            + " leave_type, compensation_record, employee, audit_event RESTART IDENTITY CASCADE");
   }
 }
