@@ -58,8 +58,15 @@ public class PayrollRunService {
       if (req.adjustsRunId() == null) {
         throw new IllegalArgumentException("adjustsRunId is required for an ADJUSTMENT run");
       }
-      runs.findById(req.adjustsRunId())
-          .orElseThrow(() -> new NotFoundException("run to adjust not found: " + req.adjustsRunId()));
+      PayrollRun original =
+          runs.findById(req.adjustsRunId())
+              .orElseThrow(
+                  () -> new NotFoundException("run to adjust not found: " + req.adjustsRunId()));
+      // Only a finalized run can be corrected — an unfinalized one is still editable in place (FR-011).
+      if (original.getStatus() != RunStatus.FINALIZED) {
+        throw new ConflictException(
+            "an ADJUSTMENT must reference a FINALIZED run (was " + original.getStatus() + ")");
+      }
       adjustsRunId = req.adjustsRunId();
     }
     String key = idempotencyKey(type, adjustsRunId, p.startDate().toString(), p.endDate().toString());

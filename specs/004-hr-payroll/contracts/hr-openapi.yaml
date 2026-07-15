@@ -25,6 +25,7 @@ paths:
     patch: { tags: [employees], summary: Update employee / status, responses: { '200': { description: OK }, '400': { description: Validation error } } }
   /employees/{id}/compensation:
     post: { tags: [employees], summary: Add an effective-dated compensation record, responses: { '201': { description: Created } } }
+    get: { tags: [employees], summary: Compensation history (self or privileged), responses: { '200': { description: OK }, '404': { description: Not found } } }
   /employees/{id}/loans:
     post: { tags: [deductions], summary: Attach a loan/advance with an installment schedule, responses: { '201': { description: Created } } }
 
@@ -32,6 +33,12 @@ paths:
     post: { tags: [attendance], summary: Ingest raw daily time records (single/batch), responses: { '202': { description: Accepted } } }
   /attendance/worked-time:
     get: { tags: [attendance], summary: Computed worked time for employee(s) over a period, responses: { '200': { description: OK } } }
+  /work-schedules:
+    post: { tags: [attendance], summary: Define an effective-dated work schedule/shift, responses: { '201': { description: Created } } }
+  /holidays:
+    post: { tags: [attendance], summary: Add a holiday-calendar entry, responses: { '201': { description: Created } } }
+  /premium-rules:
+    post: { tags: [attendance], summary: Create an effective-dated premium multiplier (OT/holiday/night), responses: { '201': { description: Created } } }
 
   /payroll/runs:
     post:
@@ -45,6 +52,8 @@ paths:
       tags: [payroll]
       summary: Finalize the run (COMPUTED→FINALIZED), atomic + idempotent
       responses: { '200': { description: Finalized }, '409': { description: Already finalized / duplicate period pay } }
+  /payroll/runs/{id}/cancel:
+    post: { tags: [payroll], summary: Cancel a run (DRAFT|COMPUTED→CANCELLED), responses: { '200': { description: Cancelled }, '409': { description: A finalized run cannot be cancelled } } }
   /payroll/runs/{id}/register:
     get: { tags: [payroll], summary: Payroll register (totals reconcile to payslips), responses: { '200': { description: OK } } }
   /payroll/runs/{id}/remittances:
@@ -57,7 +66,8 @@ paths:
     post: { tags: [deductions], summary: Create/version an effective-dated deduction rule, responses: { '201': { description: Created } } }
 
   /leave/types:
-    post: { tags: [leave], summary: Define a leave type + accrual policy, responses: { '201': { description: Created } } }
+    post: { tags: [leave], summary: Define a leave type + accrual policy, responses: { '201': { description: Created }, '409': { description: Duplicate code } } }
+    get: { tags: [leave], summary: List leave types, responses: { '200': { description: OK } } }
   /leave/requests:
     post: { tags: [leave], summary: File a leave request, responses: { '201': { description: Filed }, '409': { description: Overlapping leave } } }
   /leave/requests/{id}/decision:

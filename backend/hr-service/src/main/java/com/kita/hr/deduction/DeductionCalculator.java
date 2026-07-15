@@ -73,7 +73,12 @@ public final class DeductionCalculator {
       DeductionRuleEngine.Amounts a = DeductionRuleEngine.evaluate(rw.rule(), rw.rows(), taxable);
       if (a.employee().signum() != 0) {
         lines.add(
-            new Line(PayComponentCategory.TAX, rw.rule().getCode(), rw.rule().getAgency(), a.employee(), "on taxable income"));
+            new Line(
+                PayComponentCategory.TAX,
+                rw.rule().getCode(),
+                rw.rule().getAgency(),
+                a.employee(),
+                "on taxable income"));
         employeeDeductions.add(a.employee());
       }
     }

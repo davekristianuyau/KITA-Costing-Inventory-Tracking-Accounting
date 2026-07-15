@@ -172,11 +172,11 @@ remittance summary that equals the agency total across payslips.
 
 ## Phase 9: Polish & Cross-Cutting
 
-- [ ] T056 [P] Structured JSON logging with statutory/tax-ID + PII scrubbing across services (FR-004/023)
-- [ ] T057 [P] OpenAPI contract wired as source of truth; contract tests green against `contracts/hr-openapi.yaml`
-- [ ] T058 [P] `backend/hr-service/README.md` (module purpose, run/test, seed rules, endpoints)
-- [ ] T059 Adjustment-run path (ADJUSTMENT referencing a finalized run; original immutable) end-to-end (FR-011)
-- [ ] T060 Full `:hr-service:build` green (Spotless/Checkstyle/tests) in CI; fail-fast gate
+- [X] T056 [P] Structured JSON logging with statutory/tax-ID + PII scrubbing across services (FR-004/023)
+- [X] T057 [P] OpenAPI contract wired as source of truth; contract tests green against `contracts/hr-openapi.yaml`
+- [X] T058 [P] `backend/hr-service/README.md` (module purpose, run/test, seed rules, endpoints)
+- [X] T059 Adjustment-run path (ADJUSTMENT referencing a finalized run; original immutable) end-to-end (FR-011)
+- [X] T060 Full `:hr-service:build` green (Spotless/Checkstyle/tests) in CI; fail-fast gate
 
 ---
 

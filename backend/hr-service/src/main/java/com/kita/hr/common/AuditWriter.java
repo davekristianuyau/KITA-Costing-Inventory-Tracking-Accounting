@@ -12,7 +12,8 @@ public class AuditWriter {
     this.repository = repository;
   }
 
+  /** Detail is scrubbed here too, so a careless caller cannot persist a statutory/tax ID. */
   public void record(String actor, String action, String entityRef, String detail) {
-    repository.save(new AuditEvent(actor, action, entityRef, detail));
+    repository.save(new AuditEvent(actor, action, entityRef, LogScrubber.scrub(detail)));
   }
 }

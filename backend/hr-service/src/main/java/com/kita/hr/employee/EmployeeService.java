@@ -63,16 +63,36 @@ public class EmployeeService {
   @Transactional
   public Employee update(UUID id, UpdateEmployeeRequest req, String actor) {
     Employee e = get(id);
-    if (req.firstName() != null) e.setFirstName(req.firstName());
-    if (req.lastName() != null) e.setLastName(req.lastName());
-    if (req.email() != null) e.setEmail(req.email());
-    if (req.phone() != null) e.setPhone(req.phone());
-    if (req.position() != null) e.setPosition(req.position());
-    if (req.sssNo() != null) e.setSssNo(req.sssNo());
-    if (req.philhealthNo() != null) e.setPhilhealthNo(req.philhealthNo());
-    if (req.pagibigNo() != null) e.setPagibigNo(req.pagibigNo());
-    if (req.tin() != null) e.setTin(req.tin());
-    if (req.dateSeparated() != null) e.setDateSeparated(req.dateSeparated());
+    if (req.firstName() != null) {
+      e.setFirstName(req.firstName());
+    }
+    if (req.lastName() != null) {
+      e.setLastName(req.lastName());
+    }
+    if (req.email() != null) {
+      e.setEmail(req.email());
+    }
+    if (req.phone() != null) {
+      e.setPhone(req.phone());
+    }
+    if (req.position() != null) {
+      e.setPosition(req.position());
+    }
+    if (req.sssNo() != null) {
+      e.setSssNo(req.sssNo());
+    }
+    if (req.philhealthNo() != null) {
+      e.setPhilhealthNo(req.philhealthNo());
+    }
+    if (req.pagibigNo() != null) {
+      e.setPagibigNo(req.pagibigNo());
+    }
+    if (req.tin() != null) {
+      e.setTin(req.tin());
+    }
+    if (req.dateSeparated() != null) {
+      e.setDateSeparated(req.dateSeparated());
+    }
     if (req.status() != null) {
       if (req.status() == EmployeeStatus.SEPARATED
           && req.dateSeparated() == null

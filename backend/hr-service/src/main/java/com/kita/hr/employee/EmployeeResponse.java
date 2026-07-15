@@ -1,9 +1,13 @@
 package com.kita.hr.employee;
 
+import com.kita.hr.common.LogScrubber;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/** Employee view returned by the API. */
+/**
+ * Employee view returned by the API. Statutory and tax identifiers are masked to a last-four hint —
+ * they are stored for deductions and remittance but never handed back in the clear (FR-004).
+ */
 public record EmployeeResponse(
     UUID id,
     String employeeNo,
@@ -36,9 +40,9 @@ public record EmployeeResponse(
         e.getDateHired(),
         e.getDateSeparated(),
         e.getStatus(),
-        e.getSssNo(),
-        e.getPhilhealthNo(),
-        e.getPagibigNo(),
-        e.getTin());
+        LogScrubber.mask(e.getSssNo()),
+        LogScrubber.mask(e.getPhilhealthNo()),
+        LogScrubber.mask(e.getPagibigNo()),
+        LogScrubber.mask(e.getTin()));
   }
 }
