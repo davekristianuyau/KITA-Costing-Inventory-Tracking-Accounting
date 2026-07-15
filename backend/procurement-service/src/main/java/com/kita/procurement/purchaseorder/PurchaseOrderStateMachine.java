@@ -31,7 +31,8 @@ public final class PurchaseOrderStateMachine {
 
   public static void assertCanReceive(PurchaseOrderStatus status) {
     if (status != PurchaseOrderStatus.SENT && status != PurchaseOrderStatus.PARTIALLY_RECEIVED) {
-      throw new ConflictException("only a SENT or PARTIALLY_RECEIVED order can be received against (was " + status + ")");
+      throw new ConflictException(
+          "only a SENT or PARTIALLY_RECEIVED order can be received against (was " + status + ")");
     }
   }
 

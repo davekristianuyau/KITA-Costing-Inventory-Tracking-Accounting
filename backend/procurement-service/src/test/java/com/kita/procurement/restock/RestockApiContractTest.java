@@ -50,7 +50,7 @@ class RestockApiContractTest extends AbstractProcurementIT {
   private String generateOne() throws Exception {
     String json =
         mockMvc
-            .perform(post("/api/procurement/restock/suggestions/generate"))
+            .perform(post("/api/procurement/restock/suggestions"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andReturn()
@@ -64,7 +64,7 @@ class RestockApiContractTest extends AbstractProcurementIT {
     seedLowStockItem("RAPI-1");
 
     mockMvc
-        .perform(post("/api/procurement/restock/suggestions/generate"))
+        .perform(post("/api/procurement/restock/suggestions"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].status").value("OPEN"))
@@ -78,7 +78,7 @@ class RestockApiContractTest extends AbstractProcurementIT {
   @Test
   void generateWithNoSignalsProducesNothing() throws Exception {
     mockMvc
-        .perform(post("/api/procurement/restock/suggestions/generate"))
+        .perform(post("/api/procurement/restock/suggestions"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(0));
   }

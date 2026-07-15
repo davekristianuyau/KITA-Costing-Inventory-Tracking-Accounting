@@ -19,7 +19,10 @@ paths:
     get: { tags: [suppliers], summary: Get a supplier (used by operations-service party validation), responses: { '200': { description: OK }, '404': { description: Not found } } }
     patch: { tags: [suppliers], summary: Update supplier (history retained), responses: { '200': { description: OK } } }
   /suppliers/{id}/items:
-    post: { tags: [suppliers], summary: Add/update a supplied item (price, lead time, min order), responses: { '201': { description: Created } } }
+    post: { tags: [suppliers], summary: Add/update a supplied item (price, lead time, min order), responses: { '201': { description: Created }, '404': { description: Unknown supplier } } }
+    get: { tags: [suppliers], summary: List the items a supplier supplies, responses: { '200': { description: OK }, '404': { description: Not found } } }
+  /suppliers/{id}/history:
+    get: { tags: [suppliers], summary: Append-only change history, including price changes, responses: { '200': { description: OK }, '404': { description: Not found } } }
 
   /purchase-orders:
     get: { tags: [purchase-orders], summary: List POs (filter by supplier/status), responses: { '200': { description: OK } } }
@@ -37,12 +40,17 @@ paths:
       tags: [receiving]
       summary: Record a (partial/full) goods receipt; emits a goods-receipt event to operations-service
       responses: { '201': { description: Recorded; PO advanced }, '409': { description: Over-receipt or illegal state } }
+    get: { tags: [receiving], summary: List the receipts recorded against a PO, responses: { '200': { description: OK }, '404': { description: Not found } } }
+  /purchase-orders/{id}/close:
+    post: { tags: [receiving], summary: Close a fully received PO, responses: { '200': { description: Closed }, '409': { description: Not FULLY_RECEIVED } } }
 
   /restock/suggestions:
     post: { tags: [restock], summary: Generate restock suggestions from low-stock signals, responses: { '200': { description: OK, suggestions grouped by supplier } } }
     get: { tags: [restock], summary: List open suggestions, responses: { '200': { description: OK } } }
   /restock/suggestions/{id}/convert:
-    post: { tags: [restock], summary: Convert a suggestion into a draft PO, responses: { '201': { description: PO created } } }
+    post: { tags: [restock], summary: Convert a suggestion into a draft PO (SENT only if every item opted into auto-submit), responses: { '200': { description: PO created }, '404': { description: Unknown suggestion }, '409': { description: Already converted or dismissed } } }
+  /restock/suggestions/{id}/dismiss:
+    post: { tags: [restock], summary: Dismiss a suggestion without ordering, responses: { '200': { description: Dismissed }, '409': { description: Already converted or dismissed } } }
 
   /actuator/health:
     get: { summary: Health check, responses: { '200': { description: UP } } }

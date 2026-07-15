@@ -127,11 +127,11 @@ consolidated per supplier; convert one to a draft PO; auto-submit disabled by de
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T038 [P] Structured JSON logging (no secrets) across the service
-- [ ] T039 [P] OpenAPI contract wired as source of truth; contract tests green against `contracts/procurement-openapi.yaml`
-- [ ] T040 [P] `backend/procurement-service/README.md` (module purpose, run/test, OperationsPort, endpoints)
-- [ ] T041 Real HTTP `OperationsAdapter` to operations-service (behind the port; fake used in tests) with retry-safe idempotent posting
-- [ ] T042 Full `:procurement-service:build` green (Spotless/Checkstyle/tests) in CI; fail-fast gate
+- [X] T038 [P] Structured JSON logging (no secrets) across the service
+- [X] T039 [P] OpenAPI contract wired as source of truth; contract tests green against `contracts/procurement-openapi.yaml`
+- [X] T040 [P] `backend/procurement-service/README.md` (module purpose, run/test, OperationsPort, endpoints)
+- [X] T041 Real HTTP `OperationsAdapter` to operations-service (behind the port; fake used in tests) with retry-safe idempotent posting
+- [X] T042 Full `:procurement-service:build` green (Spotless/Checkstyle/tests) in CI; fail-fast gate
 
 ---
 

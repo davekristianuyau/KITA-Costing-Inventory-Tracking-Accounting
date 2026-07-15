@@ -31,7 +31,7 @@ public class RestockController {
   }
 
   /** Read the current reorder signals and produce supplier-grouped suggestions. */
-  @PostMapping("/suggestions/generate")
+  @PostMapping("/suggestions")
   public List<RestockSuggestionResponse> generate() {
     caller.require(Role.PROCUREMENT_ADMIN);
     return restock.generate(caller.actor()).stream()
