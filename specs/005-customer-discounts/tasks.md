@@ -20,21 +20,21 @@ reconciliation, caps, stacking, VAT treatment) are written before the code they 
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `:crm-service` to `backend/settings.gradle.kts` and create `backend/crm-service/build.gradle.kts` mirroring `operations-service` (Spring Web, Data JPA, Validation, Actuator, Flyway, PostgreSQL, Testcontainers; Spotless/Checkstyle; Windows Testcontainers workaround)
-- [ ] T002 Create package skeleton under `backend/crm-service/src/main/java/com/kita/crm/{customer,loyalty,entitlement,discount,common,api}` and `CrmServiceApplication`
-- [ ] T003 [P] Add `backend/crm-service/src/main/resources/application.yml` (datasource via env, JPA, Flyway, Actuator, JSON logging) — no secrets
-- [ ] T004 [P] Flyway baseline `.../db/migration/V1__init_crm_schema.sql` (schema `crm`, extensions, common columns)
-- [ ] T005 [P] Add the `crm-service` build to CI `.github/workflows/ci.yml`
+- [X] T001 Add `:crm-service` to `backend/settings.gradle.kts` and create `backend/crm-service/build.gradle.kts` mirroring `operations-service` (Spring Web, Data JPA, Validation, Actuator, Flyway, PostgreSQL, Testcontainers; Spotless/Checkstyle; Windows Testcontainers workaround)
+- [X] T002 Create package skeleton under `backend/crm-service/src/main/java/com/kita/crm/{customer,loyalty,entitlement,discount,common,api}` and `CrmServiceApplication`
+- [X] T003 [P] Add `backend/crm-service/src/main/resources/application.yml` (datasource via env, JPA, Flyway, Actuator, JSON logging) — no secrets
+- [X] T004 [P] Flyway baseline `.../db/migration/V1__init_crm_schema.sql` (schema `crm`, extensions, common columns)
+- [X] T005 [P] Add the `crm-service` build to CI `.github/workflows/ci.yml`
 
 ---
 
 ## Phase 2: Foundational (Blocking)
 
-- [ ] T006 [P] `common/Money.java` + rounding policy (half-up to minor unit) + `BigDecimal` helpers, with unit tests
-- [ ] T007 [P] `common/EffectiveDated` support (rule effective for a sale date)
-- [ ] T008 [P] `common/AuditEvent` entity + repository + append-only writer (PII-scrubbed)
-- [ ] T009 [P] `common/` global exception handler + validation error DTO for the API boundary
-- [ ] T010 Role guards + API security scaffolding (privileged vs. read); Testcontainers singleton base test (`AbstractCrmIT`) with per-test TRUNCATE
+- [X] T006 [P] `common/Money.java` + rounding policy (half-up to minor unit) + `BigDecimal` helpers, with unit tests
+- [X] T007 [P] `common/EffectiveDated` support (rule effective for a sale date)
+- [X] T008 [P] `common/AuditEvent` entity + repository + append-only writer (PII-scrubbed)
+- [X] T009 [P] `common/` global exception handler + validation error DTO for the API boundary
+- [X] T010 Role guards + API security scaffolding (privileged vs. read); Testcontainers singleton base test (`AbstractCrmIT`) with per-test TRUNCATE
 
 **Checkpoint**: build compiles; migrations apply; base test harness runs.
 

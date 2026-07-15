@@ -1,0 +1,29 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: crm-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/kita}
+    username: ${DATABASE_USER:kita}
+    password: ${DATABASE_PASSWORD:change-me}
+  jpa:
+    hibernate:
+      ddl-auto: validate # schema owned by Flyway
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+crm:
+  security:
+    # When true, callers with no role header are trusted as CRM_ADMIN (dev/test only).
+    # In production the gateway authenticates and sets X-Kita-Roles.
+    stub: ${CRM_SECURITY_STUB:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
