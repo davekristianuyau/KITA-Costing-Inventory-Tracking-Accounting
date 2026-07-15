@@ -1,0 +1,19 @@
+<configuration>
+  <!-- Structured JSON logs (mirrors operations-service). Statutory/tax identifiers are masked at the
+       encoder as a backstop, so they cannot reach a log even if something logs them (FR-004). -->
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
+        <defaultMask>****</defaultMask>
+        <path>sssNo</path>
+        <path>philhealthNo</path>
+        <path>pagibigNo</path>
+        <path>tin</path>
+        <path>password</path>
+      </jsonGeneratorDecorator>
+    </encoder>
+  </appender>
+  <root level="INFO">
+    <appender-ref ref="JSON"/>
+  </root>
+</configuration>

@@ -1,0 +1,29 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: hr-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/kita}
+    username: ${DATABASE_USER:kita}
+    password: ${DATABASE_PASSWORD:change-me}
+  jpa:
+    hibernate:
+      ddl-auto: validate # schema owned by Flyway
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+hr:
+  security:
+    # When true, callers are trusted as HR_ADMIN when no role headers are present (dev/test only).
+    # In production the gateway authenticates and sets X-Kita-Roles / X-Kita-Employee-Id.
+    stub: ${HR_SECURITY_STUB:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
