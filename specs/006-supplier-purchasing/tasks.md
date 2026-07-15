@@ -69,16 +69,16 @@ lock on send; cancel has no inventory effect.
 attempt to receive a draft (rejected), cancel before receipt.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T017 [P] [US2] Contract test for `/purchase-orders`, `/approve`, `/send`, `/cancel`
-- [ ] T018 [P] [US2] Unit tests for the PO state machine per `contracts/po-lifecycle.md` (legal + illegal transitions; sent-line lock; totals rounding SC-002)
-- [ ] T019 [P] [US2] Concurrency integration test: no double-approve; threshold gating (SC-002)
+- [X] T017 [P] [US2] Contract test for `/purchase-orders`, `/approve`, `/send`, `/cancel`
+- [X] T018 [P] [US2] Unit tests for the PO state machine per `contracts/po-lifecycle.md` (legal + illegal transitions; sent-line lock; totals rounding SC-002)
+- [X] T019 [P] [US2] Concurrency integration test: no double-approve; threshold gating (SC-002)
 
 ### Implementation
-- [ ] T020 [P] [US2] Flyway `V3__purchase_order.sql` (purchase_order, purchase_order_line)
-- [ ] T021 [P] [US2] `purchaseorder/PurchaseOrder` + `PurchaseOrderLine` entities + repositories
-- [ ] T022 [US2] `purchaseorder/PurchaseOrderStateMachine` (guarded transitions, sent-line lock, cancel)
-- [ ] T023 [US2] `purchaseorder/PurchaseOrderService` (create with computed totals, approve with threshold, send, cancel) transactional + locking
-- [ ] T024 [US2] `api/PurchaseOrderController` + DTOs (create/get/approve/send/cancel)
+- [X] T020 [P] [US2] Flyway `V3__purchase_order.sql` (purchase_order, purchase_order_line)
+- [X] T021 [P] [US2] `purchaseorder/PurchaseOrder` + `PurchaseOrderLine` entities + repositories
+- [X] T022 [US2] `purchaseorder/PurchaseOrderStateMachine` (guarded transitions, sent-line lock, cancel)
+- [X] T023 [US2] `purchaseorder/PurchaseOrderService` (create with computed totals, approve with threshold, send, cancel) transactional + locking
+- [X] T024 [US2] `api/PurchaseOrderController` + DTOs (create/get/approve/send/cancel)
 
 **Checkpoint**: PO lifecycle to "sent" works and is enforced. **(MVP with US1)**
 

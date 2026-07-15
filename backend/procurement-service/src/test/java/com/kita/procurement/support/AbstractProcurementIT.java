@@ -43,8 +43,8 @@ public abstract class AbstractProcurementIT {
   @BeforeEach
   void resetState() {
     jdbc.execute(
-        "TRUNCATE TABLE supplier_change_history, supplier_item, supplier, audit_event"
-            + " RESTART IDENTITY CASCADE");
+        "TRUNCATE TABLE purchase_order_line, purchase_order, supplier_change_history,"
+            + " supplier_item, supplier, audit_event RESTART IDENTITY CASCADE");
     operations.reset();
   }
 }
