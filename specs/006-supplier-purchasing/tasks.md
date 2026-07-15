@@ -91,15 +91,15 @@ attempt to receive a draft (rejected), cancel before receipt.
 prevented/flagged; exactly one goods-receipt event per receipt (via fake adapter).
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T025 [P] [US3] Contract test for `/purchase-orders/{id}/receipts`
-- [ ] T026 [P] [US3] Integration tests: partial→full→closed; over-receipt guard (FR-010); exactly-once idempotent post to OperationsPort (SC-003/004)
-- [ ] T027 [P] [US3] Concurrency test: no double-receive
+- [X] T025 [P] [US3] Contract test for `/purchase-orders/{id}/receipts`
+- [X] T026 [P] [US3] Integration tests: partial→full→closed; over-receipt guard (FR-010); exactly-once idempotent post to OperationsPort (SC-003/004)
+- [X] T027 [P] [US3] Concurrency test: no double-receive
 
 ### Implementation
-- [ ] T028 [P] [US3] Flyway `V4__goods_receipt.sql` (goods_receipt + lines, idempotency key)
-- [ ] T029 [P] [US3] `receiving/GoodsReceipt` entity + repository
-- [ ] T030 [US3] `receiving/ReceivingService` — record receipt, reconcile outstanding, advance PO state, prevent over-receipt
-- [ ] T031 [US3] Emit goods-receipt via `OperationsPort` (idempotent on receipt id); `api` receipts endpoint
+- [X] T028 [P] [US3] Flyway `V4__goods_receipt.sql` (goods_receipt + lines, idempotency key)
+- [X] T029 [P] [US3] `receiving/GoodsReceipt` entity + repository
+- [X] T030 [US3] `receiving/ReceivingService` — record receipt, reconcile outstanding, advance PO state, prevent over-receipt
+- [X] T031 [US3] Emit goods-receipt via `OperationsPort` (idempotent on receipt id); `api` receipts endpoint
 
 **Checkpoint**: receiving closes POs and posts stock/cost updates exactly once.
 
