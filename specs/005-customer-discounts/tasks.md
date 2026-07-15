@@ -123,11 +123,11 @@ gets the more-favorable outcome (default policy); missing supporting ID → with
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T036 [P] Structured JSON logging with PII/entitlement-ID scrubbing (FR-003/016)
-- [ ] T037 [P] OpenAPI contract wired as source of truth; contract tests green against `contracts/crm-openapi.yaml`
-- [ ] T038 [P] `backend/crm-service/README.md` (module purpose, run/test, seed rules, compute API)
-- [ ] T039 Audit trail on rule/entitlement/policy changes (FR-016) verified end-to-end
-- [ ] T040 Full `:crm-service:build` green (Spotless/Checkstyle/tests) in CI; fail-fast gate
+- [X] T036 [P] Structured JSON logging with PII/entitlement-ID scrubbing (FR-003/016)
+- [X] T037 [P] OpenAPI contract wired as source of truth; contract tests green against `contracts/crm-openapi.yaml`
+- [X] T038 [P] `backend/crm-service/README.md` (module purpose, run/test, seed rules, compute API)
+- [X] T039 Audit trail on rule/entitlement/policy changes (FR-016) verified end-to-end
+- [X] T040 Full `:crm-service:build` green (Spotless/Checkstyle/tests) in CI; fail-fast gate
 
 ---
 

@@ -113,7 +113,11 @@ class LoyaltyIT extends AbstractCrmIT {
 
     DiscountComputationService.Computation c =
         computation.compute(
-            id, SALE, List.of(new DiscountComputationService.LineItem("SKU", BigDecimal.ONE, new BigDecimal("1000.00"))));
+            id,
+            SALE,
+            List.of(
+                new DiscountComputationService.LineItem(
+                    "SKU", BigDecimal.ONE, new BigDecimal("1000.00"))));
 
     assertThat(c.finalPrice()).isEqualByComparingTo("950.00"); // 1000 - 5%
     assertThat(c.breakdown()).hasSize(1);
@@ -128,7 +132,11 @@ class LoyaltyIT extends AbstractCrmIT {
 
     DiscountComputationService.Computation c =
         computation.compute(
-            id, SALE, List.of(new DiscountComputationService.LineItem("SKU", BigDecimal.ONE, new BigDecimal("1000.00"))));
+            id,
+            SALE,
+            List.of(
+                new DiscountComputationService.LineItem(
+                    "SKU", BigDecimal.ONE, new BigDecimal("1000.00"))));
 
     assertThat(c.finalPrice()).isEqualByComparingTo("1000.00");
     assertThat(c.breakdown()).isEmpty();
@@ -150,7 +158,11 @@ class LoyaltyIT extends AbstractCrmIT {
 
     DiscountComputationService.Computation c =
         computation.compute(
-            id, SALE, List.of(new DiscountComputationService.LineItem("SKU", BigDecimal.ONE, new BigDecimal("1000.00"))));
+            id,
+            SALE,
+            List.of(
+                new DiscountComputationService.LineItem(
+                    "SKU", BigDecimal.ONE, new BigDecimal("1000.00"))));
 
     assertThat(c.finalPrice()).isEqualByComparingTo("1000.00");
     assertThat(c.breakdown()).isEmpty();

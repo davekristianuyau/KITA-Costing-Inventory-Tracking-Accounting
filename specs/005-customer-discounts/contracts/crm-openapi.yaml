@@ -19,10 +19,12 @@ paths:
     get: { tags: [customers], summary: Get a customer (used by operations-service party validation), responses: { '200': { description: OK }, '404': { description: Not found } } }
     patch: { tags: [customers], summary: Update customer (history retained), responses: { '200': { description: OK } } }
   /customers/{id}/entitlements:
-    post: { tags: [entitlements], summary: Record a government-mandated entitlement (senior/PWD) + supporting ID, responses: { '201': { description: Created } } }
+    post: { tags: [entitlements], summary: Record a government-mandated entitlement (senior/PWD) + supporting ID, responses: { '201': { description: Created }, '404': { description: Unknown customer } } }
+    get: { tags: [entitlements], summary: List a customer's entitlements (supporting ID refs never returned), responses: { '200': { description: OK }, '404': { description: Not found } } }
 
   /loyalty/tiers:
-    post: { tags: [loyalty], summary: Define a loyalty/repeat tier + qualifying criteria + discount, responses: { '201': { description: Created } } }
+    post: { tags: [loyalty], summary: Define a loyalty/repeat tier + qualifying criteria + discount, responses: { '201': { description: Created }, '404': { description: Unknown discount rule }, '409': { description: Duplicate tier code } } }
+    get: { tags: [loyalty], summary: List loyalty tiers, responses: { '200': { description: OK } } }
   /customers/{id}/loyalty/evaluate:
     post: { tags: [loyalty], summary: Re-evaluate a customer's loyalty tier from qualifying activity, responses: { '200': { description: OK, tier assigned } } }
 

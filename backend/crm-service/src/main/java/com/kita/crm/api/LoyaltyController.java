@@ -3,7 +3,6 @@ package com.kita.crm.api;
 import com.kita.crm.common.security.CallerContext;
 import com.kita.crm.common.security.Role;
 import com.kita.crm.loyalty.LoyaltyService;
-import com.kita.crm.loyalty.LoyaltyTier;
 import com.kita.crm.loyalty.dto.EvaluateLoyaltyRequest;
 import com.kita.crm.loyalty.dto.LoyaltyTierDto;
 import jakarta.validation.Valid;
