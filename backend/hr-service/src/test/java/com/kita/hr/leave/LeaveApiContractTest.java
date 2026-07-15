@@ -206,4 +206,26 @@ class LeaveApiContractTest extends AbstractHrIT {
         .perform(get("/api/hr/leave/balances").param("employeeId", empId))
         .andExpect(status().isOk());
   }
+
+  /** FR-018: the accrual policy must be reachable, not just present in the service. */
+  @Test
+  void accrueLeave_appliesThePolicyAndIsVisibleInBalances() throws Exception {
+    String empId = createEmployee("LC-006");
+    String typeId = createLeaveType("VL6", "PAID", 1.25, false);
+
+    mockMvc
+        .perform(
+            post("/api/hr/leave/accruals")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"employeeId\":\"%s\",\"leaveTypeId\":\"%s\",\"periods\":4}"
+                        .formatted(empId, typeId)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.balance").value(5.00)); // 1.25 * 4
+
+    mockMvc
+        .perform(get("/api/hr/leave/balances").param("employeeId", empId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].balance").value(5.00));
+  }
 }

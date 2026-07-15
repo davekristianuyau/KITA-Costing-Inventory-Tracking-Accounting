@@ -70,7 +70,7 @@ public class PayrollComputationService {
     List<String> flagged = new ArrayList<>();
     int count = 0;
 
-    for (Employee e : employees.findAll()) {
+    for (Employee e : scopeOf(run)) {
       if (e.getDateSeparated() != null && e.getDateSeparated().isBefore(period.getStartDate())) {
         continue;
       }
@@ -134,6 +134,15 @@ public class PayrollComputationService {
 
       // Deductions: statutory + tax (engine) on gross/basic, then loan installments.
       DeductionCalculator.Outcome ded = deductions.compute(gross, basic, period.getEndDate());
+      // A statutory table with no range covering this employee's base means we cannot know the
+      // correct contribution — flag, never silently zero-rate them (spec Edge Cases).
+      if (!ded.unmatched().isEmpty()) {
+        flagged.add(
+            e.getEmployeeNo()
+                + ": no matching statutory range for "
+                + String.join(", ", ded.unmatched()));
+        continue;
+      }
       for (DeductionCalculator.Line l : ded.lines()) {
         lines.add(new DeductionLine(l.category(), l.code(), l.label(), l.amount(), l.basis()));
       }
@@ -181,6 +190,14 @@ public class PayrollComputationService {
     }
   }
 
+  /** The employees a run covers: its explicit set (FR-005), or everyone when it has none. */
+  private List<Employee> scopeOf(PayrollRun run) {
+    if (run.getEmployeeIds().isEmpty()) {
+      return employees.findAll();
+    }
+    return employees.findAllById(run.getEmployeeIds());
+  }
+
   private record DeductionLine(
       PayComponentCategory category, String code, String label, BigDecimal amount, String basis) {}
 
@@ -188,6 +205,10 @@ public class PayrollComputationService {
     for (Payslip slip : payslips.findByPayrollRunId(runId)) {
       components.findByPayslipId(slip.getId()).forEach(components::delete);
     }
+    components.flush();
     payslips.deleteByPayrollRunId(runId);
+    // Hibernate orders inserts before deletes within a flush, so a recompute would collide with the
+    // previous payslips on (payroll_run_id, employee_id). Force the deletes out first.
+    payslips.flush();
   }
 }

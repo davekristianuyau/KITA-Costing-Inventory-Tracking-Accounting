@@ -5,6 +5,7 @@ import com.kita.hr.common.security.Role;
 import com.kita.hr.leave.LeaveRequest;
 import com.kita.hr.leave.LeaveService;
 import com.kita.hr.leave.LeaveType;
+import com.kita.hr.leave.dto.AccrueLeaveRequest;
 import com.kita.hr.leave.dto.FileLeaveRequest;
 import com.kita.hr.leave.dto.LeaveBalanceResponse;
 import com.kita.hr.leave.dto.LeaveDecisionRequest;
@@ -74,6 +75,14 @@ public class LeaveController {
   public List<LeaveBalanceResponse> balances(@RequestParam UUID employeeId) {
     caller.require(Role.HR_ADMIN, Role.PAYROLL_OFFICER, Role.MANAGER, Role.EMPLOYEE_SELF);
     return leave.balancesFor(employeeId).stream().map(LeaveBalanceResponse::from).toList();
+  }
+
+  /** Run the leave type's accrual policy for an employee (FR-018). */
+  @PostMapping("/api/hr/leave/accruals")
+  public LeaveBalanceResponse accrue(@Valid @RequestBody AccrueLeaveRequest r) {
+    caller.require(Role.HR_ADMIN);
+    return LeaveBalanceResponse.from(
+        leave.accrue(r.employeeId(), r.leaveTypeId(), r.periods(), actor()));
   }
 
   private String actor() {

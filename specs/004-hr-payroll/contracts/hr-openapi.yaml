@@ -26,6 +26,8 @@ paths:
   /employees/{id}/compensation:
     post: { tags: [employees], summary: Add an effective-dated compensation record, responses: { '201': { description: Created } } }
     get: { tags: [employees], summary: Compensation history (self or privileged), responses: { '200': { description: OK }, '404': { description: Not found } } }
+  /employees/{id}/status-history:
+    get: { tags: [employees], summary: Effective-dated status change history (self or privileged), responses: { '200': { description: OK }, '404': { description: Not found } } }
   /employees/{id}/loans:
     post: { tags: [deductions], summary: Attach a loan/advance with an installment schedule, responses: { '201': { description: Created } } }
 
@@ -74,6 +76,8 @@ paths:
     post: { tags: [leave], summary: Approve/reject (MANAGER), responses: { '200': { description: Decided }, '409': { description: Insufficient balance } } }
   /leave/balances:
     get: { tags: [leave], summary: Leave balances for an employee, responses: { '200': { description: OK } } }
+  /leave/accruals:
+    post: { tags: [leave], summary: Apply a leave type's accrual policy to an employee (HR_ADMIN), responses: { '200': { description: Accrued; returns the new balance }, '404': { description: Unknown leave type } } }
 
   /actuator/health:
     get: { summary: Health check, responses: { '200': { description: UP } } }

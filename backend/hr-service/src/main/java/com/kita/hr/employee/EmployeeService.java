@@ -3,6 +3,7 @@ package com.kita.hr.employee;
 import com.kita.hr.common.AuditWriter;
 import com.kita.hr.common.ConflictException;
 import com.kita.hr.common.NotFoundException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -14,14 +15,17 @@ public class EmployeeService {
 
   private final EmployeeRepository employees;
   private final CompensationRecordRepository compensations;
+  private final EmployeeStatusHistoryRepository statusHistory;
   private final AuditWriter audit;
 
   public EmployeeService(
       EmployeeRepository employees,
       CompensationRecordRepository compensations,
+      EmployeeStatusHistoryRepository statusHistory,
       AuditWriter audit) {
     this.employees = employees;
     this.compensations = compensations;
+    this.statusHistory = statusHistory;
     this.audit = audit;
   }
 
@@ -46,6 +50,9 @@ public class EmployeeService {
     e.setPagibigNo(req.pagibigNo());
     e.setTin(req.tin());
     Employee saved = employees.save(e);
+    statusHistory.save(
+        new EmployeeStatusHistory(
+            saved.getId(), null, EmployeeStatus.ACTIVE, req.dateHired(), actor));
     audit.record(actor, "EMPLOYEE_CREATED", saved.getId().toString(), "employee_no=" + req.employeeNo());
     return saved;
   }
@@ -99,11 +106,27 @@ public class EmployeeService {
           && e.getDateSeparated() == null) {
         throw new ConflictException("separation requires dateSeparated");
       }
+      EmployeeStatus previous = e.getStatus();
+      if (req.status() != previous) {
+        // FR-003: the prior status is retained as history rather than overwritten silently.
+        LocalDate effective =
+            req.status() == EmployeeStatus.SEPARATED && e.getDateSeparated() != null
+                ? e.getDateSeparated()
+                : LocalDate.now();
+        statusHistory.save(
+            new EmployeeStatusHistory(id, previous, req.status(), effective, actor));
+      }
       e.setStatus(req.status());
     }
     Employee saved = employees.save(e);
     audit.record(actor, "EMPLOYEE_UPDATED", id.toString(), "status=" + saved.getStatus());
     return saved;
+  }
+
+  @Transactional(readOnly = true)
+  public List<EmployeeStatusHistory> statusHistory(UUID id) {
+    get(id); // 404 if missing
+    return statusHistory.findByEmployeeIdOrderByEffectiveDateAscChangedAtAsc(id);
   }
 
   @Transactional
