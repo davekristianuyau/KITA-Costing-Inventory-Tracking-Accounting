@@ -38,6 +38,10 @@ public class SupplierItem {
   @Column(nullable = false)
   private boolean preferred;
 
+  /** Opt-in: turn a restock suggestion for this item straight into a submitted PO. Off by default. */
+  @Column(name = "auto_submit", nullable = false)
+  private boolean autoSubmit;
+
   protected SupplierItem() {}
 
   public SupplierItem(
@@ -97,5 +101,13 @@ public class SupplierItem {
 
   public void setPreferred(boolean preferred) {
     this.preferred = preferred;
+  }
+
+  public boolean isAutoSubmit() {
+    return autoSubmit;
+  }
+
+  public void setAutoSubmit(boolean autoSubmit) {
+    this.autoSubmit = autoSubmit;
   }
 }

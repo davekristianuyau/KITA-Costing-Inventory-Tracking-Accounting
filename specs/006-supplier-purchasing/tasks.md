@@ -112,14 +112,14 @@ prevented/flagged; exactly one goods-receipt event per receipt (via fake adapter
 consolidated per supplier; convert one to a draft PO; auto-submit disabled by default.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T032 [P] [US4] Contract test for `/restock/suggestions` (+ generate/convert)
-- [ ] T033 [P] [US4] Unit/integration tests: suggestion sizing (target + min order), per-supplier consolidation, auto-submit gated off (FR-012/013/014, SC-005)
+- [X] T032 [P] [US4] Contract test for `/restock/suggestions` (+ generate/convert)
+- [X] T033 [P] [US4] Unit/integration tests: suggestion sizing (target + min order), per-supplier consolidation, auto-submit gated off (FR-012/013/014, SC-005)
 
 ### Implementation
-- [ ] T034 [P] [US4] Flyway `V5__restock.sql` (restock_suggestion + lines)
-- [ ] T035 [P] [US4] `restock/RestockSuggestion` entity + repository
-- [ ] T036 [US4] `restock/RestockService` — read reorder signals via `OperationsPort`, size + consolidate suggestions, convert to draft PO; opt-in per-item auto-submit (default off)
-- [ ] T037 [US4] `api/RestockController` (generate/list/convert)
+- [X] T034 [P] [US4] Flyway `V5__restock.sql` (restock_suggestion + lines)
+- [X] T035 [P] [US4] `restock/RestockSuggestion` entity + repository
+- [X] T036 [US4] `restock/RestockService` — read reorder signals via `OperationsPort`, size + consolidate suggestions, convert to draft PO; opt-in per-item auto-submit (default off)
+- [X] T037 [US4] `api/RestockController` (generate/list/convert)
 
 **Checkpoint**: replenishment suggestions generated and convertible to POs.
 
