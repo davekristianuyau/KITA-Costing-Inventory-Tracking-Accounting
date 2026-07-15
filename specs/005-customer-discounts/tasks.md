@@ -47,14 +47,14 @@ reconciliation, caps, stacking, VAT treatment) are written before the code they 
 read back the record + history; fetch by id (operations-service party validation path).
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T011 [P] [US1] Contract test for `/customers`, `/customers/{id}`, `/customers/{id}/entitlements`
-- [ ] T012 [P] [US1] Integration test: customer + entitlement persistence, history retention, ID-ref not exposed
+- [X] T011 [P] [US1] Contract test for `/customers`, `/customers/{id}`, `/customers/{id}/entitlements`
+- [X] T012 [P] [US1] Integration test: customer + entitlement persistence, history retention, ID-ref not exposed
 
 ### Implementation
-- [ ] T013 [P] [US1] Flyway `V2__customer.sql` (customer, customer_attribute_history, entitlement)
-- [ ] T014 [P] [US1] `customer/Customer` + `entitlement/Entitlement` entities + repositories
-- [ ] T015 [US1] `customer/CustomerService` (create/update, status, history) + `entitlement/EntitlementService`
-- [ ] T016 [US1] `api/CustomerController` + DTOs; validation (unique customer_code); entitlement ID refs excluded from responses/logs; unknown customer at lookup handled
+- [X] T013 [P] [US1] Flyway `V2__customer.sql` (customer, customer_attribute_history, entitlement)
+- [X] T014 [P] [US1] `customer/Customer` + `entitlement/Entitlement` entities + repositories
+- [X] T015 [US1] `customer/CustomerService` (create/update, status, history) + `entitlement/EntitlementService`
+- [X] T016 [US1] `api/CustomerController` + DTOs; validation (unique customer_code); entitlement ID refs excluded from responses/logs; unknown customer at lookup handled
 
 **Checkpoint**: customer directory + party lookup works and is independently testable.
 

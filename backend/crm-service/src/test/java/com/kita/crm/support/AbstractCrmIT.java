@@ -38,6 +38,8 @@ public abstract class AbstractCrmIT {
 
   @BeforeEach
   void resetDatabase() {
-    jdbc.execute("TRUNCATE TABLE audit_event RESTART IDENTITY CASCADE");
+    jdbc.execute(
+        "TRUNCATE TABLE entitlement, customer_attribute_history, customer, audit_event"
+            + " RESTART IDENTITY CASCADE");
   }
 }
