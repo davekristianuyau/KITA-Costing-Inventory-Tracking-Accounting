@@ -48,14 +48,14 @@ schema `procurement`. Integrates with `operations-service` via an `OperationsPor
 the record + history; fetch by id (operations-service party validation path).
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T011 [P] [US1] Contract test for `/suppliers`, `/suppliers/{id}`, `/suppliers/{id}/items`
-- [ ] T012 [P] [US1] Integration test: supplier + supplied-item persistence, price history retention
+- [X] T011 [P] [US1] Contract test for `/suppliers`, `/suppliers/{id}`, `/suppliers/{id}/items`
+- [X] T012 [P] [US1] Integration test: supplier + supplied-item persistence, price history retention
 
 ### Implementation
-- [ ] T013 [P] [US1] Flyway `V2__supplier.sql` (supplier, supplier_item, supplier_change_history)
-- [ ] T014 [P] [US1] `supplier/Supplier` + `supplier/SupplierItem` entities + repositories
-- [ ] T015 [US1] `supplier/SupplierService` (create/update, status, supplied items, history)
-- [ ] T016 [US1] `api/SupplierController` + DTOs; validation (unique supplier_code); party lookup endpoint
+- [X] T013 [P] [US1] Flyway `V2__supplier.sql` (supplier, supplier_item, supplier_change_history)
+- [X] T014 [P] [US1] `supplier/Supplier` + `supplier/SupplierItem` entities + repositories
+- [X] T015 [US1] `supplier/SupplierService` (create/update, status, supplied items, history)
+- [X] T016 [US1] `api/SupplierController` + DTOs; validation (unique supplier_code); party lookup endpoint
 
 **Checkpoint**: supplier directory + party lookup works and is independently testable.
 
