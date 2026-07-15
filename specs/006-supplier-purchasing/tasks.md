@@ -21,21 +21,21 @@ schema `procurement`. Integrates with `operations-service` via an `OperationsPor
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `:procurement-service` to `backend/settings.gradle.kts` and create `backend/procurement-service/build.gradle.kts` mirroring `operations-service` (Spring Web, Data JPA, Validation, Actuator, Flyway, PostgreSQL, Testcontainers; Spotless/Checkstyle; Windows Testcontainers workaround)
-- [ ] T002 Create package skeleton under `backend/procurement-service/src/main/java/com/kita/procurement/{supplier,purchaseorder,receiving,restock,operations,common,api}` and `ProcurementServiceApplication`
-- [ ] T003 [P] Add `.../resources/application.yml` (datasource via env, JPA, Flyway, Actuator, JSON logging; operations-service base URL via env) — no secrets
-- [ ] T004 [P] Flyway baseline `.../db/migration/V1__init_procurement_schema.sql` (schema `procurement`, extensions, common columns)
-- [ ] T005 [P] Add the `procurement-service` build to CI `.github/workflows/ci.yml`
+- [X] T001 Add `:procurement-service` to `backend/settings.gradle.kts` and create `backend/procurement-service/build.gradle.kts` mirroring `operations-service` (Spring Web, Data JPA, Validation, Actuator, Flyway, PostgreSQL, Testcontainers; Spotless/Checkstyle; Windows Testcontainers workaround)
+- [X] T002 Create package skeleton under `backend/procurement-service/src/main/java/com/kita/procurement/{supplier,purchaseorder,receiving,restock,operations,common,api}` and `ProcurementServiceApplication`
+- [X] T003 [P] Add `.../resources/application.yml` (datasource via env, JPA, Flyway, Actuator, JSON logging; operations-service base URL via env) — no secrets
+- [X] T004 [P] Flyway baseline `.../db/migration/V1__init_procurement_schema.sql` (schema `procurement`, extensions, common columns)
+- [X] T005 [P] Add the `procurement-service` build to CI `.github/workflows/ci.yml`
 
 ---
 
 ## Phase 2: Foundational (Blocking)
 
-- [ ] T006 [P] `common/Money.java` + rounding policy (half-up to minor unit) + `BigDecimal` helpers, with unit tests
-- [ ] T007 [P] `common/AuditEvent` entity + repository + append-only writer
-- [ ] T008 [P] `common/` global exception handler + validation error DTO for the API boundary
-- [ ] T009 `operations/OperationsPort` interface (getReorderSignals, postGoodsReceipt) + a `FakeOperationsAdapter` for tests (idempotent post)
-- [ ] T010 Role guards + API security scaffolding; Testcontainers singleton base test (`AbstractProcurementIT`) with per-test TRUNCATE
+- [X] T006 [P] `common/Money.java` + rounding policy (half-up to minor unit) + `BigDecimal` helpers, with unit tests
+- [X] T007 [P] `common/AuditEvent` entity + repository + append-only writer
+- [X] T008 [P] `common/` global exception handler + validation error DTO for the API boundary
+- [X] T009 `operations/OperationsPort` interface (getReorderSignals, postGoodsReceipt) + a `FakeOperationsAdapter` for tests (idempotent post)
+- [X] T010 Role guards + API security scaffolding; Testcontainers singleton base test (`AbstractProcurementIT`) with per-test TRUNCATE
 
 **Checkpoint**: build compiles; migrations apply; port + fake adapter + base test harness ready.
 
