@@ -19,11 +19,13 @@ public final class DeductionCalculator {
   /** One itemized deduction/contribution line. */
   public record Line(PayComponentCategory category, String code, String label, BigDecimal amount, String basis) {}
 
+  /** {@code unmatched} lists rule codes whose table/bracket had no row covering the base. */
   public record Outcome(
       List<Line> lines,
       BigDecimal totalEmployeeDeductions,
       BigDecimal totalEmployerContrib,
-      BigDecimal taxableIncome) {}
+      BigDecimal taxableIncome,
+      List<String> unmatched) {}
 
   /**
    * @param statutory effective STATUTORY rules (with rows), applied on GROSS/BASIC
@@ -34,6 +36,7 @@ public final class DeductionCalculator {
     List<Line> lines = new ArrayList<>();
     List<BigDecimal> employeeDeductions = new ArrayList<>();
     List<BigDecimal> employerContribs = new ArrayList<>();
+    List<String> unmatched = new ArrayList<>();
 
     // Deterministic order (by code) so the cascade and totals are reproducible.
     List<RuleWithRows> statSorted = new ArrayList<>(statutory);
@@ -42,6 +45,10 @@ public final class DeductionCalculator {
     for (RuleWithRows rw : statSorted) {
       BigDecimal base = baseValue(rw.rule().getBase(), gross, basic, gross);
       DeductionRuleEngine.Amounts a = DeductionRuleEngine.evaluate(rw.rule(), rw.rows(), base);
+      if (!a.matched()) {
+        unmatched.add(rw.rule().getCode());
+        continue;
+      }
       if (a.employee().signum() != 0) {
         lines.add(
             new Line(
@@ -71,6 +78,10 @@ public final class DeductionCalculator {
     taxSorted.sort(Comparator.comparing(r -> r.rule().getCode()));
     for (RuleWithRows rw : taxSorted) {
       DeductionRuleEngine.Amounts a = DeductionRuleEngine.evaluate(rw.rule(), rw.rows(), taxable);
+      if (!a.matched()) {
+        unmatched.add(rw.rule().getCode());
+        continue;
+      }
       if (a.employee().signum() != 0) {
         lines.add(
             new Line(
@@ -84,7 +95,7 @@ public final class DeductionCalculator {
     }
 
     return new Outcome(
-        lines, Money.sum(employeeDeductions), Money.sum(employerContribs), taxable);
+        lines, Money.sum(employeeDeductions), Money.sum(employerContribs), taxable, unmatched);
   }
 
   private static BigDecimal baseValue(

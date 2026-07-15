@@ -1,15 +1,20 @@
 package com.kita.hr.payroll;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UuidGenerator;
@@ -48,6 +53,12 @@ public class PayrollRun {
   @Column(name = "finalized_at")
   private Instant finalizedAt;
 
+  /** Employees this run covers (FR-005). Empty means every eligible employee. */
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name = "payroll_run_employee", joinColumns = @JoinColumn(name = "run_id"))
+  @Column(name = "employee_id", nullable = false)
+  private Set<UUID> employeeIds = new LinkedHashSet<>();
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
@@ -60,6 +71,14 @@ public class PayrollRun {
     this.adjustsRunId = adjustsRunId;
     this.idempotencyKey = idempotencyKey;
     this.createdBy = createdBy;
+  }
+
+  public Set<UUID> getEmployeeIds() {
+    return employeeIds;
+  }
+
+  public void setEmployeeIds(Set<UUID> employeeIds) {
+    this.employeeIds = employeeIds == null ? new LinkedHashSet<>() : new LinkedHashSet<>(employeeIds);
   }
 
   public UUID getId() {

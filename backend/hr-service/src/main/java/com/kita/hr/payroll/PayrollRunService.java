@@ -5,6 +5,7 @@ import com.kita.hr.common.ConflictException;
 import com.kita.hr.common.Money;
 import com.kita.hr.common.NotFoundException;
 import com.kita.hr.deduction.LoanService;
+import com.kita.hr.employee.EmployeeRepository;
 import com.kita.hr.payroll.dto.ComputeResultResponse;
 import com.kita.hr.payroll.dto.CreatePayrollRunRequest;
 import com.kita.hr.payroll.dto.PayComponentResponse;
@@ -12,6 +13,7 @@ import com.kita.hr.payroll.dto.PayslipResponse;
 import com.kita.hr.payroll.dto.RegisterResponse;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class PayrollRunService {
   private final PayComponentRepository components;
   private final PayrollComputationService computation;
   private final LoanService loans;
+  private final EmployeeRepository employees;
   private final AuditWriter audit;
 
   public PayrollRunService(
@@ -36,6 +39,7 @@ public class PayrollRunService {
       PayComponentRepository components,
       PayrollComputationService computation,
       LoanService loans,
+      EmployeeRepository employees,
       AuditWriter audit) {
     this.periods = periods;
     this.runs = runs;
@@ -43,6 +47,7 @@ public class PayrollRunService {
     this.components = components;
     this.computation = computation;
     this.loans = loans;
+    this.employees = employees;
     this.audit = audit;
   }
 
@@ -75,7 +80,16 @@ public class PayrollRunService {
     }
     PayPeriod period =
         periods.save(new PayPeriod(p.frequency(), p.startDate(), p.endDate(), p.payDate()));
-    PayrollRun run = runs.save(new PayrollRun(period, type, adjustsRunId, key, actor));
+    PayrollRun run = new PayrollRun(period, type, adjustsRunId, key, actor);
+    if (req.employeeIds() != null && !req.employeeIds().isEmpty()) {
+      for (UUID id : req.employeeIds()) {
+        employees
+            .findById(id)
+            .orElseThrow(() -> new NotFoundException("employee not found: " + id));
+      }
+      run.setEmployeeIds(new LinkedHashSet<>(req.employeeIds()));
+    }
+    run = runs.save(run);
     audit.record(actor, "PAYROLL_RUN_CREATED", run.getId().toString(), "period=" + key);
     return run;
   }

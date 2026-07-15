@@ -21,6 +21,38 @@ class DeductionRuleEngineTest {
         LocalDate.of(2024, 1, 1));
   }
 
+  /** Spec Edge Case: no covering row must report "no match", never a silent zero. */
+  @Test
+  void tableAndBracketReportNoMatchWhenNoRowCoversTheBase() {
+    List<DeductionRuleRow> tableRows =
+        List.of(new DeductionRuleRow(null, bd("0"), bd("1000"), bd("900"), bd("1900"), null, null, null));
+    DeductionRuleEngine.Amounts t =
+        DeductionRuleEngine.evaluate(
+            rule(Computation.TABLE, null, null, null, null, null), tableRows, bd("30000"));
+    assertThat(t.matched()).isFalse();
+
+    List<DeductionRuleRow> bracketRows =
+        List.of(new DeductionRuleRow(null, bd("0"), bd("1000"), null, null, bd("0"), bd("0.15"), bd("0")));
+    DeductionRuleEngine.Amounts b =
+        DeductionRuleEngine.evaluate(
+            rule(Computation.BRACKET, null, null, null, null, null), bracketRows, bd("30000"));
+    assertThat(b.matched()).isFalse();
+  }
+
+  @Test
+  void percentAndFixedAlwaysMatchSinceTheyHaveNoRanges() {
+    assertThat(
+            DeductionRuleEngine.evaluate(
+                    rule(Computation.PERCENT, bd("0.02"), null, null, null, null), List.of(), bd("30000"))
+                .matched())
+        .isTrue();
+    assertThat(
+            DeductionRuleEngine.evaluate(
+                    rule(Computation.FIXED, null, null, bd("100"), null, null), List.of(), bd("30000"))
+                .matched())
+        .isTrue();
+  }
+
   @Test
   void tablePicksMatchingRow() {
     List<DeductionRuleRow> rows =

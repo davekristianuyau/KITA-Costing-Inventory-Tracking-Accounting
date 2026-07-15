@@ -8,6 +8,7 @@ import com.kita.hr.employee.CompensationResponse;
 import com.kita.hr.employee.CreateEmployeeRequest;
 import com.kita.hr.employee.EmployeeResponse;
 import com.kita.hr.employee.EmployeeService;
+import com.kita.hr.employee.StatusHistoryResponse;
 import com.kita.hr.employee.UpdateEmployeeRequest;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -72,6 +73,12 @@ public class EmployeeController {
   public List<CompensationResponse> listCompensation(@PathVariable UUID id) {
     authorizeRead(id);
     return service.listCompensation(id).stream().map(CompensationResponse::from).toList();
+  }
+
+  @GetMapping("/{id}/status-history")
+  public List<StatusHistoryResponse> statusHistory(@PathVariable UUID id) {
+    authorizeRead(id);
+    return service.statusHistory(id).stream().map(StatusHistoryResponse::from).toList();
   }
 
   /** Privileged roles may read anyone; an employee may read only their own record. */

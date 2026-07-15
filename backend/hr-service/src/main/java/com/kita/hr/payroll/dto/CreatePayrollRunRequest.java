@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
 
-/** {@code type} defaults to REGULAR; {@code employeeIds} reserved for a future subset (US2 runs all). */
+/** {@code type} defaults to REGULAR; {@code employeeIds} scopes the run, empty/absent = all eligible. */
 public record CreatePayrollRunRequest(
     @Valid @NotNull PayPeriodRequest period,
     RunType type,
