@@ -5,6 +5,8 @@ import com.kita.crm.customer.Customer;
 import com.kita.crm.customer.CustomerRepository;
 import com.kita.crm.entitlement.Entitlement;
 import com.kita.crm.entitlement.EntitlementRepository;
+import com.kita.crm.loyalty.LoyaltyTier;
+import com.kita.crm.loyalty.LoyaltyTierRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -35,16 +37,19 @@ public class DiscountComputationService {
   private final StackingPolicyRepository policies;
   private final CustomerRepository customers;
   private final EntitlementRepository entitlements;
+  private final LoyaltyTierRepository loyaltyTiers;
 
   public DiscountComputationService(
       DiscountRuleRepository rules,
       StackingPolicyRepository policies,
       CustomerRepository customers,
-      EntitlementRepository entitlements) {
+      EntitlementRepository entitlements,
+      LoyaltyTierRepository loyaltyTiers) {
     this.rules = rules;
     this.policies = policies;
     this.customers = customers;
     this.entitlements = entitlements;
+    this.loyaltyTiers = loyaltyTiers;
   }
 
   /** One line of the sale being priced. */
@@ -143,7 +148,27 @@ public class DiscountComputationService {
         tiers.add(r.toTier());
       }
     }
+    loyaltyTier(effective, customer).ifPresent(tiers::add);
     return tiers;
+  }
+
+  /**
+   * The customer's evaluated loyalty tier, as a cascade tier (FR-010). Only honoured when the tier's
+   * rule is effective for the sale date, so an expired loyalty rule stops applying on its own.
+   */
+  private Optional<CascadingEngine.Tier> loyaltyTier(List<DiscountRule> effective, Customer customer) {
+    if (customer == null || customer.getLoyaltyTierId() == null) {
+      return Optional.empty();
+    }
+    Optional<LoyaltyTier> tier = loyaltyTiers.findById(customer.getLoyaltyTierId());
+    if (tier.isEmpty()) {
+      return Optional.empty();
+    }
+    UUID ruleId = tier.get().getDiscountRuleId();
+    return effective.stream()
+        .filter(r -> r.getId().equals(ruleId))
+        .findFirst()
+        .map(DiscountRule::toTier);
   }
 
   private List<CascadingEngine.Tier> statutoryTiers(

@@ -42,7 +42,7 @@ public abstract class AbstractCrmIT {
     // leaked rule or a changed policy would silently corrupt every later test. Tests that need the
     // seeded PH ruleset apply it explicitly (see PhStatutorySeedIT).
     jdbc.execute(
-        "TRUNCATE TABLE entitlement, customer_attribute_history, customer, discount_rule,"
-            + " stacking_policy, audit_event RESTART IDENTITY CASCADE");
+        "TRUNCATE TABLE entitlement, customer_attribute_history, customer, loyalty_tier,"
+            + " discount_rule, stacking_policy, audit_event RESTART IDENTITY CASCADE");
   }
 }

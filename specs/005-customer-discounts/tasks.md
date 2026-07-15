@@ -89,14 +89,14 @@ read back the record + history; fetch by id (operations-service party validation
 the loyalty tier; a non-qualifying one does not.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T025 [P] [US3] Contract test for `/loyalty/tiers` and `/customers/{id}/loyalty/evaluate`
-- [ ] T026 [P] [US3] Integration test: tier eligibility from qualifying activity; re-evaluation on change (FR-010/011, SC-004)
+- [X] T025 [P] [US3] Contract test for `/loyalty/tiers` and `/customers/{id}/loyalty/evaluate`
+- [X] T026 [P] [US3] Integration test: tier eligibility from qualifying activity; re-evaluation on change (FR-010/011, SC-004)
 
 ### Implementation
-- [ ] T027 [P] [US3] Flyway `V4__loyalty.sql` (loyalty_tier)
-- [ ] T028 [P] [US3] `loyalty/LoyaltyTier` entity + repository
-- [ ] T029 [US3] `loyalty/LoyaltyService` — evaluate tier from configurable criteria (count/value over period); activity sourced from operations-service/port or passed in
-- [ ] T030 [US3] Include the customer's loyalty tier in the cascade in `DiscountComputationService`; `api` wiring for tiers + evaluate
+- [X] T027 [P] [US3] Flyway `V4__loyalty.sql` (loyalty_tier)
+- [X] T028 [P] [US3] `loyalty/LoyaltyTier` entity + repository
+- [X] T029 [US3] `loyalty/LoyaltyService` — evaluate tier from configurable criteria (count/value over period); activity sourced from operations-service/port or passed in
+- [X] T030 [US3] Include the customer's loyalty tier in the cascade in `DiscountComputationService`; `api` wiring for tiers + evaluate
 
 **Checkpoint**: repeat customers automatically receive their tier discount.
 
