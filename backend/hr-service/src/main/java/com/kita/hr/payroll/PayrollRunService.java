@@ -120,6 +120,25 @@ public class PayrollRunService {
     return payslips.findByPayrollRunId(runId).stream().map(this::toResponse).toList();
   }
 
+  /** Payslips filtered by run and/or employee; at least one of the two is required. */
+  @Transactional(readOnly = true)
+  public List<PayslipResponse> payslips(UUID runId, UUID employeeId) {
+    if (runId == null && employeeId == null) {
+      throw new IllegalArgumentException("runId or employeeId is required");
+    }
+    List<Payslip> found;
+    if (runId != null) {
+      get(runId); // 404 if the run is unknown
+      found = payslips.findByPayrollRunId(runId);
+      if (employeeId != null) {
+        found = found.stream().filter(s -> s.getEmployeeId().equals(employeeId)).toList();
+      }
+    } else {
+      found = payslips.findByEmployeeId(employeeId);
+    }
+    return found.stream().map(this::toResponse).toList();
+  }
+
   @Transactional(readOnly = true)
   public RegisterResponse register(UUID runId) {
     get(runId);

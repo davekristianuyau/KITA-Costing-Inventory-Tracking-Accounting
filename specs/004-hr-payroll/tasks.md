@@ -159,12 +159,12 @@ unpaid approved leave reduces the period's pay.
 remittance summary that equals the agency total across payslips.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T052 [P] [US5] Contract test for `/payslips` (self-scope) and `/payroll/runs/{id}/remittances`
-- [ ] T053 [P] [US5] Integration test: remittance per agency = Σ that component across payslips (SC-003)
+- [X] T052 [P] [US5] Contract test for `/payslips` (self-scope) and `/payroll/runs/{id}/remittances`
+- [X] T053 [P] [US5] Integration test: remittance per agency = Σ that component across payslips (SC-003)
 
 ### Implementation
-- [ ] T054 [P] [US5] `remittance/RemittanceService` — group statutory + employer contributions by agency for a period
-- [ ] T055 [US5] Payslip retrieval endpoint with EMPLOYEE_SELF scoping; `api/RemittanceController`
+- [X] T054 [P] [US5] `remittance/RemittanceService` — group statutory + employer contributions by agency for a period
+- [X] T055 [US5] Payslip retrieval endpoint with EMPLOYEE_SELF scoping; `api/RemittanceController`
 
 **Checkpoint**: distribution + statutory reporting outputs available.
 

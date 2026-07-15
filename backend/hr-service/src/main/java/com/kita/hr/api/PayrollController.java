@@ -1,5 +1,6 @@
 package com.kita.hr.api;
 
+import com.kita.hr.common.ForbiddenException;
 import com.kita.hr.common.security.CallerContext;
 import com.kita.hr.common.security.Role;
 import com.kita.hr.payroll.PayrollRunService;
@@ -63,9 +64,31 @@ public class PayrollController {
   }
 
   @GetMapping("/api/hr/payslips")
-  public List<PayslipResponse> payslips(@RequestParam UUID runId) {
-    caller.require(Role.HR_ADMIN, Role.PAYROLL_OFFICER);
-    return service.payslipsForRun(runId);
+  public List<PayslipResponse> payslips(
+      @RequestParam(required = false) UUID runId,
+      @RequestParam(required = false) UUID employeeId) {
+    return service.payslips(runId, scopeToCaller(employeeId));
+  }
+
+  /**
+   * Privileged roles may read any employee's payslips; an EMPLOYEE_SELF caller is pinned to their
+   * own — an absent employeeId defaults to theirs, and another employee's is refused.
+   */
+  private UUID scopeToCaller(UUID requested) {
+    if (caller.hasAnyRole(Role.HR_ADMIN, Role.PAYROLL_OFFICER)) {
+      return requested;
+    }
+    if (caller.hasAnyRole(Role.EMPLOYEE_SELF)) {
+      UUID own =
+          caller
+              .employeeId()
+              .orElseThrow(() -> new ForbiddenException("caller has no employee identity"));
+      if (requested != null && !requested.equals(own)) {
+        throw new ForbiddenException("not allowed to read another employee's payslips");
+      }
+      return own;
+    }
+    throw new ForbiddenException("not allowed to read payslips");
   }
 
   private String actor() {
