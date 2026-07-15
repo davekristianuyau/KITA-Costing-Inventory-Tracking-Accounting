@@ -122,8 +122,9 @@ in `build.gradle.kts` and is a no-op on Linux/CI.
 `AbstractProcurementIT` resets the fake adapter between tests as well as truncating — the fake is a
 singleton bean, so posted receipts would otherwise leak across tests.
 
-> **Gotcha:** `java.util.function.Supplier` must be fully qualified in this package — importing it
-> shadows the `Supplier` entity and silently changes method signatures.
+> **Naming note:** the `supplier` package defines a `Supplier` entity, which shadows
+> `java.util.function.Supplier`. Nothing here needs the functional interface — `SupplierService`
+> passes values rather than getters — so keep it that way rather than reintroducing the clash.
 
 Configuration is environment-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`,
 `PROCUREMENT_SECURITY_STUB`, `PROCUREMENT_APPROVAL_THRESHOLD`, `OPERATIONS_ADAPTER`,
