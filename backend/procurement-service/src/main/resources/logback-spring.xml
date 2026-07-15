@@ -1,0 +1,19 @@
+<configuration>
+  <!-- Structured JSON logs (mirrors crm-service). Secrets and
+       credentials are masked at the encoder as a backstop, so they cannot reach a log even if
+       something logs them (FR-003/016). -->
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
+        <defaultMask>****</defaultMask>
+        <path>idReference</path>
+        <path>supportingIdRef</path>
+        <path>tin</path>
+        <path>password</path>
+      </jsonGeneratorDecorator>
+    </encoder>
+  </appender>
+  <root level="INFO">
+    <appender-ref ref="JSON"/>
+  </root>
+</configuration>

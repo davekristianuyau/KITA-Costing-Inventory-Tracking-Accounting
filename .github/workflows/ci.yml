@@ -17,7 +17,7 @@ jobs:
       # so the Windows/Docker-Desktop workaround in operations-service is inert here.
       - name: Build, test and lint backend/
         working-directory: backend
-        run: ./gradlew :operations-service:build :hr-service:build :crm-service:build --no-daemon
+        run: ./gradlew :operations-service:build :hr-service:build :crm-service:build :procurement-service:build --no-daemon
 
   # Blocking infra quality gates (Principle VII, FR-006). No cloud credentials needed.
   infra:

@@ -1,0 +1,37 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: procurement-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/kita}
+    username: ${DATABASE_USER:kita}
+    password: ${DATABASE_PASSWORD:change-me}
+  jpa:
+    hibernate:
+      ddl-auto: validate # schema owned by Flyway
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+procurement:
+  security:
+    # When true, callers with no role header are trusted as PROCUREMENT_ADMIN (dev/test only).
+    # In production the gateway authenticates and sets X-Kita-Roles.
+    stub: ${PROCUREMENT_SECURITY_STUB:true}
+  approval:
+    # Orders at or below this total are approved without a privileged approver (FR-006).
+    threshold: ${PROCUREMENT_APPROVAL_THRESHOLD:50000.00}
+  operations:
+    # 'fake' (default) uses the in-memory adapter; 'http' talks to operations-service.
+    adapter: ${OPERATIONS_ADAPTER:fake}
+    # Base URL of operations-service; the http adapter posts goods receipts here.
+    base-url: ${OPERATIONS_BASE_URL:http://operations-service:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
