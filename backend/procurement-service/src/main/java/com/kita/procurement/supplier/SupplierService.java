@@ -64,12 +64,14 @@ public class SupplierService {
     Supplier s = get(id);
     List<SupplierChangeHistory> changes = new ArrayList<>();
 
-    track(changes, id, actor, "name", s::getName, s::setName, req.name());
-    track(changes, id, actor, "email", s::getEmail, s::setEmail, req.email());
-    track(changes, id, actor, "phone", s::getPhone, s::setPhone, req.phone());
-    track(changes, id, actor, "address", s::getAddress, s::setAddress, req.address());
-    track(changes, id, actor, "paymentTerms", s::getPaymentTerms, s::setPaymentTerms, req.paymentTerms());
-    track(changes, id, actor, "deliveryTerms", s::getDeliveryTerms, s::setDeliveryTerms, req.deliveryTerms());
+    track(changes, id, actor, "name", s.getName(), s::setName, req.name());
+    track(changes, id, actor, "email", s.getEmail(), s::setEmail, req.email());
+    track(changes, id, actor, "phone", s.getPhone(), s::setPhone, req.phone());
+    track(changes, id, actor, "address", s.getAddress(), s::setAddress, req.address());
+    track(changes, id, actor, "paymentTerms", s.getPaymentTerms(), s::setPaymentTerms, req.paymentTerms());
+    track(
+        changes, id, actor, "deliveryTerms", s.getDeliveryTerms(), s::setDeliveryTerms,
+        req.deliveryTerms());
     if (req.status() != null && req.status() != s.getStatus()) {
       changes.add(
           new SupplierChangeHistory(id, null, "status", s.getStatus().name(), req.status().name(), actor));
@@ -186,20 +188,25 @@ public class SupplierService {
     changes.add(new SupplierChangeHistory(supplierId, itemRef, field, oldValue, newValue, actor));
   }
 
-  // NOTE: java.util.function.Supplier is fully qualified — importing it would shadow the Supplier
-  // entity in this package and silently change this class's method signatures.
+  /**
+   * Apply a supplier field change only when it actually differs, recording the prior value.
+   *
+   * <p>Takes the current value rather than a getter: each call reads its own field before mutating
+   * it, so there is nothing to defer, and this keeps {@code java.util.function.Supplier} out of a
+   * package where that name is already taken by the entity.
+   */
   private void track(
       List<SupplierChangeHistory> changes,
       UUID id,
       String actor,
       String field,
-      java.util.function.Supplier<String> current,
+      String currentValue,
       Consumer<String> setter,
       String next) {
-    if (next == null || Objects.equals(next, current.get())) {
+    if (next == null || Objects.equals(next, currentValue)) {
       return;
     }
-    changes.add(new SupplierChangeHistory(id, null, field, current.get(), next, actor));
+    changes.add(new SupplierChangeHistory(id, null, field, currentValue, next, actor));
     setter.accept(next);
   }
 
