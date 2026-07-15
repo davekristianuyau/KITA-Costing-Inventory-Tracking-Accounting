@@ -67,16 +67,16 @@ read back the record + history; fetch by id (operations-service party validation
 37.50; base − Σ = final; empty breakdown when no discount.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T017 [P] [US2] Contract test for `/discounts/compute`, `/discount-rules`, `/discount-policy`
-- [ ] T018 [P] [US2] Unit tests for the cascading fold per `contracts/discount-engine.md`: the ‑25%/‑5% example, per-tier rounding, reconciliation (SC-001/002), deterministic order (FR-006)
-- [ ] T019 [P] [US2] Unit tests for caps: discounts exceeding base → final 0, flag CAPPED (SC-005); walk-in/unknown customer → base price
+- [X] T017 [P] [US2] Contract test for `/discounts/compute`, `/discount-rules`, `/discount-policy`
+- [X] T018 [P] [US2] Unit tests for the cascading fold per `contracts/discount-engine.md`: the ‑25%/‑5% example, per-tier rounding, reconciliation (SC-001/002), deterministic order (FR-006)
+- [X] T019 [P] [US2] Unit tests for caps: discounts exceeding base → final 0, flag CAPPED (SC-005); walk-in/unknown customer → base price
 
 ### Implementation
-- [ ] T020 [P] [US2] Flyway `V3__discount_rules.sql` (discount_rule + versions, stacking_policy)
-- [ ] T021 [P] [US2] `discount/DiscountRule` + `discount/StackingPolicy` entities + repositories
-- [ ] T022 [US2] `discount/CascadingEngine` — ordered fold with per-tier rounding, cap ≥ 0, breakdown output
-- [ ] T023 [US2] `discount/DiscountComputationService` — build tier list (promotional), compute, reconcile; flags
-- [ ] T024 [US2] `api/DiscountController` (compute stateless) + `discount-rules` + `discount-policy` endpoints + DTOs
+- [X] T020 [P] [US2] Flyway `V3__discount_rules.sql` (discount_rule + versions, stacking_policy)
+- [X] T021 [P] [US2] `discount/DiscountRule` + `discount/StackingPolicy` entities + repositories
+- [X] T022 [US2] `discount/CascadingEngine` — ordered fold with per-tier rounding, cap ≥ 0, breakdown output
+- [X] T023 [US2] `discount/DiscountComputationService` — build tier list (promotional), compute, reconcile; flags
+- [X] T024 [US2] `api/DiscountController` (compute stateless) + `discount-rules` + `discount-policy` endpoints + DTOs
 
 **Checkpoint**: cascading discounts compute correctly and reconcile. **(MVP with US1)**
 

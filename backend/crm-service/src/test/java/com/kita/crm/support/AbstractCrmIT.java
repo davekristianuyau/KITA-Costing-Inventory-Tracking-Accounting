@@ -38,8 +38,11 @@ public abstract class AbstractCrmIT {
 
   @BeforeEach
   void resetDatabase() {
+    // discount_rule and stacking_policy ARE truncated: most tests configure their own rules, and a
+    // leaked rule or a changed policy would silently corrupt every later test. Tests that need the
+    // seeded PH ruleset apply it explicitly (see PhStatutorySeedIT).
     jdbc.execute(
-        "TRUNCATE TABLE entitlement, customer_attribute_history, customer, audit_event"
-            + " RESTART IDENTITY CASCADE");
+        "TRUNCATE TABLE entitlement, customer_attribute_history, customer, discount_rule,"
+            + " stacking_policy, audit_event RESTART IDENTITY CASCADE");
   }
 }
