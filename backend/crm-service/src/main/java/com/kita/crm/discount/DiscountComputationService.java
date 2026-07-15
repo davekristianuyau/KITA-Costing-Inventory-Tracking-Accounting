@@ -4,6 +4,7 @@ import com.kita.crm.common.Money;
 import com.kita.crm.customer.Customer;
 import com.kita.crm.customer.CustomerRepository;
 import com.kita.crm.entitlement.Entitlement;
+import com.kita.crm.entitlement.EntitlementKind;
 import com.kita.crm.entitlement.EntitlementRepository;
 import com.kita.crm.loyalty.LoyaltyTier;
 import com.kita.crm.loyalty.LoyaltyTierRepository;
@@ -11,11 +12,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -171,6 +175,11 @@ public class DiscountComputationService {
         .map(DiscountRule::toTier);
   }
 
+  /**
+   * Statutory tiers for the entitlements this customer can actually claim on the sale date. A rule
+   * only fires for its own entitlement kind, so a senior rule never applies to a PWD-only customer.
+   * An entitlement without its supporting ID is withheld and flagged rather than honoured (FR-014).
+   */
   private List<CascadingEngine.Tier> statutoryTiers(
       List<DiscountRule> effective, Customer customer, LocalDate saleDate, List<String> flags) {
     if (customer == null) {
@@ -183,17 +192,35 @@ public class DiscountComputationService {
     if (valid.isEmpty()) {
       return List.of();
     }
-    boolean anyHonourable = valid.stream().anyMatch(Entitlement::hasSupportingId);
-    if (!anyHonourable) {
-      // Entitled on paper, but nothing we can honour without the supporting ID (FR-014).
+
+    Set<EntitlementKind> honoured =
+        valid.stream()
+            .filter(Entitlement::hasSupportingId)
+            .map(Entitlement::getKind)
+            .collect(Collectors.toCollection(() -> EnumSet.noneOf(EntitlementKind.class)));
+    Set<EntitlementKind> withheld =
+        valid.stream()
+            .filter(e -> !e.hasSupportingId())
+            .map(Entitlement::getKind)
+            .filter(k -> !honoured.contains(k))
+            .collect(Collectors.toCollection(() -> EnumSet.noneOf(EntitlementKind.class)));
+    if (!withheld.isEmpty()) {
       flags.add(FLAG_ENTITLEMENT_WITHHELD);
+    }
+    if (honoured.isEmpty()) {
       return List.of();
     }
+
     List<CascadingEngine.Tier> tiers = new ArrayList<>();
     for (DiscountRule r : effective) {
-      if (r.getOrigin() == DiscountOrigin.STATUTORY) {
-        tiers.add(r.toTier());
+      if (r.getOrigin() != DiscountOrigin.STATUTORY
+          || r.getEntitlementKind() == null
+          || !honoured.contains(r.getEntitlementKind())) {
+        continue;
       }
+      // The VAT-exemption step precedes the statutory percentage it belongs to.
+      r.vatExemptionTier().ifPresent(tiers::add);
+      tiers.add(r.toTier());
     }
     return tiers;
   }

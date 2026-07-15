@@ -109,13 +109,13 @@ the loyalty tier; a non-qualifying one does not.
 gets the more-favorable outcome (default policy); missing supporting ID → withheld + flag.
 
 ### Tests (write first, must FAIL) ⚠️
-- [ ] T031 [P] [US4] Unit tests for statutory tiers + VAT treatment and the stacking policy modes per `contracts/discount-engine.md` (SC-003)
-- [ ] T032 [P] [US4] Unit test: entitlement without supporting ID → statutory withheld, flag ENTITLEMENT_WITHHELD (FR-014)
+- [X] T031 [P] [US4] Unit tests for statutory tiers + VAT treatment and the stacking policy modes per `contracts/discount-engine.md` (SC-003)
+- [X] T032 [P] [US4] Unit test: entitlement without supporting ID → statutory withheld, flag ENTITLEMENT_WITHHELD (FR-014)
 
 ### Implementation
-- [ ] T033 [P] [US4] Flyway `V5__seed_ph_discounts.sql` (senior/PWD statutory rules + VAT treatment as seed data)
-- [ ] T034 [US4] Extend the engine with statutory tier building + VAT treatment and apply `StackingPolicy` (MOST_FAVORABLE default) in `DiscountComputationService`
-- [ ] T035 [US4] Enforce supporting-ID requirement for statutory eligibility; surface flags/reasons in the compute response
+- [X] T033 [P] [US4] Flyway `V5__seed_ph_discounts.sql` (senior/PWD statutory rules + VAT treatment as seed data)
+- [X] T034 [US4] Extend the engine with statutory tier building + VAT treatment and apply `StackingPolicy` (MOST_FAVORABLE default) in `DiscountComputationService`
+- [X] T035 [US4] Enforce supporting-ID requirement for statutory eligibility; surface flags/reasons in the compute response
 
 **Checkpoint**: government-mandated discounts computed and combined per policy.
 
