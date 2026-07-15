@@ -1,0 +1,79 @@
+openapi: 3.0.3
+info:
+  title: KITA hr-service API
+  version: 0.1.0
+  description: >
+    Employee HR & payroll. Behind the gateway. All money/hours are decimal strings.
+    Roles: HR_ADMIN, PAYROLL_OFFICER, MANAGER, EMPLOYEE_SELF (employees see only their own data).
+servers:
+  - url: /api/hr
+tags:
+  - name: employees
+  - name: attendance
+  - name: payroll
+  - name: deductions
+  - name: leave
+paths:
+  /employees:
+    get: { tags: [employees], summary: List employees, responses: { '200': { description: OK } } }
+    post:
+      tags: [employees]
+      summary: Create an employee
+      responses: { '201': { description: Created }, '400': { description: Validation error }, '409': { description: Duplicate employee_no } }
+  /employees/{id}:
+    get: { tags: [employees], summary: Get an employee (self or privileged), responses: { '200': { description: OK }, '404': { description: Not found } } }
+    patch: { tags: [employees], summary: Update employee / status, responses: { '200': { description: OK }, '400': { description: Validation error } } }
+  /employees/{id}/compensation:
+    post: { tags: [employees], summary: Add an effective-dated compensation record, responses: { '201': { description: Created } } }
+    get: { tags: [employees], summary: Compensation history (self or privileged), responses: { '200': { description: OK }, '404': { description: Not found } } }
+  /employees/{id}/loans:
+    post: { tags: [deductions], summary: Attach a loan/advance with an installment schedule, responses: { '201': { description: Created } } }
+
+  /attendance:
+    post: { tags: [attendance], summary: Ingest raw daily time records (single/batch), responses: { '202': { description: Accepted } } }
+  /attendance/worked-time:
+    get: { tags: [attendance], summary: Computed worked time for employee(s) over a period, responses: { '200': { description: OK } } }
+  /work-schedules:
+    post: { tags: [attendance], summary: Define an effective-dated work schedule/shift, responses: { '201': { description: Created } } }
+  /holidays:
+    post: { tags: [attendance], summary: Add a holiday-calendar entry, responses: { '201': { description: Created } } }
+  /premium-rules:
+    post: { tags: [attendance], summary: Create an effective-dated premium multiplier (OT/holiday/night), responses: { '201': { description: Created } } }
+
+  /payroll/runs:
+    post:
+      tags: [payroll]
+      summary: Create a payroll run (REGULAR or ADJUSTMENT) for a period + employee set
+      responses: { '201': { description: Created (DRAFT) }, '400': { description: Validation error } }
+  /payroll/runs/{id}/compute:
+    post: { tags: [payroll], summary: Compute the run (DRAFT→COMPUTED), responses: { '200': { description: Computed; flagged employees listed } } }
+  /payroll/runs/{id}/finalize:
+    post:
+      tags: [payroll]
+      summary: Finalize the run (COMPUTED→FINALIZED), atomic + idempotent
+      responses: { '200': { description: Finalized }, '409': { description: Already finalized / duplicate period pay } }
+  /payroll/runs/{id}/cancel:
+    post: { tags: [payroll], summary: Cancel a run (DRAFT|COMPUTED→CANCELLED), responses: { '200': { description: Cancelled }, '409': { description: A finalized run cannot be cancelled } } }
+  /payroll/runs/{id}/register:
+    get: { tags: [payroll], summary: Payroll register (totals reconcile to payslips), responses: { '200': { description: OK } } }
+  /payroll/runs/{id}/remittances:
+    get: { tags: [payroll], summary: Remittance summaries grouped by agency, responses: { '200': { description: OK } } }
+  /payslips:
+    get: { tags: [payroll], summary: Payslips for a run or an employee (self allowed), responses: { '200': { description: OK } } }
+
+  /deduction-rules:
+    get: { tags: [deductions], summary: List effective deduction rules, responses: { '200': { description: OK } } }
+    post: { tags: [deductions], summary: Create/version an effective-dated deduction rule, responses: { '201': { description: Created } } }
+
+  /leave/types:
+    post: { tags: [leave], summary: Define a leave type + accrual policy, responses: { '201': { description: Created }, '409': { description: Duplicate code } } }
+    get: { tags: [leave], summary: List leave types, responses: { '200': { description: OK } } }
+  /leave/requests:
+    post: { tags: [leave], summary: File a leave request, responses: { '201': { description: Filed }, '409': { description: Overlapping leave } } }
+  /leave/requests/{id}/decision:
+    post: { tags: [leave], summary: Approve/reject (MANAGER), responses: { '200': { description: Decided }, '409': { description: Insufficient balance } } }
+  /leave/balances:
+    get: { tags: [leave], summary: Leave balances for an employee, responses: { '200': { description: OK } } }
+
+  /actuator/health:
+    get: { summary: Health check, responses: { '200': { description: UP } } }
