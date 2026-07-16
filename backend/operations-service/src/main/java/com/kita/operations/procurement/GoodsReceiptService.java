@@ -1,5 +1,6 @@
 package com.kita.operations.procurement;
 
+import com.kita.operations.common.AuditWriter;
 import com.kita.operations.catalog.CatalogService;
 import com.kita.operations.catalog.Item;
 import com.kita.operations.catalog.UomConversionService;
@@ -39,6 +40,7 @@ public class GoodsReceiptService {
   private final StockLedgerService ledger;
   private final ValuationService valuation;
   private final PartyClient party;
+  private final AuditWriter audit;
 
   public GoodsReceiptService(
       GoodsReceiptRepository receipts,
@@ -48,7 +50,9 @@ public class GoodsReceiptService {
       UomConversionService uomConversion,
       StockLedgerService ledger,
       ValuationService valuation,
-      PartyClient party) {
+      PartyClient party,
+      AuditWriter audit) {
+    this.audit = audit;
     this.receipts = receipts;
     this.locations = locations;
     this.lots = lots;
@@ -94,6 +98,9 @@ public class GoodsReceiptService {
           "goods receipt", "GOODS_RECEIPT", receipt.getId().toString());
       receipt.addLine(new ReceiptLine(item, lot, baseQty, s.unitCost()));
     }
-    return receipts.save(receipt);
+    GoodsReceipt saved = receipts.save(receipt);
+    audit.record(
+        null, "GOODS_RECEIPT_POSTED", saved.getId().toString(), "lines=" + lineSpecs.size());
+    return saved;
   }
 }

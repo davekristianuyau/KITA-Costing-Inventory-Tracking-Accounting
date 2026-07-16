@@ -1,5 +1,6 @@
 package com.kita.operations.bom;
 
+import com.kita.operations.common.AuditWriter;
 import com.kita.operations.catalog.CatalogService;
 import com.kita.operations.catalog.Item;
 import com.kita.operations.catalog.UomConversionService;
@@ -26,12 +27,17 @@ public class BomService {
   private final BillOfMaterialsRepository boms;
   private final CatalogService catalog;
   private final UomConversionService uomConversion;
+  private final AuditWriter audit;
 
   public BomService(
-      BillOfMaterialsRepository boms, CatalogService catalog, UomConversionService uomConversion) {
+      BillOfMaterialsRepository boms,
+      CatalogService catalog,
+      UomConversionService uomConversion,
+      AuditWriter audit) {
     this.boms = boms;
     this.catalog = catalog;
     this.uomConversion = uomConversion;
+    this.audit = audit;
   }
 
   @Transactional
@@ -55,7 +61,11 @@ public class BomService {
       uomConversion.convert(s.quantity(), s.uom(), component.getBaseUom().getCode());
       bom.addComponent(new BomComponent(component, s.quantity(), s.uom()));
     }
-    return boms.save(bom);
+    BillOfMaterials saved = boms.save(bom);
+    audit.record(
+        null, "BOM_CHANGED", saved.getId().toString(),
+        "parent=" + parent.getSku() + " type=" + type + " components=" + specs.size());
+    return saved;
   }
 
   @Transactional(readOnly = true)

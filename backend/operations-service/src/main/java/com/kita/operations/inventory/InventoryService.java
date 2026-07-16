@@ -1,5 +1,6 @@
 package com.kita.operations.inventory;
 
+import com.kita.operations.common.AuditWriter;
 import com.kita.operations.catalog.CatalogService;
 import com.kita.operations.catalog.Item;
 import com.kita.operations.catalog.UomConversionService;
@@ -22,6 +23,7 @@ public class InventoryService {
   private final CatalogService catalog;
   private final UomConversionService uomConversion;
   private final StockLedgerService ledger;
+  private final AuditWriter audit;
 
   public InventoryService(
       StockLocationRepository locations,
@@ -30,7 +32,8 @@ public class InventoryService {
       LotRepository lots,
       CatalogService catalog,
       UomConversionService uomConversion,
-      StockLedgerService ledger) {
+      StockLedgerService ledger,
+      AuditWriter audit) {
     this.locations = locations;
     this.levels = levels;
     this.movements = movements;
@@ -38,6 +41,7 @@ public class InventoryService {
     this.catalog = catalog;
     this.uomConversion = uomConversion;
     this.ledger = ledger;
+    this.audit = audit;
   }
 
   @Transactional
@@ -63,9 +67,14 @@ public class InventoryService {
     Lot lot = lotId == null ? null : lots.findById(lotId).orElse(null);
     BigDecimal baseQty =
         uom == null ? quantity : uomConversion.convert(quantity, uom, item.getBaseUom().getCode());
-    return ledger.apply(
-        item, location, lot, MovementType.ADJUSTMENT, baseQty, BigDecimal.ZERO, reason, "ADJUSTMENT",
-        null);
+    StockMovement movement =
+        ledger.apply(
+            item, location, lot, MovementType.ADJUSTMENT, baseQty, BigDecimal.ZERO, reason,
+            "ADJUSTMENT", null);
+    audit.record(
+        null, "STOCK_ADJUSTED", movement.getId().toString(),
+        "item=" + item.getSku() + " qty=" + baseQty + " reason=" + reason);
+    return movement;
   }
 
   public List<StockLevel> availabilityForItem(UUID itemId) {
