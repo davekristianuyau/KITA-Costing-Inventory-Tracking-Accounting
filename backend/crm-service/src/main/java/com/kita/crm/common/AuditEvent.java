@@ -50,4 +50,19 @@ public class AuditEvent {
   public String getEntityRef() {
     return entityRef;
   }
+
+  /** Who caused the change — the "who" half of the attribution FR-016/SC-006 require. */
+  public String getActor() {
+    return actor;
+  }
+
+  /** When it happened — the "when" half. */
+  public Instant getAt() {
+    return at;
+  }
+
+  /** Scrubbed by {@link AuditWriter}; safe to read back. */
+  public String getDetail() {
+    return detail;
+  }
 }

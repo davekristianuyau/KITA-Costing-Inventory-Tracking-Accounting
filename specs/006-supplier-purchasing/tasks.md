@@ -151,3 +151,13 @@ exactly-once goods-receipt posting) and US4 (restock) complete purchasing.
 - Money exact decimal; totals reconcile to the cent. This service never mutates inventory directly —
   it posts via `OperationsPort`.
 - Commit after each task/group and push per project workflow.
+
+---
+
+## Phase 8: Coverage Gaps (added 2026-07-15 after `/speckit-analyze`)
+
+FR-016's audit trail was written but never verified — 005 had an equivalent task (T039), 006 did not.
+
+- [X] T043 Expose `AuditEvent.getActor()/getAt()/getDetail()` so attribution is assertable (SC-006)
+- [X] T044 `common/AuditTrailIT` — PO approve/send/receipt/supplier changes attributable to user and timestamp (FR-016/SC-006)
+- [X] T045 Assert a cancelled PO posts nothing to operations-service (FR-008)
