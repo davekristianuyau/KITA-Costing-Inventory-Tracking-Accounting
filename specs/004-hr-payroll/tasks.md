@@ -194,3 +194,16 @@ US3 (deductions) completes correctness, US6 (attendance) and US4 (leave) enrich 
   (T034/T030), net-pay floor (T036), attendance/premium math (T043/T044) — keep those tests rigorous.
 - Money/hours exact decimal everywhere; per-line rounding; reconcile to the cent.
 - Commit after each task/group and push per project workflow.
+
+---
+
+## Phase 10: Coverage Gaps (added 2026-07-15 after `/speckit-analyze`)
+
+Requirements that had no task and so were never verified. `AuditEvent` stored `actor`/`at` but
+exposed neither, making SC-007's attribution unverifiable from code at all.
+
+- [X] T061 Expose `AuditEvent.getActor()/getAt()/getDetail()` so attribution is assertable (SC-007)
+- [X] T062 `common/AuditTrailIT` — payroll finalize + leave approval attributable to user and timestamp (FR-023/SC-007); statutory IDs absent from the trail (FR-004)
+- [X] T063 `payroll/PayrollScaleAndEdgeCaseIT` — empty run is finalizable with zero totals (spec Edge Case)
+- [X] T064 `payroll/PayrollScaleAndEdgeCaseIT` — 100-employee period computes, finalizes and reconciles (SC-001/SC-002)
+- [X] T065 Align spec Key Entities to the implemented `PayComponent` (was EarningComponent/DeductionComponent)

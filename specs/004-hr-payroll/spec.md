@@ -293,8 +293,10 @@ premium rules — then confirm those amounts appear on that employee's payslip.
   finalized) and links to payslips and a register.
 - **Payslip**: one employee's computed result for a run — itemized earnings, deductions, employer
   contributions, net pay.
-- **EarningComponent / DeductionComponent**: named lines on a payslip (e.g., basic, allowance;
-  statutory contribution, tax, loan installment) with amount and category (earning/voluntary/statutory).
+- **PayComponent**: a named line on a payslip (e.g., basic, allowance; statutory contribution, tax,
+  loan installment) with an amount and a category (EARNING | VOLUNTARY_DEDUCTION |
+  STATUTORY_DEDUCTION | TAX | EMPLOYER_CONTRIB). One entity carries every line kind; the category
+  distinguishes them, rather than separate earning/deduction types.
 - **DeductionRule**: a versioned, effective-dated table/bracket defining how a statutory or tax
   deduction is computed from a base (generic engine; Philippines rules provided as seed data).
 - **WorkSchedule / Shift**: an employee's expected working days, hours, and night window used to judge

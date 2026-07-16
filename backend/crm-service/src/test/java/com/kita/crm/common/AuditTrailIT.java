@@ -18,6 +18,7 @@ import com.kita.crm.entitlement.EntitlementKind;
 import com.kita.crm.entitlement.EntitlementService;
 import com.kita.crm.support.AbstractCrmIT;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -42,9 +43,11 @@ class AuditTrailIT extends AbstractCrmIT {
     return audit.findAll();
   }
 
+  /** SC-006: changes are attributable to a user AND a timestamp — not merely recorded. */
   @Test
-  void customerAndEntitlementChangesAreAudited() {
+  void customerAndEntitlementChangesAreAttributableToAUserAndTimestamp() {
     UUID id = customer("AU-1");
+    Instant before = Instant.now().minusSeconds(1);
     customers.update(id, new UpdateCustomerRequest("Ana Cruz", null, null, null, null), "alice");
     entitlements.add(
         id,
@@ -54,6 +57,30 @@ class AuditTrailIT extends AbstractCrmIT {
     assertThat(events()).extracting(AuditEvent::getAction)
         .contains("CUSTOMER_CHANGED", "ENTITLEMENT_CHANGED");
     assertThat(events()).allSatisfy(e -> assertThat(e.getEntityRef()).isNotBlank());
+
+    // The attribution SC-006 actually asks for, which this test previously never checked.
+    assertThat(eventsOf("ENTITLEMENT_CHANGED")).hasSize(1);
+    assertThat(eventsOf("ENTITLEMENT_CHANGED").get(0).getActor()).isEqualTo("bob");
+    assertThat(eventsOf("ENTITLEMENT_CHANGED").get(0).getAt()).isAfter(before);
+    assertThat(eventsOf("CUSTOMER_CHANGED"))
+        .anySatisfy(e -> assertThat(e.getActor()).isEqualTo("alice"));
+  }
+
+  @Test
+  void everyRecordedEventCarriesAnActorAndTimestamp() {
+    customer("AU-6");
+
+    assertThat(events()).isNotEmpty();
+    assertThat(events())
+        .allSatisfy(
+            e -> {
+              assertThat(e.getActor()).as("actor for %s", e.getAction()).isNotBlank();
+              assertThat(e.getAt()).as("timestamp for %s", e.getAction()).isNotNull();
+            });
+  }
+
+  private List<AuditEvent> eventsOf(String action) {
+    return events().stream().filter(e -> e.getAction().equals(action)).toList();
   }
 
   /** FR-003/016: the supporting ID must not leak into the audit trail. */
