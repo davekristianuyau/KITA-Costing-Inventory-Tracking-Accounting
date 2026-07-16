@@ -3,6 +3,7 @@ package com.kita.operations.sales;
 import com.kita.operations.catalog.CatalogService;
 import com.kita.operations.catalog.Item;
 import com.kita.operations.catalog.UomConversionService;
+import com.kita.operations.common.AuditWriter;
 import com.kita.operations.common.DomainException;
 import com.kita.operations.party.PartyClient;
 import java.math.BigDecimal;
@@ -24,18 +25,21 @@ public class SalesOrderService {
   private final UomConversionService uomConversion;
   private final ReservationService reservations;
   private final PartyClient party;
+  private final AuditWriter audit;
 
   public SalesOrderService(
       SalesOrderRepository orders,
       CatalogService catalog,
       UomConversionService uomConversion,
       ReservationService reservations,
-      PartyClient party) {
+      PartyClient party,
+      AuditWriter audit) {
     this.orders = orders;
     this.catalog = catalog;
     this.uomConversion = uomConversion;
     this.reservations = reservations;
     this.party = party;
+    this.audit = audit;
   }
 
   @Transactional
@@ -72,7 +76,11 @@ public class SalesOrderService {
     }
     order.setStatus(OrderStatus.CONFIRMED);
     order.setConfirmedAt(Instant.now());
-    return orders.save(order);
+    SalesOrder saved = orders.save(order);
+    // FR-021 asks for the event history; 003 specifies no caller identity, and this service has no
+    // security model, so the actor stays null rather than being fabricated.
+    audit.record(null, "ORDER_CONFIRMED", orderId.toString(), "lines=" + order.getLines().size());
+    return saved;
   }
 
   @Transactional
@@ -86,7 +94,9 @@ public class SalesOrderService {
     }
     order.setStatus(OrderStatus.FULFILLED);
     order.setFulfilledAt(Instant.now());
-    return orders.save(order);
+    SalesOrder saved = orders.save(order);
+    audit.record(null, "ORDER_FULFILLED", orderId.toString(), "lines=" + order.getLines().size());
+    return saved;
   }
 
   @Transactional
@@ -99,7 +109,9 @@ public class SalesOrderService {
       reservations.release(line);
     }
     order.setStatus(OrderStatus.CANCELLED);
-    return orders.save(order);
+    SalesOrder saved = orders.save(order);
+    audit.record(null, "ORDER_CANCELLED", orderId.toString(), "lines=" + order.getLines().size());
+    return saved;
   }
 
   @Transactional(readOnly = true)

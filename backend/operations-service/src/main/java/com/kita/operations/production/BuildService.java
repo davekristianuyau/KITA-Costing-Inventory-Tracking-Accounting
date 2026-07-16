@@ -1,5 +1,6 @@
 package com.kita.operations.production;
 
+import com.kita.operations.common.AuditWriter;
 import com.kita.operations.bom.BillOfMaterials;
 import com.kita.operations.bom.BillOfMaterialsRepository;
 import com.kita.operations.bom.BomService;
@@ -30,6 +31,7 @@ public class BuildService {
   private final StockLocationRepository locations;
   private final StockLedgerService ledger;
   private final ValuationService valuation;
+  private final AuditWriter audit;
 
   public BuildService(
       BuildRepository builds,
@@ -38,7 +40,8 @@ public class BuildService {
       CatalogService catalog,
       StockLocationRepository locations,
       StockLedgerService ledger,
-      ValuationService valuation) {
+      ValuationService valuation,
+      AuditWriter audit) {
     this.builds = builds;
     this.boms = boms;
     this.bomService = bomService;
@@ -46,6 +49,7 @@ public class BuildService {
     this.locations = locations;
     this.ledger = ledger;
     this.valuation = valuation;
+    this.audit = audit;
   }
 
   @Transactional
@@ -84,6 +88,9 @@ public class BuildService {
         finished, location, null, MovementType.BUILD_PRODUCE, quantity, finishedUnitCost,
         "build produce", "BUILD", build.getId().toString());
 
+    audit.record(
+        null, "BUILD_COMPLETED", build.getId().toString(),
+        "item=" + finished.getSku() + " qty=" + quantity + " unitCost=" + finishedUnitCost);
     return build;
   }
 }

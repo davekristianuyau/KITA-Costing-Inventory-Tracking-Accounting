@@ -293,3 +293,21 @@ receipts+AVCO (US4), production (US7), costing (US8), and query surface (US5).
   project workflow.
 - Data-integrity tasks (reservations, no-negative-stock, exact decimals, atomic builds) are the
   highest-risk — keep their tests rigorous (constitution: Security & Data Integrity First).
+
+---
+
+## Phase 9: Coverage Gap (added 2026-07-16 after `/speckit-analyze`)
+
+FR-021 requires an auditable history of significant business events — "orders confirmed/fulfilled/
+cancelled, receipts, adjustments, BOM changes, builds". Only stock had any coverage: T022 wired a
+logger into `StockLedgerService`. Log lines are not a durable, queryable history, and orders, BOM
+changes and builds had nothing at all.
+
+003 specifies no caller identity and this service has no security model, so events record what
+happened and when; the actor is deliberately not fabricated.
+
+- [X] T071 Flyway `V7__audit.sql` (audit_event) + `common/AuditEvent` entity, repository, writer
+- [X] T072 Record ORDER_CONFIRMED / ORDER_FULFILLED / ORDER_CANCELLED in `sales/SalesOrderService`
+- [X] T073 Record GOODS_RECEIPT_POSTED in `procurement/GoodsReceiptService`; STOCK_ADJUSTED in `inventory/InventoryService`
+- [X] T074 Record BOM_CHANGED in `bom/BomService`; BUILD_COMPLETED in `production/BuildService`
+- [X] T075 `common/AuditTrailIntegrationTest` — every event FR-021 names is recorded with entity + timestamp
