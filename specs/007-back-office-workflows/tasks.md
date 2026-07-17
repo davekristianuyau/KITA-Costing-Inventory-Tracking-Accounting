@@ -126,14 +126,14 @@ over-threshold approval by a non-approver refused.
 
 ### Tests for User Story 3 ⚠️ (write first, must FAIL)
 
-- [ ] T036 [P] [US3] `PurchaseOrderWorkflowTest` — create→approve→send; **PO `total` = exact Money sum of qty×unitCost incl. a rounding-edge line (FR-020, Constitution II)**; unknown/inactive supplier→422; threshold surfaced (422/403); uses fake ProcurementPort, in `.../test/.../workflow/PurchaseOrderWorkflowTest.java`
-- [ ] T037 [P] [US3] Contract test `PurchaseOrderApiContractTest` for purchase-order endpoints in contracts/workflow-api.md, in `.../test/.../api/PurchaseOrderApiContractTest.java`
+- [X] T036 [P] [US3] `PurchaseOrderWorkflowTest` — create→approve→send; **PO `total` = exact Money sum of qty×unitCost incl. a rounding-edge line (FR-020, Constitution II)**; unknown/inactive supplier→422; threshold surfaced (422/403); uses fake ProcurementPort, in `.../test/.../workflow/PurchaseOrderWorkflowTest.java`
+- [X] T037 [P] [US3] Contract test `PurchaseOrderApiContractTest` for purchase-order endpoints in contracts/workflow-api.md, in `.../test/.../api/PurchaseOrderApiContractTest.java`
 
 ### Implementation for User Story 3
 
-- [ ] T038 [P] [US3] Implement `ProcurementPort` PO methods on `HttpProcurementAdapter` + `InMemoryProcurementAdapter` (supplierActive, createPurchaseOrder, approve, send) per contracts, in `.../workflow/ports/`
-- [ ] T039 [US3] `workflow/PurchaseOrderWorkflow.java` — create (validate supplier, **compute total via `Money`**) → approve → send; passes T036, in `.../workflow/workflow/PurchaseOrderWorkflow.java`
-- [ ] T040 [US3] `api/PurchaseOrderController.java` — `POST /purchase-orders`, `/{id}/approve`, `/{id}/send` via the US1 pipeline; passes T037, in `.../workflow/api/PurchaseOrderController.java`
+- [X] T038 [P] [US3] Implement `ProcurementPort` PO methods on `HttpProcurementAdapter` + `InMemoryProcurementAdapter` (supplierActive, createPurchaseOrder, approve, send) per contracts, in `.../workflow/ports/`
+- [X] T039 [US3] `workflow/PurchaseOrderWorkflow.java` — create (validate supplier, **compute total via `Money`**) → approve → send; passes T036, in `.../workflow/workflow/PurchaseOrderWorkflow.java`
+- [X] T040 [US3] `api/PurchaseOrderController.java` — `POST /purchase-orders`, `/{id}/approve`, `/{id}/send` via the US1 pipeline; passes T037, in `.../workflow/api/PurchaseOrderController.java`
 
 **Checkpoint**: US1–US3 independently functional (all P1 stories complete).
 
