@@ -1,7 +1,9 @@
 package com.kita.workflow.ports.http;
 
 import com.kita.workflow.common.TransientDownstreamException;
+import com.kita.workflow.common.ValidationException;
 import com.kita.workflow.ports.CrmPort;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatusCode;
@@ -37,5 +39,42 @@ public class HttpCrmAdapter implements CrmPort {
               }
               return status.is2xxSuccessful();
             });
+  }
+
+  @Override
+  public String createCustomer(CustomerInput input) {
+    Map<?, ?> body =
+        client
+            .post()
+            .uri("/api/crm/customers")
+            .body(input)
+            .exchange(
+                (request, response) -> {
+                  throwIfNotOk(response.getStatusCode(), "create customer");
+                  return response.bodyTo(Map.class);
+                });
+    return String.valueOf(body.get("customerId"));
+  }
+
+  @Override
+  public void updateCustomer(String customerId, CustomerInput input) {
+    client
+        .patch()
+        .uri("/api/crm/customers/{id}", customerId)
+        .body(input)
+        .exchange(
+            (request, response) -> {
+              throwIfNotOk(response.getStatusCode(), "update customer");
+              return null;
+            });
+  }
+
+  private void throwIfNotOk(HttpStatusCode status, String what) {
+    if (status.is5xxServerError()) {
+      throw new TransientDownstreamException("crm-service " + status.value() + " on " + what);
+    }
+    if (!status.is2xxSuccessful()) {
+      throw new ValidationException("crm-service rejected " + what + ": " + status.value());
+    }
   }
 }

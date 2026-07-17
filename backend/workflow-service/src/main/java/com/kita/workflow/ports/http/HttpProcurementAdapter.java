@@ -74,6 +74,47 @@ public class HttpProcurementAdapter implements ProcurementPort {
         String.valueOf(body.get("receiptId")), String.valueOf(body.get("poStatus")));
   }
 
+  @Override
+  public String createSupplier(SupplierInput input) {
+    Map<?, ?> body = post("/api/procurement/suppliers", input, Map.class);
+    return String.valueOf(body.get("supplierId"));
+  }
+
+  @Override
+  public void updateSupplier(String supplierId, SupplierInput input) {
+    client
+        .patch()
+        .uri("/api/procurement/suppliers/{id}", supplierId)
+        .body(input)
+        .exchange(
+            (request, response) -> {
+              throwIfNotOk(response.getStatusCode(), "update supplier");
+              return null;
+            });
+  }
+
+  @Override
+  public void setSuppliedItems(String supplierId, List<SuppliedItem> items) {
+    client
+        .put()
+        .uri("/api/procurement/suppliers/{id}/items", supplierId)
+        .body(Map.of("items", items))
+        .exchange(
+            (request, response) -> {
+              throwIfNotOk(response.getStatusCode(), "set supplied items");
+              return null;
+            });
+  }
+
+  private void throwIfNotOk(HttpStatusCode status, String what) {
+    if (status.is5xxServerError()) {
+      throw new TransientDownstreamException("procurement-service " + status.value() + " on " + what);
+    }
+    if (!status.is2xxSuccessful()) {
+      throw new ValidationException("procurement-service rejected " + what + ": " + status.value());
+    }
+  }
+
   private <T> T post(String uri, Object body, Class<T> type) {
     var spec = client.post().uri(uri);
     if (body != null) {

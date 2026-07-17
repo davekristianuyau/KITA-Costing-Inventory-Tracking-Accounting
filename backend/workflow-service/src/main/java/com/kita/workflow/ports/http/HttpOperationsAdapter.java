@@ -66,6 +66,14 @@ public class HttpOperationsAdapter implements OperationsPort {
             });
   }
 
+  @Override
+  public BuildResult build(String itemId, java.math.BigDecimal quantity) {
+    return post(
+        "/api/operations/builds",
+        Map.of("itemId", itemId, "quantity", quantity),
+        BuildResult.class);
+  }
+
   private <T> T post(String uri, Object body, Class<T> type) {
     var spec = client.post().uri(uri);
     if (body != null) {

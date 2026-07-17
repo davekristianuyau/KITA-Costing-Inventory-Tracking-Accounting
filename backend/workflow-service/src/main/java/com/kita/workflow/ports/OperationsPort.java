@@ -26,7 +26,15 @@ public interface OperationsPort {
   /** Current availability for an item (optional pre-check). */
   Availability availability(String itemId);
 
+  /**
+   * Build a finished item: operations atomically explodes the BOM, consumes components and raises
+   * finished stock. Insufficient components → 422 with nothing consumed (US5, FR-012/013).
+   */
+  BuildResult build(String itemId, BigDecimal quantity);
+
   record SalesLine(String itemId, BigDecimal quantity, BigDecimal unitPrice) {}
 
   record Availability(String itemId, BigDecimal onHand, BigDecimal available) {}
+
+  record BuildResult(String buildId, BigDecimal produced) {}
 }

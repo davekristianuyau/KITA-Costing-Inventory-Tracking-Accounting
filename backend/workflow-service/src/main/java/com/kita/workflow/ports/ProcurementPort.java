@@ -29,10 +29,23 @@ public interface ProcurementPort {
    */
   ReceiptResult receive(String purchaseOrderId, List<ReceiptLine> lines);
 
+  /** Create a supplier; returns the new id (immediately usable, SC-008). US6. */
+  String createSupplier(SupplierInput input);
+
+  /** Update an existing supplier. US6. */
+  void updateSupplier(String supplierId, SupplierInput input);
+
+  /** Set the items a supplier supplies (FR-015). US6. */
+  void setSuppliedItems(String supplierId, List<SuppliedItem> items);
+
   record PoLine(String itemId, BigDecimal quantity, BigDecimal unitCost) {}
 
   record ReceiptLine(String itemId, BigDecimal quantityReceived) {}
 
   /** {@code poStatus} is PARTIALLY_RECEIVED | FULLY_RECEIVED. */
   record ReceiptResult(String receiptId, String poStatus) {}
+
+  record SupplierInput(String name, boolean active) {}
+
+  record SuppliedItem(String itemId, BigDecimal unitCost) {}
 }

@@ -41,6 +41,8 @@ public class InMemoryProcurementAdapter implements ProcurementPort {
 
   private final java.util.Set<String> activeSuppliers = ConcurrentHashMap.newKeySet();
   private final ConcurrentMap<String, Po> orders = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, List<ProcurementPort.SuppliedItem>> suppliedItems =
+      new ConcurrentHashMap<>();
   private volatile boolean failNextReceive;
 
   @Override
@@ -105,10 +107,37 @@ public class InMemoryProcurementAdapter implements ProcurementPort {
     return new ReceiptResult(UUID.randomUUID().toString(), po.status.name());
   }
 
+  @Override
+  public String createSupplier(SupplierInput input) {
+    String id = "sup-" + UUID.randomUUID();
+    if (input.active()) {
+      activeSuppliers.add(id);
+    }
+    return id;
+  }
+
+  @Override
+  public void updateSupplier(String supplierId, SupplierInput input) {
+    if (input.active()) {
+      activeSuppliers.add(supplierId);
+    } else {
+      activeSuppliers.remove(supplierId);
+    }
+  }
+
+  @Override
+  public void setSuppliedItems(String supplierId, List<SuppliedItem> items) {
+    suppliedItems.put(supplierId, List.copyOf(items));
+  }
+
   // --- test seams -------------------------------------------------------------------------------
 
   public void seedSupplier(String supplierId) {
     activeSuppliers.add(supplierId);
+  }
+
+  public List<SuppliedItem> suppliedItemsOf(String supplierId) {
+    return suppliedItems.getOrDefault(supplierId, List.of());
   }
 
   /** Drive create→approve→send and return the sent PO id, ready to receive against. */
@@ -136,6 +165,7 @@ public class InMemoryProcurementAdapter implements ProcurementPort {
   public void reset() {
     activeSuppliers.clear();
     orders.clear();
+    suppliedItems.clear();
     failNextReceive = false;
   }
 

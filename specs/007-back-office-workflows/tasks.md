@@ -173,13 +173,13 @@ finished stock +N; insufficient components → 422, nothing consumed.
 
 ### Tests for User Story 5 ⚠️ (write first, must FAIL)
 
-- [ ] T046 [P] [US5] `BuildWorkflowTest` — sufficient → consume+produce; insufficient → 422 nothing consumed; uses fake OperationsPort, in `.../test/.../workflow/BuildWorkflowTest.java`
+- [X] T046 [P] [US5] `BuildWorkflowTest` — sufficient → consume+produce; insufficient → 422 nothing consumed; uses fake OperationsPort, in `.../test/.../workflow/BuildWorkflowTest.java`
 
 ### Implementation for User Story 5
 
-- [ ] T047 [P] [US5] Implement `OperationsPort.build` on `HttpOperationsAdapter` + `InMemoryOperationsAdapter` (`POST /api/operations/builds`; atomic explode/consume/produce) in `.../workflow/ports/`
-- [ ] T048 [US5] `workflow/BuildWorkflow.java` — single `OperationsPort.build` call, record outcome; passes T046, in `.../workflow/workflow/BuildWorkflow.java`
-- [ ] T049 [US5] `api/BuildController.java` — `POST /builds` via the US1 pipeline, in `.../workflow/api/BuildController.java`
+- [X] T047 [P] [US5] Implement `OperationsPort.build` on `HttpOperationsAdapter` + `InMemoryOperationsAdapter` (`POST /api/operations/builds`; atomic explode/consume/produce) in `.../workflow/ports/`
+- [X] T048 [US5] `workflow/BuildWorkflow.java` — single `OperationsPort.build` call, record outcome; passes T046, in `.../workflow/workflow/BuildWorkflow.java`
+- [X] T049 [US5] `api/BuildController.java` — `POST /builds` via the US1 pipeline, in `.../workflow/api/BuildController.java`
 
 **Checkpoint**: US5 closes the purchase→build→sell loop.
 
@@ -196,13 +196,13 @@ each → changes attributed; the new customer is immediately usable in a sales o
 
 ### Tests for User Story 6 ⚠️ (write first, must FAIL)
 
-- [ ] T050 [P] [US6] `PartyWorkflowTest` — create/update customer + supplier attributed; **set/update the supplier's supplied items (FR-015)**; created party immediately usable (nothing cached); uses fake CrmPort/ProcurementPort, in `.../test/.../workflow/PartyWorkflowTest.java`
+- [X] T050 [P] [US6] `PartyWorkflowTest` — create/update customer + supplier attributed; **set/update the supplier's supplied items (FR-015)**; created party immediately usable (nothing cached); uses fake CrmPort/ProcurementPort, in `.../test/.../workflow/PartyWorkflowTest.java`
 
 ### Implementation for User Story 6
 
-- [ ] T051 [P] [US6] Implement `CrmPort.createCustomer/updateCustomer`, `ProcurementPort.createSupplier/updateSupplier`, and `ProcurementPort.setSuppliedItems` on the http + fake adapters per contracts, in `.../workflow/ports/`
-- [ ] T052 [US6] `workflow/PartyWorkflow.java` — create/update customer & supplier, set supplier supplied items, record outcome; passes T050, in `.../workflow/workflow/PartyWorkflow.java`
-- [ ] T053 [US6] `api/PartyController.java` — `POST/PATCH /customers`, `POST/PATCH /suppliers`, `PUT /suppliers/{id}/items` via the US1 pipeline, in `.../workflow/api/PartyController.java`
+- [X] T051 [P] [US6] Implement `CrmPort.createCustomer/updateCustomer`, `ProcurementPort.createSupplier/updateSupplier`, and `ProcurementPort.setSuppliedItems` on the http + fake adapters per contracts, in `.../workflow/ports/`
+- [X] T052 [US6] `workflow/PartyWorkflow.java` — create/update customer & supplier, set supplier supplied items, record outcome; passes T050, in `.../workflow/workflow/PartyWorkflow.java`
+- [X] T053 [US6] `api/PartyController.java` — `POST/PATCH /customers`, `POST/PATCH /suppliers`, `PUT /suppliers/{id}/items` via the US1 pipeline, in `.../workflow/api/PartyController.java`
 
 **Checkpoint**: All six user stories independently functional.
 
