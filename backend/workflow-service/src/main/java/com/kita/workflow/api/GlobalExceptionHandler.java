@@ -3,6 +3,7 @@ package com.kita.workflow.api;
 import com.kita.workflow.common.DownstreamUnavailableException;
 import com.kita.workflow.common.ErrorResponse;
 import com.kita.workflow.common.ForbiddenException;
+import com.kita.workflow.common.TransientDownstreamException;
 import com.kita.workflow.common.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,8 +38,8 @@ public class GlobalExceptionHandler {
     return body(HttpStatus.UNPROCESSABLE_ENTITY, "REJECTED_INVALID", reason);
   }
 
-  @ExceptionHandler(DownstreamUnavailableException.class)
-  public ResponseEntity<ErrorResponse> unavailable(DownstreamUnavailableException ex) {
+  @ExceptionHandler({DownstreamUnavailableException.class, TransientDownstreamException.class})
+  public ResponseEntity<ErrorResponse> unavailable(RuntimeException ex) {
     return body(HttpStatus.SERVICE_UNAVAILABLE, "FAILED_UNAVAILABLE", ex.getMessage());
   }
 

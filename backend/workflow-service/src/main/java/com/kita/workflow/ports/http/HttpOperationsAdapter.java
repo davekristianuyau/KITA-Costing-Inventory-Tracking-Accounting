@@ -3,95 +3,99 @@ package com.kita.workflow.ports.http;
 import com.kita.workflow.common.TransientDownstreamException;
 import com.kita.workflow.common.ValidationException;
 import com.kita.workflow.ports.OperationsPort;
+import java.math.BigDecimal;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpStatusCode;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 /**
  * Real {@link OperationsPort}: an HTTP client to operations-service. Selected by
- * {@code workflow.operations.adapter=http}. 5xx is transient (retryable); 4xx business rejections
- * become {@link ValidationException} (422).
+ * {@code workflow.operations.adapter=http}. All calls go through {@link RemoteCall}.
  */
 @Component
 @ConditionalOnProperty(name = "workflow.operations.adapter", havingValue = "http")
 public class HttpOperationsAdapter implements OperationsPort {
 
   private final RestClient client;
+  private final RemoteCall remote;
 
   public HttpOperationsAdapter(
       RestClient.Builder builder,
-      @Value("${workflow.operations.base-url:http://operations-service:8083}") String baseUrl) {
+      @Value("${workflow.operations.base-url:http://operations-service:8083}") String baseUrl,
+      RemoteCall remote) {
     this.client = builder.baseUrl(baseUrl).build();
+    this.remote = remote;
   }
 
   @Override
   public String createSalesOrder(String customerId) {
     Map<?, ?> body =
-        post("/api/operations/sales-orders", Map.of("customerId", customerId), Map.class);
+        remote.write(
+            client,
+            HttpMethod.POST,
+            "/api/operations/sales-orders",
+            Map.of("customerId", customerId),
+            response -> remote.applied(response, Map.class));
     return String.valueOf(body.get("salesOrderId"));
   }
 
   @Override
   public void addSalesOrderLine(String salesOrderId, SalesLine line) {
-    post("/api/operations/sales-orders/" + salesOrderId + "/items", line, Void.class);
+    remote.write(
+        client,
+        HttpMethod.POST,
+        "/api/operations/sales-orders/" + salesOrderId + "/items",
+        line,
+        response -> remote.applied(response, Void.class));
   }
 
   @Override
   public void confirmSalesOrder(String salesOrderId) {
-    post("/api/operations/sales-orders/" + salesOrderId + "/confirm", null, Void.class);
+    post("/api/operations/sales-orders/" + salesOrderId + "/confirm");
   }
 
   @Override
   public void fulfillSalesOrder(String salesOrderId) {
-    post("/api/operations/sales-orders/" + salesOrderId + "/fulfill", null, Void.class);
+    post("/api/operations/sales-orders/" + salesOrderId + "/fulfill");
   }
 
   @Override
   public void cancelSalesOrder(String salesOrderId) {
-    post("/api/operations/sales-orders/" + salesOrderId + "/cancel", null, Void.class);
+    post("/api/operations/sales-orders/" + salesOrderId + "/cancel");
   }
 
   @Override
   public Availability availability(String itemId) {
-    return client
-        .get()
-        .uri("/api/operations/items/{id}/availability", itemId)
-        .exchange(
-            (request, response) -> {
-              throwIfNotOk(response.getStatusCode(), "availability");
-              return response.bodyTo(Availability.class);
-            });
+    return remote.get(
+        client,
+        "/api/operations/items/{id}/availability",
+        response -> {
+          var status = response.getStatusCode();
+          if (status.is5xxServerError()) {
+            throw new TransientDownstreamException("operations-service " + status.value());
+          }
+          if (!status.is2xxSuccessful()) {
+            throw new ValidationException("operations-service availability: " + status.value());
+          }
+          return response.bodyTo(Availability.class);
+        },
+        itemId);
   }
 
   @Override
-  public BuildResult build(String itemId, java.math.BigDecimal quantity) {
-    return post(
+  public BuildResult build(String itemId, BigDecimal quantity) {
+    return remote.write(
+        client,
+        HttpMethod.POST,
         "/api/operations/builds",
         Map.of("itemId", itemId, "quantity", quantity),
-        BuildResult.class);
+        response -> remote.applied(response, BuildResult.class));
   }
 
-  private <T> T post(String uri, Object body, Class<T> type) {
-    var spec = client.post().uri(uri);
-    if (body != null) {
-      spec.body(body);
-    }
-    return spec.exchange(
-        (request, response) -> {
-          throwIfNotOk(response.getStatusCode(), uri);
-          return type == Void.class ? null : response.bodyTo(type);
-        });
-  }
-
-  private void throwIfNotOk(HttpStatusCode status, String what) {
-    if (status.is5xxServerError()) {
-      throw new TransientDownstreamException("operations-service " + status.value() + " on " + what);
-    }
-    if (!status.is2xxSuccessful()) {
-      throw new ValidationException("operations-service rejected " + what + ": " + status.value());
-    }
+  private void post(String uri) {
+    remote.write(client, HttpMethod.POST, uri, null, response -> remote.applied(response, Void.class));
   }
 }

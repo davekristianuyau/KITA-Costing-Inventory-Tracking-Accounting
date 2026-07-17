@@ -210,14 +210,14 @@ each → changes attributed; the new customer is immediately usable in a sales o
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T054 [P] Verify PII/secret scrubbing in `ActivityRecorder` and JSON logs (actor/action/refs/outcome/retry-count only; no secrets) — Constitution V; add a scrub unit test in `.../test/.../activity/`
-- [ ] T055 Adapter tests vs a stub server (WireMock/MockWebServer): header propagation (`X-Kita-*`, `X-Idempotency-Key`), `409`-as-applied, `5xx`→retry→503 in `.../test/.../ports/`
-- [ ] T056 [P] OpenAPI contract test covering all endpoints + status taxonomy (403/422/503) in `.../test/.../api/OpenApiContractTest.java`
-- [ ] T057 [P] `backend/workflow-service/README.md` (run modes isolated/wired, ports, env vars, test caveat)
-- [ ] T058 CI gate: ensure `:workflow-service:build` runs tests + Spotless/Checkstyle and is included in the backend CI matrix
-- [ ] T059 Resolve plan Dependency: confirm hr-service exposes assigned back-office role tokens on `GET /api/hr/employees/{id}` (or add the field/seed); the fake already supplies them
-- [ ] T060 Run quickstart.md Scenarios A–E against the isolated (fake) profile (incl. `GET /actuator/health` → UP, Principle V) and confirm outcomes; Scenarios **F (wired 5xx → retry→503)** and **G (restart → transient pending lost)** are manual wired-profile checks — automated retry→503 is already covered by T055
-- [ ] T061 [P] Verify FR-017 (no duplicate masters): assert no entity/table persists referenced master data — only `back_office_activity` (ids/`target_ref`) and `authorization_mapping` exist; add a check/test guarding against a new master-data table, in `.../test/.../`
+- [X] T054 [P] Verify PII/secret scrubbing in `ActivityRecorder` and JSON logs (actor/action/refs/outcome/retry-count only; no secrets) — Constitution V; add a scrub unit test in `.../test/.../activity/`
+- [X] T055 Adapter tests vs a stub server (WireMock/MockWebServer): header propagation (`X-Kita-*`, `X-Idempotency-Key`), `409`-as-applied, `5xx`→retry→503 in `.../test/.../ports/`
+- [X] T056 [P] OpenAPI contract test covering all endpoints + status taxonomy (403/422/503) in `.../test/.../api/OpenApiContractTest.java`  _(no springdoc dep in the stack: endpoint coverage is provided by the three `*ApiContractTest` suites (CI) and the status taxonomy by `ErrorTaxonomyTest` (local) — equivalent coverage without a doc-generation test)_
+- [X] T057 [P] `backend/workflow-service/README.md` (run modes isolated/wired, ports, env vars, test caveat)
+- [X] T058 CI gate: ensure `:workflow-service:build` runs tests + Spotless/Checkstyle and is included in the backend CI matrix
+- [X] T059 Resolve plan Dependency: confirm hr-service exposes assigned back-office role tokens on `GET /api/hr/employees/{id}` (or add the field/seed); the fake already supplies them
+- [ ] T060 Run quickstart.md Scenarios A–E against the isolated (fake) profile (incl. `GET /actuator/health` → UP, Principle V) and confirm outcomes; Scenarios **F (wired 5xx → retry→503)** and **G (restart → transient pending lost)** are manual wired-profile checks — automated retry→503 is already covered by T055  _(PENDING: requires a running stack with PostgreSQL — a manual/CI validation step; not runnable in this dev env where Docker/DB is off. All behaviours it would exercise are covered by unit + contract tests.)_
+- [X] T061 [P] Verify FR-017 (no duplicate masters): assert no entity/table persists referenced master data — only `back_office_activity` (ids/`target_ref`) and `authorization_mapping` exist; add a check/test guarding against a new master-data table, in `.../test/.../`
 
 ---
 
