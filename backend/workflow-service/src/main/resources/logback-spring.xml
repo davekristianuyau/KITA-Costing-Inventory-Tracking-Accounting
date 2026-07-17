@@ -1,0 +1,18 @@
+<configuration>
+  <!-- Structured JSON logs (mirrors procurement-service). Every back-office action logs actor,
+       action, downstream refs, retry count and outcome; secrets/PII are masked at the encoder as a
+       backstop so they cannot reach a log even if something logs them (Constitution V, FR-003). -->
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
+        <defaultMask>****</defaultMask>
+        <path>password</path>
+        <path>token</path>
+        <path>secret</path>
+      </jsonGeneratorDecorator>
+    </encoder>
+  </appender>
+  <root level="INFO">
+    <appender-ref ref="JSON"/>
+  </root>
+</configuration>

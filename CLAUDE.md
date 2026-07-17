@@ -123,7 +123,13 @@ Format for entries:
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan:
+`specs/007-back-office-workflows/plan.md` (workflow-service — thin orchestration; Java 17 /
+Spring Boot 3.5, port 8088; persists only an append-only activity log + authorization mapping; Port +
+HTTP-adapter/in-memory-fake per procurement-service; business-level compensation, not 2PC. Clarified
+2026-07-17: roles resolved from HR (not the gateway token); maker–checker review on receiving + sales
+payment; sales lifecycle DRAFT→PAYMENT-CONFIRMED→RELEASED→COMPLETED; bounded idempotent auto-retry;
+pending-review state held transiently via an in-memory PendingReviewStore port).
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -177,3 +183,31 @@ shell commands, and other important information, read the current plan
 [2026-07-10 10:33] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-11 09:52] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-11 12:03] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
+[2026-07-15 16:44] - Resume code: e9a88aa7-7391-444d-bcdd-989fea5418d7
+[2026-07-15 20:00] - Resume code: e9a88aa7-7391-444d-bcdd-989fea5418d7
+[2026-07-15 20:46] - Resume code: e9a88aa7-7391-444d-bcdd-989fea5418d7
+[2026-07-16 09:06] - Resume code: e9a88aa7-7391-444d-bcdd-989fea5418d7
+[2026-07-16 09:52] - Resume code: e9a88aa7-7391-444d-bcdd-989fea5418d7
+[2026-07-16 09:57] - Resume code: e9a88aa7-7391-444d-bcdd-989fea5418d7
+[2026-07-16 11:03] - Resume code: e9a88aa7-7391-444d-bcdd-989fea5418d7
+[2026-07-16 11:07] - Resume code: e9a88aa7-7391-444d-bcdd-989fea5418d7
+[2026-07-17 16:50] - Resume code: e9a88aa7-7391-444d-bcdd-989fea5418d7
+[2026-07-17 17:52] - Resume code: 3e6aa670-1cc1-4331-a63f-2fb7971d57aa
+[2026-07-17 18:00] - Resume code: 3e6aa670-1cc1-4331-a63f-2fb7971d57aa
+
+<!-- BEGIN token-budget compact-backups -->
+
+## Token Budget — backup guard
+
+Files ending in `.full.md` inside `specs/` and `.specify/memory/`
+(e.g. `spec.full.md`, `plan.full.md`) are pre-compaction backups created
+by `/speckit.token-budget.compact`. **Do not read them.** They contain the
+full uncompacted content; loading them cancels the token savings compaction
+achieved. To revert an artifact to its original state, run
+`/speckit.token-budget.restore` instead.
+
+<!-- END token-budget compact-backups -->
+[2026-07-17 18:32] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
+[2026-07-17 18:37] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
+[2026-07-17 20:28] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
+[2026-07-17 21:40] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
