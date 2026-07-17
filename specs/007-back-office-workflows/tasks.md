@@ -150,14 +150,14 @@ confirm; over-receipt refused; self-review refused; inventory-update failure rej
 
 ### Tests for User Story 4 ⚠️ (write first, must FAIL)
 
-- [ ] T041 [P] [US4] `ReceivingWorkflowTest` — record→transient pending (no downstream write); confirm by distinct checker → receive; self-review→422; over-receipt→422 (nothing changes); receive failure → whole receipt rejected, PO unchanged (FR-016/US4 AC4); partial vs full; **confirm-time re-validation → if the PO/supplier/stock became invalid since recording, confirmation is rejected on validation with no effect** (spec Edge Cases); uses fake ProcurementPort + PendingReviewStore, in `.../test/.../workflow/ReceivingWorkflowTest.java`
-- [ ] T042 [P] [US4] Contract test `ReceivingApiContractTest` for receiving endpoints in contracts/workflow-api.md, in `.../test/.../api/ReceivingApiContractTest.java`
+- [X] T041 [P] [US4] `ReceivingWorkflowTest` — record→transient pending (no downstream write); confirm by distinct checker → receive; self-review→422; over-receipt→422 (nothing changes); receive failure → whole receipt rejected, PO unchanged (FR-016/US4 AC4); partial vs full; **confirm-time re-validation → if the PO/supplier/stock became invalid since recording, confirmation is rejected on validation with no effect** (spec Edge Cases); uses fake ProcurementPort + PendingReviewStore, in `.../test/.../workflow/ReceivingWorkflowTest.java`
+- [X] T042 [P] [US4] Contract test `ReceivingApiContractTest` for receiving endpoints in contracts/workflow-api.md, in `.../test/.../api/ReceivingApiContractTest.java`
 
 ### Implementation for User Story 4
 
-- [ ] T043 [P] [US4] Implement `ProcurementPort.receive` on `HttpProcurementAdapter` + `InMemoryProcurementAdapter` (`POST /purchase-orders/{id}/receipts`; atomic PO advance + goods receipt to operations; idempotent; over-receipt→422) in `.../workflow/ports/`
-- [ ] T044 [US4] `workflow/ReceivingWorkflow.java` — record: store `PendingReview` (no write); confirm: enforce maker≠checker, re-validate references, call `receive`, record outcome, remove pending; passes T041, in `.../workflow/workflow/ReceivingWorkflow.java`
-- [ ] T045 [US4] `api/ReceivingController.java` — `POST /purchase-orders/{id}/receipts` (record) and `POST /receipts/{pendingReceiptId}/confirm` (confirm) via the US1 pipeline; passes T042, in `.../workflow/api/ReceivingController.java`
+- [X] T043 [P] [US4] Implement `ProcurementPort.receive` on `HttpProcurementAdapter` + `InMemoryProcurementAdapter` (`POST /purchase-orders/{id}/receipts`; atomic PO advance + goods receipt to operations; idempotent; over-receipt→422) in `.../workflow/ports/`
+- [X] T044 [US4] `workflow/ReceivingWorkflow.java` — record: store `PendingReview` (no write); confirm: enforce maker≠checker, re-validate references, call `receive`, record outcome, remove pending; passes T041, in `.../workflow/workflow/ReceivingWorkflow.java`
+- [X] T045 [US4] `api/ReceivingController.java` — `POST /purchase-orders/{id}/receipts` (record) and `POST /receipts/{pendingReceiptId}/confirm` (confirm) via the US1 pipeline; passes T042, in `.../workflow/api/ReceivingController.java`
 
 **Checkpoint**: US4 demonstrates the cross-service maker–checker workflow.
 

@@ -63,6 +63,17 @@ public class HttpProcurementAdapter implements ProcurementPort {
     post("/api/procurement/purchase-orders/" + purchaseOrderId + "/send", null, Void.class);
   }
 
+  @Override
+  public ReceiptResult receive(String purchaseOrderId, List<ReceiptLine> lines) {
+    Map<?, ?> body =
+        post(
+            "/api/procurement/purchase-orders/" + purchaseOrderId + "/receipts",
+            Map.of("lines", lines),
+            Map.class);
+    return new ReceiptResult(
+        String.valueOf(body.get("receiptId")), String.valueOf(body.get("poStatus")));
+  }
+
   private <T> T post(String uri, Object body, Class<T> type) {
     var spec = client.post().uri(uri);
     if (body != null) {

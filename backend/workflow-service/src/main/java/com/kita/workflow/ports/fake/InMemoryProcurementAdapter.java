@@ -1,8 +1,12 @@
 package com.kita.workflow.ports.fake;
 
+import com.kita.workflow.common.DownstreamUnavailableException;
 import com.kita.workflow.common.ValidationException;
 import com.kita.workflow.ports.ProcurementPort;
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -11,8 +15,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * In-memory {@link ProcurementPort} for isolated build/test. Enforces the PO lifecycle order (send
- * requires an approved PO) so state transitions are exercised for real. Seed suppliers with
- * {@link #seedSupplier}.
+ * requires an approved PO; receive requires a sent PO) and rejects over-receipt, so US3/US4 behaviour
+ * is exercised for real. Seed suppliers with {@link #seedSupplier}.
  */
 @Component
 @ConditionalOnProperty(
@@ -24,15 +28,20 @@ public class InMemoryProcurementAdapter implements ProcurementPort {
   private enum Status {
     DRAFT,
     APPROVED,
-    SENT
+    SENT,
+    PARTIALLY_RECEIVED,
+    FULLY_RECEIVED
   }
 
   private static final class Po {
     private Status status = Status.DRAFT;
+    private final Map<String, BigDecimal> ordered = new HashMap<>();
+    private final Map<String, BigDecimal> received = new HashMap<>();
   }
 
   private final java.util.Set<String> activeSuppliers = ConcurrentHashMap.newKeySet();
   private final ConcurrentMap<String, Po> orders = new ConcurrentHashMap<>();
+  private volatile boolean failNextReceive;
 
   @Override
   public boolean supplierActive(String supplierId) {
@@ -42,7 +51,11 @@ public class InMemoryProcurementAdapter implements ProcurementPort {
   @Override
   public String createPurchaseOrder(String supplierId, List<PoLine> lines) {
     String id = UUID.randomUUID().toString();
-    orders.put(id, new Po());
+    Po po = new Po();
+    for (PoLine line : lines) {
+      po.ordered.merge(line.itemId(), line.quantity(), BigDecimal::add);
+    }
+    orders.put(id, po);
     return id;
   }
 
@@ -60,19 +73,70 @@ public class InMemoryProcurementAdapter implements ProcurementPort {
     po.status = Status.SENT;
   }
 
+  @Override
+  public synchronized ReceiptResult receive(String purchaseOrderId, List<ReceiptLine> lines) {
+    Po po = po(purchaseOrderId);
+    if (po.status != Status.SENT && po.status != Status.PARTIALLY_RECEIVED) {
+      throw new ValidationException("cannot receive against PO " + purchaseOrderId + ": not sent");
+    }
+    // Validate over-receipt across all lines BEFORE applying (all-or-nothing).
+    for (ReceiptLine line : lines) {
+      BigDecimal alreadyReceived = po.received.getOrDefault(line.itemId(), BigDecimal.ZERO);
+      BigDecimal orderedQty = po.ordered.getOrDefault(line.itemId(), BigDecimal.ZERO);
+      if (alreadyReceived.add(line.quantityReceived()).compareTo(orderedQty) > 0) {
+        throw new ValidationException("over-receipt for item " + line.itemId());
+      }
+    }
+    if (failNextReceive) {
+      failNextReceive = false;
+      // Simulate the inventory update being unavailable — nothing is applied (FR-016/US4 AC4).
+      throw new DownstreamUnavailableException("inventory update unavailable");
+    }
+    for (ReceiptLine line : lines) {
+      po.received.merge(line.itemId(), line.quantityReceived(), BigDecimal::add);
+    }
+    boolean full =
+        po.ordered.entrySet().stream()
+            .allMatch(
+                e ->
+                    po.received.getOrDefault(e.getKey(), BigDecimal.ZERO).compareTo(e.getValue())
+                        >= 0);
+    po.status = full ? Status.FULLY_RECEIVED : Status.PARTIALLY_RECEIVED;
+    return new ReceiptResult(UUID.randomUUID().toString(), po.status.name());
+  }
+
   // --- test seams -------------------------------------------------------------------------------
 
   public void seedSupplier(String supplierId) {
     activeSuppliers.add(supplierId);
   }
 
+  /** Drive create→approve→send and return the sent PO id, ready to receive against. */
+  public String seedSentPurchaseOrder(String supplierId, Map<String, BigDecimal> orderedByItem) {
+    Po po = new Po();
+    po.ordered.putAll(orderedByItem);
+    po.status = Status.SENT;
+    String id = UUID.randomUUID().toString();
+    orders.put(id, po);
+    return id;
+  }
+
   public String statusOf(String purchaseOrderId) {
     return po(purchaseOrderId).status.name();
+  }
+
+  public BigDecimal receivedQty(String purchaseOrderId, String itemId) {
+    return po(purchaseOrderId).received.getOrDefault(itemId, BigDecimal.ZERO);
+  }
+
+  public void failNextReceive() {
+    this.failNextReceive = true;
   }
 
   public void reset() {
     activeSuppliers.clear();
     orders.clear();
+    failNextReceive = false;
   }
 
   private Po po(String purchaseOrderId) {
