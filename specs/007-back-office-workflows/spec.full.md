@@ -10,16 +10,17 @@ or purchase goods needed for the business"
 
 ## Overview
 
-`workflow-service` is KITA's **back-office workflow layer** — where a staff member does the work of
-running the business: take a customer's order, order goods from a supplier, receive a delivery into
-stock, build finished products from raw materials, and keep customer/supplier records current.
+`workflow-service` is KITA's **back-office workflow layer** — the place a staff member goes to *do
+the work of running the business*: take a customer's order, order goods from a supplier, receive a
+delivery into stock, build finished products from raw materials, and keep customer and supplier
+records up to date.
 
-It is the connective tissue between the existing domain services (sales/inventory/BOM/production, HR,
-customers, suppliers/purchasing) and does **not** re-own their data. Its job: (1) act on behalf of a
-specific, authorized **employee**, (2) attribute every action to that employee, (3) compose actions
-spanning more than one domain service into a single all-or-nothing business action. The domain
-services today have no shared actor (inventory and production record changes with no "who"), so this
-service is what makes back-office activity attributable and governed.
+It is the connective tissue between the existing domain services (sales/inventory/BOM/production,
+HR, customers, suppliers/purchasing). It does **not** re-own their data. Its job is to (1) act on
+behalf of a specific, authorized **employee**, (2) attribute every action to that employee, and (3)
+compose actions that span more than one domain service into a single, all-or-nothing business
+action. Today those domain services have no shared actor — inventory and production record changes
+with no "who" at all — so this service is what makes back-office activity attributable and governed.
 
 ## Clarifications
 
@@ -32,42 +33,46 @@ service is what makes back-office activity attributable and governed.
 
 ### Session 2026-07-17
 - Q: Are back-office actions gated by an authorizing role, or may any active employee perform any action?
-  → A: **Role-scoped, with maker–checker separation.** Actions are gated by role; higher-risk ones
-  separate the *maker* (e.g., stockman recording a goods receipt) from the *checker* (e.g., warehouse/
-  branch manager verifying it). The creating and reviewing roles are distinct.
+  → A: **Role-scoped, with maker–checker separation.** Actions are gated by role, and the higher-risk
+  ones separate the *maker* from the *checker*: the staff member who creates a record (e.g., a
+  stockman/receiver recording a goods receipt) is a different role from the one who reviews and confirms
+  it (e.g., a warehouse/branch manager verifying the delivery is correct). The creating and reviewing
+  roles are distinct.
 - Q: What is the authoritative source of the acting employee's roles? → A: **The HR service.** An
-  employee's role is assigned in HR at registration; the workflow service resolves the acting
-  employee's roles from the HR record (not from a self-asserted client value).
+  employee's role is assigned in HR when the employee is registered; the workflow service resolves the
+  acting employee's roles from the HR record (not from a self-asserted client value).
 - Q: When a downstream service is temporarily unavailable, auto-retry or report immediately? → A:
-  **Auto-retry (bounded), then report.** Retry a transient failure a small, bounded number of times;
-  if it still fails, report the action as temporarily unavailable and leave nothing half-applied.
+  **Auto-retry (bounded), then report.** The service retries a transient failure a small, bounded number
+  of times; if it still fails it reports the action as temporarily unavailable and leaves nothing
+  half-applied.
 - Q: Is a sales order one atomic request, or a draft lifecycle? → A: **A draft lifecycle with review
   gates.** An order stays a **draft** until **payment is confirmed by a manager/cashier**; it is then
   **released** only after a check that the sale is **packed**; and it becomes **completed** once it has
   been released/handed to the customer.
-- Q: Where does the review/lifecycle state live, given this service is orchestrate-only? → A: **As
-  transient in-flight working state, not a persisted master.** A pending, not-yet-confirmed action is
-  held transiently; on the checker's confirmation it is forwarded to the owning domain service, which
-  makes the durable/final write; the transient copy is then discarded. If the transient state is lost
-  before confirmation, no domain effect has occurred and the maker simply re-records — nothing is
-  half-applied. This keeps the two persisted stores (activity log + authorization mapping) intact and
-  avoids duplicating any master.
+- Q: Where does the review/lifecycle state (pending-review receipt, sales-order intermediate states)
+  live, given this service is orchestrate-only? → A: **As transient in-flight working state, not a
+  persisted master.** A pending, not-yet-confirmed action is held transiently (working state); on the
+  checker's confirmation it is forwarded to the owning domain service, which makes the durable/final
+  write; the transient copy is then discarded. If the transient state is lost before confirmation, no
+  domain effect has occurred and the maker simply re-records — nothing is half-applied. This keeps the
+  two persisted stores (activity log + authorization mapping) intact and avoids duplicating any master.
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Act as an authorized employee (Priority: P1)
 
-Every back-office action is performed by a named staff member. Before any action proceeds, the service
-confirms the person is a valid, active employee whose role permits that action, and records the action
-against them. A separated employee, or one lacking the required role, cannot act.
+Every back-office action is performed by a named staff member. Before any action proceeds, the
+service confirms the person is a valid, active employee and that their role permits that action, and
+it records the action against them. A separated employee, or one lacking the required role, cannot
+act.
 
-**Why this priority**: The reason the service exists — the domain services expose capabilities but have
-no shared, verified actor and no cross-domain authorization. Attribution and authorization are the
-foundation every other story builds on.
+**Why this priority**: This is the reason the service exists. The four domain services already expose
+their capabilities, but with no shared, verified actor and no cross-domain authorization. Attribution
+and authorization are the foundation every other story builds on.
 
 **Independent Test**: Present an action as employee A (active, authorized) and see it recorded against
-A; present the same action as an unknown, a separated, and a role-lacking employee, and see each
-rejected with a clear reason and no side effect.
+A; present the same action as an unknown employee, a separated employee, and an employee without the
+required role, and see each rejected with a clear reason and no side effect.
 
 **Acceptance Scenarios**:
 
@@ -82,18 +87,19 @@ rejected with a clear reason and no side effect.
 
 ### User Story 2 - Take a customer sales order (Priority: P1) 🎯 MVP
 
-A sales staff member takes an order from a customer as a **draft**: pick the customer and add line
+A sales staff member takes an order from a customer as a **draft**: they pick the customer and add line
 items (product, quantity, price), which reserves stock. The order then moves through a reviewed
-lifecycle — a manager/cashier **confirms payment**, the order is **released** only after a check that
-it is **packed**, and it is **completed** once released/handed to the customer. Each step is attributed
-to the staff member who performed it.
+lifecycle — a manager/cashier **confirms payment**, the order is **released** only after a check that it
+is **packed**, and it is **completed** once released/handed to the customer. Each step is attributed to
+the staff member who performed it.
 
-**Why this priority**: Selling is the primary revenue action; with US1 it is the smallest thing that
-delivers real value — an authorized employee closing a real order.
+**Why this priority**: Selling to customers is the primary revenue action of the business, and
+together with US1 it is the smallest thing that delivers real value — an authorized employee closing
+a real order.
 
 **Independent Test**: As an authorized sales employee, create an order for a valid customer with two
-lines and confirm it; verify the order exists with the correct lines and reserved stock, is attributed
-to the employee, and that an order for an unknown customer is rejected.
+lines and confirm it; verify the order exists with the correct lines and reserved stock, is
+attributed to the employee, and that an order for an unknown customer is rejected.
 
 **Acceptance Scenarios**:
 
@@ -115,12 +121,13 @@ to the employee, and that an order for an unknown customer is rejected.
 
 ### User Story 3 - Buy goods from a supplier (Priority: P1)
 
-A purchasing staff member raises a purchase order to buy goods the business needs: pick the supplier,
-add line items, and submit the order through its approval and sending lifecycle. The order is
-attributed to them.
+A purchasing staff member raises a purchase order to buy goods the business needs: they pick the
+supplier, add line items, and submit the order through its approval and sending lifecycle. The order
+is attributed to them.
 
-**Why this priority**: Procuring goods is the other half of day-to-day trading and, with receiving
-(US4), keeps the business stocked. P1 because a business cannot operate without being able to buy.
+**Why this priority**: Replenishing and procuring goods is the other half of day-to-day trading and,
+with receiving (US4), keeps the business stocked. It is P1 because a business cannot operate without
+being able to buy.
 
 **Independent Test**: As an authorized purchasing employee, raise a PO for a valid supplier, carry it
 through approval and sending, and verify it is attributed to the employee; confirm a PO for an unknown
@@ -139,15 +146,16 @@ supplier is rejected and that an over-threshold order requires the authorized ap
 
 ### User Story 4 - Receive a delivery into stock (Priority: P2)
 
-A warehouse/stock staff member (the *maker*) records a delivery arrived against a purchase order,
-capturing received quantities as a receipt pending review. A supervising manager (the *checker*, a
-distinct role) reviews the receipt for correctness and confirms it; **on that confirmation**, in one
-atomic action the purchase record advances (partially/fully received) and the received quantities
-increase inventory on hand. Both the recording and the review are attributed to their employees.
+A warehouse/stock staff member (the *maker*) records a delivery that has arrived against a purchase
+order, capturing the received quantities as a receipt pending review. A supervising manager (the
+*checker*, a distinct role) then reviews the receipt for correctness and confirms it; **on that
+confirmation**, in one atomic action the purchase record advances (partially/fully received) and the
+received quantities increase inventory on hand. Both the recording and the review are attributed to the
+respective employees.
 
-**Why this priority**: The clearest cross-service workflow — it must touch both purchasing and
-inventory and get them consistent — so the strongest demonstration of the service's purpose. After US3
-because there must be a sent order to receive against.
+**Why this priority**: This is the clearest cross-service workflow — it must touch both purchasing and
+inventory, and get them consistent — so it is the strongest demonstration of the service's purpose.
+It comes after US3 because there must be a sent order to receive against.
 
 **Independent Test**: With a sent PO, record a partial then a full receipt as an authorized employee;
 verify the purchase order advances to partially- then fully-received, inventory on hand increases by
@@ -176,11 +184,11 @@ not at all.
 ### User Story 5 - Build finished products from raw materials (Priority: P2)
 
 A production staff member triggers a build of a finished/assembled item. The build consumes the raw
-materials/components defined by the item's bill of materials and increases finished-goods stock, as one
-action attributed to them.
+materials/components defined by the item's bill of materials and increases finished-goods stock, as
+one action attributed to them.
 
 **Why this priority**: Manufacturing/assembly turns purchased materials into sellable goods and closes
-the loop between purchasing and sales. P2 because trading (buy/sell/receive) can operate before
+the loop between purchasing and sales. It is P2 because trading (buy/sell/receive) can operate before
 in-house production is enabled.
 
 **Independent Test**: With components in stock and a defined bill of materials, trigger a build of a
@@ -379,30 +387,34 @@ an order and a PO within the same session.
 
 ## Assumptions
 
-- **Thin orchestration.** Persists only its back-office activity log and its authorization mapping;
-  composes operations (sales/inventory/BOM/production), HR, customers, suppliers/purchasing and never
-  duplicates their masters. A review-gated action's pending state is **transient in-flight working
-  state** (discarded after confirmation), not a persisted master copy.
+- **Thin orchestration.** This service *persists* only its back-office activity log and its authorization
+  mapping. It composes the existing services — operations (sales/inventory/BOM/production), HR,
+  customers, suppliers/purchasing — and never duplicates their masters. A review-gated action's pending
+  state is held as **transient in-flight working state** (discarded after confirmation), not a persisted
+  master copy, so this assumption still holds.
 - **Actor identity via the gateway.** The acting employee's identity is established by the platform
   gateway, as for the other services, and validated against the HR service.
-- **Role-scoped actions with maker–checker.** Actions are permitted by role (sales staff draft orders,
-  managers/cashiers confirm payment, purchasing staff raise POs, warehouse staff record receipts,
-  managers confirm them), reusing/mapping to the domain services' existing role model. Roles are
-  resolved from the HR record (assigned at registration); higher-risk actions separate maker from
-  checker. *(Resolved in `/speckit-clarify` Session 2026-07-17.)*
+- **Role-scoped actions with maker–checker.** Back-office actions are permitted by role (e.g., sales
+  staff draft orders, managers/cashiers confirm payment, purchasing staff raise POs, warehouse staff
+  record receipts, managers confirm them), reusing/mapping to the domain services' existing role model
+  rather than inventing a parallel one. Roles are resolved from the HR record (assigned at registration);
+  higher-risk actions separate the maker from the checker. *(Resolved in `/speckit-clarify` Session
+  2026-07-17.)*
 - **Business-level atomicity, not distributed transactions.** Multi-service workflows are made
-  consistent by ordering steps and rejecting/compensating on failure; 2PC across services is not assumed.
+  consistent by ordering steps and rejecting/compensating on failure so nothing is left half-applied;
+  a two-phase-commit across services is not assumed.
 - **Single tenant per deployment; interactive SMB scale** (tens of concurrent staff), not high-volume
   batch. Money and quantities are exact decimal, consistent with the rest of the platform.
 
 ## Out of Scope
 
 - A user-facing UI. This is the backend workflow service; the React front-end consumes it.
-- Owning or replacing the customer, supplier, employee, inventory, order, or purchase masters.
+- Owning or replacing the customer, supplier, employee, inventory, order, or purchase masters — those
+  remain in their services.
 - Re-implementing payroll, discount computation, or costing/valuation — those are invoked through
   their services, not reproduced here.
 - A general-purpose, user-configurable approval-workflow engine. The maker–checker review gates and the
-  sales-order lifecycle are fixed, role-based steps — not a configurable rules engine.
+  sales-order lifecycle defined here are fixed, role-based steps — not a configurable rules engine.
 - Reporting, dashboards, and analytics over back-office activity.
 
 ## Dependencies
@@ -412,5 +424,3 @@ an order and a PO within the same session.
 - **crm-service** (spec 005) — customer master.
 - **procurement-service** (spec 006) — supplier master, purchase orders, receiving.
 - **Gateway** (spec 001) — single public entry point and forwarded caller identity.
-
-<!-- token-budget: compacted (level=medium) on 2026-07-17T10:14:44Z; original at spec.full.md -->
