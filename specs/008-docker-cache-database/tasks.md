@@ -112,13 +112,13 @@ datastores private (verified). Gateway front-door pending its own slice.
 
 ### Tests for User Story 3 ⚠️ (write first, must fail)
 
-- [ ] T026 [US3] Add `scripts/check-parity.sh` asserting `docker-compose.yml` pins `postgres:16-alpine` and `redis:7.4-alpine` and that every in-scope service config uses `currentSchema=<svc>,public`; exit non-zero on drift
+- [X] T026 [US3] Add `scripts/check-parity.sh` asserting `docker-compose.yml` pins `postgres:16-alpine` and `redis:7.4-alpine` and that every in-scope service config uses `currentSchema=<svc>,public`; exit non-zero on drift
 
 ### Implementation for User Story 3
 
-- [ ] T027 [P] [US3] Create `docs/parity.md` documenting identical pinned image tags, identical `currentSchema` per service, env-scoped-values-only rule, and the managed-instance option pinned to the same engine major/minor
-- [ ] T028 [US3] Document the production DB backup/restore requirement (restorable backup before reliance, FR-017) in `docs/parity.md`
-- [ ] T029 [US3] Wire `scripts/check-parity.sh` into `.github/workflows/ci.yml` as a fast gate
+- [X] T027 [P] [US3] Create `docs/parity.md` documenting identical pinned image tags, identical `currentSchema` per service, env-scoped-values-only rule, and the managed-instance option pinned to the same engine major/minor
+- [X] T028 [US3] Document the production DB backup/restore requirement (restorable backup before reliance, FR-017) in `docs/parity.md`
+- [X] T029 [US3] Wire `scripts/check-parity.sh` into `.github/workflows/ci.yml` as a fast gate
 
 **Checkpoint**: Drift between local and production is detected and blocked.
 
@@ -132,13 +132,13 @@ datastores private (verified). Gateway front-door pending its own slice.
 
 ### Tests for User Story 4 ⚠️ (write first, must fail)
 
-- [ ] T030 [US4] Cache integration test in `backend/operations-service/src/test/java/com/kita/operations/catalog/CatalogCacheIT.java` (Testcontainers Postgres + Redis): assert (a) repeat read hits cache / ≥80% fewer DB queries, (b) write → read returns new value (no stale), (c) with Redis stopped the read still returns the correct value from the DB
+- [X] T030 [US4] Cache integration test in `backend/operations-service/src/test/java/com/kita/operations/catalog/CatalogCacheIT.java` (Testcontainers Postgres + Redis): assert (a) repeat read hits cache / ≥80% fewer DB queries, (b) write → read returns new value (no stale), (c) with Redis stopped the read still returns the correct value from the DB
 
 ### Implementation for User Story 4
 
-- [ ] T031 [US4] Add `@EnableCaching` + `RedisCacheManager` + a swallow-and-log `CacheErrorHandler` in `backend/operations-service/src/main/java/com/kita/operations/config/CacheConfig.java`
-- [ ] T032 [US4] Annotate the catalog read with `@Cacheable("catalog:item")` and the catalog write with `@CacheEvict` in the catalog service backing `backend/operations-service/src/main/java/com/kita/operations/api/CatalogController.java`
-- [ ] T033 [US4] Make `CatalogCacheIT` pass; verify the degradation path (Redis down → DB fallback) per contracts/cache-contract.md
+- [X] T031 [US4] Add `@EnableCaching` + `RedisCacheManager` + a swallow-and-log `CacheErrorHandler` in `backend/operations-service/src/main/java/com/kita/operations/config/CacheConfig.java`
+- [X] T032 [US4] Annotate the catalog read with `@Cacheable("catalog:item")` and the catalog write with `@CacheEvict` in the catalog service backing `backend/operations-service/src/main/java/com/kita/operations/api/CatalogController.java`
+- [X] T033 [US4] Make `CatalogCacheIT` pass; verify the degradation path (Redis down → DB fallback) per contracts/cache-contract.md
 
 **Checkpoint**: One real cached read path proven end-to-end; cache never authoritative.
 

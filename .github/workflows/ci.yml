@@ -25,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check local<->prod parity (pins + schemas)
+        run: bash scripts/check-parity.sh
       - name: Bring up the stack and smoke-test it
         env:
           POSTGRES_PASSWORD: ci-postgres
