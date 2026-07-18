@@ -7,6 +7,7 @@ import com.kita.operations.api.Dtos.UomCreateRequest;
 import com.kita.operations.api.Dtos.UomResponse;
 import com.kita.operations.catalog.CatalogService;
 import com.kita.operations.catalog.Item;
+import com.kita.operations.catalog.ItemView;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -44,7 +45,8 @@ public class CatalogController {
 
   @GetMapping("/items")
   public List<ItemResponse> listItems() {
-    return catalog.listItems().stream().map(CatalogController::toResponse).toList();
+    // Served from the shared cache (invalidated on item create); falls back to the DB if Redis is down.
+    return catalog.listItemViews().stream().map(CatalogController::toResponse).toList();
   }
 
   @PostMapping("/uoms")
@@ -70,5 +72,11 @@ public class CatalogController {
         item.getValuationMethod(),
         item.isPerishable(),
         item.getStandardCost());
+  }
+
+  static ItemResponse toResponse(ItemView v) {
+    return new ItemResponse(
+        v.id(), v.sku(), v.name(), v.type(), v.baseUomCode(), v.valuationMethod(),
+        v.perishable(), v.standardCost());
   }
 }

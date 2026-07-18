@@ -1,0 +1,11 @@
+# Local-only convenience overrides. Copy to `docker-compose.override.yml` (gitignored) to publish the
+# datastore ports to your host for inspection with psql / redis-cli. NOT used in CI or production —
+# the committed docker-compose.yml keeps Postgres and Redis off the host network (FR-008).
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+  redis:
+    ports:
+      - "6379:6379"

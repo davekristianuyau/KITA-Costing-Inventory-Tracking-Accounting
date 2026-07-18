@@ -3,6 +3,8 @@ package com.kita.operations.catalog;
 import com.kita.operations.common.DomainException;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ public class CatalogService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = "catalog:items", allEntries = true) // a new item invalidates the cached list
   public Item createItem(
       String sku,
       String name,
@@ -46,6 +49,16 @@ public class CatalogService {
 
   public List<Item> listItems() {
     return items.findAll();
+  }
+
+  /**
+   * Catalog list as a cached read model — a genuine hot, low-churn read (008-docker-cache-database,
+   * FR-013). Served from the shared cache; invalidated by {@link #createItem}. Falls back to the
+   * database when the cache is unavailable (graceful degradation via the CacheErrorHandler).
+   */
+  @Cacheable(cacheNames = "catalog:items")
+  public List<ItemView> listItemViews() {
+    return items.findAll().stream().map(ItemView::of).toList();
   }
 
   public Item requireItem(java.util.UUID id) {

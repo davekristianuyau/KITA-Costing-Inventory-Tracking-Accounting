@@ -5,16 +5,26 @@ spring:
   application:
     name: crm-service
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/kita}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/kita?currentSchema=crm,public}
     username: ${DATABASE_USER:kita}
     password: ${DATABASE_PASSWORD:change-me}
+    hikari:
+      # search_path so unqualified SQL (incl. tests) resolves to this service's schema, public second
+      # for shared extensions. Applies at runtime and under Testcontainers (which override only the url).
+      connection-init-sql: SET search_path TO crm, public
   jpa:
     hibernate:
       ddl-auto: validate # schema owned by Flyway
     open-in-view: false
+    properties:
+      hibernate:
+        default_schema: crm
   flyway:
     enabled: true
     locations: classpath:db/migration
+    default-schema: crm      # Flyway creates + owns this service's schema (history table lives here)
+    schemas: crm
+    create-schemas: true
 
 crm:
   security:

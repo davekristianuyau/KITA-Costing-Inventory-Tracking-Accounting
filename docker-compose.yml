@@ -1,7 +1,10 @@
-# Local orchestration (SCAFFOLDING SKELETON).
-# Defines the intended service graph: postgres + reference-service + gateway + frontend(nginx).
-# Service images are placeholders until each service is implemented in a later feature.
-# `docker compose up` will not yield a working application yet — this fixes the shape.
+# Local containerized backend stack (008-docker-cache-database).
+# Only the gateway is host-exposed (8081); Postgres/Redis/services stay on the internal `kita` network.
+# Opt into DB/Redis host ports with docker-compose.override.yml (see .example).
+# Pinned engine versions match production for parity. Secrets come from `.env` (never committed).
+#
+# Scope note: reference-service (empty skeleton) and the frontend (not yet specced) are intentionally
+# out of scope and not started here.
 
 services:
   postgres:
@@ -9,54 +12,157 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kita}
       POSTGRES_USER: ${POSTGRES_USER:-kita}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
-    ports:
-      - "5432:5432"      # exposed for local dev convenience only
-    networks: [kita]
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required (see .env.example)}
+    volumes:
+      - kita-pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-kita} -d $${POSTGRES_DB:-kita}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [kita]      # not host-exposed (opt-in via override)
 
-  reference-service:
-    build:
-      context: ./backend
-      dockerfile: reference-service/Dockerfile
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-jdbc:postgresql://postgres:5432/kita}
-      DATABASE_USER: ${DATABASE_USER:-kita}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-change-me}
-    depends_on: [postgres]
-    networks: [kita]      # private — no host port published
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - kita-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [kita]      # not host-exposed (opt-in via override)
 
   operations-service:
     build:
       context: ./backend
       dockerfile: operations-service/Dockerfile
     environment:
-      DATABASE_URL: ${DATABASE_URL:-jdbc:postgresql://postgres:5432/kita}
+      DATABASE_URL: ${OPERATIONS_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=operations,public}
       DATABASE_USER: ${DATABASE_USER:-kita}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-change-me}
-      PARTY_SERVICE_URL: ${PARTY_SERVICE_URL:-http://party-service:8084}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       PARTY_STUB: ${PARTY_STUB:-true}
-    depends_on: [postgres]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     networks: [kita]      # private — no host port published
+
+  hr-service:
+    build:
+      context: ./backend
+      dockerfile: hr-service/Dockerfile
+    environment:
+      DATABASE_URL: ${HR_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=hr,public}
+      DATABASE_USER: ${DATABASE_USER:-kita}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8085/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [kita]
+
+  crm-service:
+    build:
+      context: ./backend
+      dockerfile: crm-service/Dockerfile
+    environment:
+      DATABASE_URL: ${CRM_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=crm,public}
+      DATABASE_USER: ${DATABASE_USER:-kita}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8086/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [kita]
+
+  procurement-service:
+    build:
+      context: ./backend
+      dockerfile: procurement-service/Dockerfile
+    environment:
+      DATABASE_URL: ${PROCUREMENT_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=procurement,public}
+      DATABASE_USER: ${DATABASE_USER:-kita}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8087/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [kita]
+
+  workflow-service:
+    build:
+      context: ./backend
+      dockerfile: workflow-service/Dockerfile
+    environment:
+      DATABASE_URL: ${WORKFLOW_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=workflow,public}
+      DATABASE_USER: ${DATABASE_USER:-kita}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8088/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [kita]
 
   gateway:
     build:
       context: ./backend
       dockerfile: gateway/Dockerfile
-    environment:
-      REFERENCE_SERVICE_URL: ${REFERENCE_SERVICE_URL:-http://reference-service:8082}
-      OPERATIONS_SERVICE_URL: ${OPERATIONS_SERVICE_URL:-http://operations-service:8083}
-    depends_on: [reference-service, operations-service]
-    networks: [kita]      # reached via the frontend/edge; kept internal
-
-  frontend:
-    build:
-      context: ./frontend
-    environment:
-      GATEWAY_URL: ${GATEWAY_URL:-http://gateway:8081}
     ports:
-      - "8080:8080"       # public entry (Nginx)
-    depends_on: [gateway]
+      - "8081:8081"      # the ONLY host-exposed service — the public entry point (FR-008)
+    depends_on:
+      operations-service:
+        condition: service_healthy
+      hr-service:
+        condition: service_healthy
+      crm-service:
+        condition: service_healthy
+      procurement-service:
+        condition: service_healthy
+      workflow-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     networks: [kita]
+
+volumes:
+  kita-pgdata:
+  kita-redisdata:
 
 networks:
   kita:
