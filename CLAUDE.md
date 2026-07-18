@@ -124,12 +124,14 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/007-back-office-workflows/plan.md` (workflow-service — thin orchestration; Java 17 /
-Spring Boot 3.5, port 8088; persists only an append-only activity log + authorization mapping; Port +
-HTTP-adapter/in-memory-fake per procurement-service; business-level compensation, not 2PC. Clarified
-2026-07-17: roles resolved from HR (not the gateway token); maker–checker review on receiving + sales
-payment; sales lifecycle DRAFT→PAYMENT-CONFIRMED→RELEASED→COMPLETED; bounded idempotent auto-retry;
-pending-review state held transiently via an in-memory PendingReviewStore port).
+`specs/008-docker-cache-database/plan.md` (containerized DB + cache runtime — makes the spec-002 compose
+skeleton real: PostgreSQL 16 + Redis 7.4 pinned; one `kita` DB with one schema per service
+(`?currentSchema=<svc>,public`, Flyway default-schema, pgcrypto in public); add missing hr/crm/
+procurement/workflow Dockerfiles; one health-gated `docker compose up` of gateway + 6 backend services +
+Postgres + Redis, gateway-only host-exposed; shared Redis cache via Spring Cache with graceful
+degradation, one @Cacheable demonstrator in reference-service; secrets via `.env`/secret store, local↔prod
+parity. Clarified 2026-07-18: single DB schema-per-service, shared cache used where needed, backend-only
+(frontend deferred)).
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -211,3 +213,11 @@ achieved. To revert an artifact to its original state, run
 [2026-07-17 18:37] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
 [2026-07-17 20:28] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
 [2026-07-17 21:40] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
+[2026-07-17 23:22] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
+[2026-07-18 01:06] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
+[2026-07-18 11:25] - Resume code: 6d38e5b9-a4ed-413d-b213-7288fcc54c9a
+[2026-07-18 12:38] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 13:09] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 13:21] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 13:30] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 14:30] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba

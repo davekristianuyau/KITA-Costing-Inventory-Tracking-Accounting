@@ -30,6 +30,8 @@ infra/terraform/.deployments/  # deployment audit logs (FR-016)
 
 # --- Docker ---
 # (no build artifacts tracked)
+docker-compose.override.yml    # local-only host-port overrides (keep the .example tracked)
+!docker-compose.override.yml.example
 
 # --- IDE / OS ---
 .idea/
