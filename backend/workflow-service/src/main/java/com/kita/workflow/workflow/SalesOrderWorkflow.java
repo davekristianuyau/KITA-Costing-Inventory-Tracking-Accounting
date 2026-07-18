@@ -94,6 +94,11 @@ public class SalesOrderWorkflow {
     return COMPLETED;
   }
 
+  /** The drafter (maker) of an in-review sales order, for the checker's self-review guard. */
+  public String makerOf(String salesOrderId) {
+    return pending.get(salesOrderId).map(PendingReview::makerEmployeeId).orElse(null);
+  }
+
   /** Abort/compensate: cancel the operations order and clear the position. */
   public void cancel(String actorEmployeeId, String salesOrderId) {
     operations.cancelSalesOrder(salesOrderId);

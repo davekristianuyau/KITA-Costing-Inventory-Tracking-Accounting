@@ -1,5 +1,6 @@
 package com.kita.workflow.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.kita.workflow.ports.ProcurementPort;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -32,7 +33,11 @@ public final class PurchaseOrderDtos {
     }
   }
 
-  public record RaiseResponse(String purchaseOrderId, String status, BigDecimal total) {}
+  public record RaiseResponse(
+      String purchaseOrderId,
+      String status,
+      // money as an exact decimal string on the wire (never a JSON float) — contracts/workflow-api.md
+      @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal total) {}
 
   public record StatusResponse(String status) {}
 }

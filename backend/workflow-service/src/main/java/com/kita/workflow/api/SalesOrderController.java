@@ -50,11 +50,12 @@ public class SalesOrderController {
 
   @PostMapping("/{id}/confirm-payment")
   public StateResponse confirmPayment(@PathVariable String id) {
+    String maker = workflow.makerOf(id); // the drafter — enforces maker≠checker before the role grant
     return pipeline.execute(
         BackOfficeAction.CONFIRM_SALES_PAYMENT,
         AuthorizationKind.CHECKER,
         "sales-order:" + id,
-        null,
+        maker,
         actor -> new StateResponse(workflow.confirmPayment(actor.employeeId(), id)),
         null);
   }
