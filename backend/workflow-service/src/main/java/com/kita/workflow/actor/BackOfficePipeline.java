@@ -55,6 +55,12 @@ public class BackOfficePipeline {
     ResolvedActor resolved;
     try {
       resolved = actorResolver.resolve(actor);
+      // Separation of duties: a maker cannot review their own work. Checked before the role grant so
+      // self-review is REJECTED_INVALID (422), not REJECTED_NOT_PERMITTED (403) — even when the maker
+      // happens to lack the checker role (FR-021, contracts/workflow-api.md).
+      if (makerEmployeeId != null && makerEmployeeId.equals(actor)) {
+        throw new ValidationException("self-review not allowed: the maker cannot review their own work");
+      }
       authorizer.authorize(resolved.roles(), action, kind);
     } catch (ForbiddenException e) {
       recorder.record(
