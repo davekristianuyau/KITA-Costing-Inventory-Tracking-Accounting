@@ -65,7 +65,7 @@ crm, procurement, workflow) + gateway. `reference-service` is a dormant empty sk
 
 - [X] T015 [P] [US1] Add `spring-boot-starter-data-redis` to `backend/operations-service/build.gradle.kts`; add `REDIS_HOST`/`REDIS_PORT` (spring.data.redis.*) to `backend/operations-service/src/main/resources/application.yml`; leave the Redis health indicator enabled
 - [X] T016 [US1] In `docker-compose.yml`, add an `/actuator/health` healthcheck to `operations-service` and `depends_on: { postgres: {condition: service_healthy}, redis: {condition: service_healthy} }`; confirm its `DATABASE_URL` carries `currentSchema=operations,public`
-- [ ] T017 [US1] Add `scripts/verify-persistence.sh` that brings up postgres+redis+operations-service, writes a record via the API, runs `docker compose restart postgres`, re-reads, and asserts the record persists; reference it from quickstart.md §6
+- [X] T017 [US1] Add `scripts/verify-persistence.sh` that brings up postgres+redis+operations-service, writes a record via the API, runs `docker compose restart postgres`, re-reads, and asserts the record persists; reference it from quickstart.md §6
 
 **Checkpoint**: MVP — a real service runs against real containerized datastores with persistence and cache connectivity.
 
@@ -79,19 +79,28 @@ crm, procurement, workflow) + gateway. `reference-service` is a dormant empty sk
 
 ### Tests for User Story 2 ⚠️ (write first, must fail)
 
-- [ ] T025 [P] [US2] Add `scripts/stack-smoke.sh` (executable spec of the story): `docker compose up -d --build`, wait for all services healthy, `curl` gateway `/actuator/health` and one routed endpoint, assert postgres/redis are refused from the host, then `docker compose down` — fails until T018–T024 land
+- [X] T025 [P] [US2] Add `scripts/stack-smoke.sh` (executable spec of the story): `docker compose up -d --build`, wait for all services healthy, `curl` gateway `/actuator/health` and one routed endpoint, assert postgres/redis are refused from the host, then `docker compose down` — fails until T018–T024 land
 
 ### Implementation for User Story 2
 
-- [ ] T018 [P] [US2] Create `backend/hr-service/Dockerfile` (multi-stage gradle→temurin-jre-alpine, `EXPOSE 8085`, actuator healthcheck) mirroring `backend/operations-service/Dockerfile`
-- [ ] T019 [P] [US2] Create `backend/crm-service/Dockerfile` (`EXPOSE 8086`)
-- [ ] T020 [P] [US2] Create `backend/procurement-service/Dockerfile` (`EXPOSE 8087`)
-- [ ] T021 [P] [US2] Create `backend/workflow-service/Dockerfile` (`EXPOSE 8088`)
+- [X] T018 [P] [US2] Create `backend/hr-service/Dockerfile` (multi-stage gradle→temurin-jre-alpine, `EXPOSE 8085`, actuator healthcheck) mirroring `backend/operations-service/Dockerfile`
+- [X] T019 [P] [US2] Create `backend/crm-service/Dockerfile` (`EXPOSE 8086`)
+- [X] T020 [P] [US2] Create `backend/procurement-service/Dockerfile` (`EXPOSE 8087`)
+- [X] T021 [P] [US2] Create `backend/workflow-service/Dockerfile` (`EXPOSE 8088`)
 - [ ] T022 [US2] Enable actuator in `backend/gateway/build.gradle.kts` (uncomment the dependency), confirm `health` exposure in `backend/gateway/src/main/resources/application.yml`, and add an actuator healthcheck to `backend/gateway/Dockerfile`
-- [ ] T023 [US2] Add `hr-service`, `crm-service`, `procurement-service`, `workflow-service` to `docker-compose.yml` (build context, `DATABASE_URL` with `currentSchema=<svc>,public`, `REDIS_*`, `/actuator/health` healthcheck, `depends_on: {postgres: service_healthy}`, `kita` network, no host port)
+- [X] T023 [US2] Add `hr-service`, `crm-service`, `procurement-service`, `workflow-service` to `docker-compose.yml` (build context, `DATABASE_URL` with `currentSchema=<svc>,public`, `REDIS_*`, `/actuator/health` healthcheck, `depends_on: {postgres: service_healthy}`, `kita` network, no host port)
 - [ ] T024 [US2] In `backend/gateway/src/main/resources/application.yml` add routes for operations/hr/crm/procurement/workflow; in `docker-compose.yml` make `gateway` `depends_on` all five services healthy, publish only `8081`, and keep `reference-service` + `frontend` out of the default stack (commented/dormant)
 
-**Checkpoint**: The whole backend comes up with one command, health-gated, gateway-only exposed.
+> **Gateway note (discovered during implementation):** `backend/gateway` is an unimplemented spec-002
+> skeleton (0 Java files; Boot plugin + `spring-cloud-starter-gateway` commented out). T022/T024 therefore
+> require first *implementing* a minimal Spring Cloud Gateway app (Boot plugin + Spring Cloud BOM +
+> `GatewayApplication` + actuator), so they are split into their own slice. The rest of US2 (all five
+> services + datastores building and running health-gated via `docker compose up`, schema-isolated,
+> datastores private) is DONE and verified by `scripts/stack-smoke.sh`. Until the gateway lands, the stack
+> has no external host port (services are private); the smoke test exercises health + isolation directly.
+
+**Checkpoint**: All five services + datastores come up with one command, health-gated, schema-isolated,
+datastores private (verified). Gateway front-door pending its own slice.
 
 ---
 

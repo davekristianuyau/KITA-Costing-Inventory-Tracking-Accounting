@@ -1,0 +1,10 @@
+# Keep the Docker build context (./backend) lean and free of host build artifacts.
+**/build/
+.gradle/
+**/.gradle/
+**/bin/
+**/*.class
+.idea/
+*.iml
+*.log
+config/docker-noctx/

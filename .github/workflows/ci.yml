@@ -19,6 +19,18 @@ jobs:
         working-directory: backend
         run: ./gradlew :operations-service:build :hr-service:build :crm-service:build :procurement-service:build :workflow-service:build --no-daemon
 
+  # Full containerized stack smoke test (008): build all images, health-gated up, schema isolation,
+  # datastores private. Uses the runner's Docker daemon.
+  stack-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bring up the stack and smoke-test it
+        env:
+          POSTGRES_PASSWORD: ci-postgres
+          DATABASE_PASSWORD: ci-postgres
+        run: bash scripts/stack-smoke.sh
+
   # Blocking infra quality gates (Principle VII, FR-006). No cloud credentials needed.
   infra:
     runs-on: ubuntu-latest
