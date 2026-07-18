@@ -1,17 +1,14 @@
-# Gateway image (SCAFFOLDING SKELETON): multi-stage JVM build.
-# Enabled once the service has sources.
-
-# --- build stage ---
-FROM gradle:8.9-jdk21 AS build
+# Gateway image: multi-stage JVM build. Build context is ./backend (whole Gradle project).
+FROM gradle:8.10-jdk17 AS build
 WORKDIR /app
 COPY . .
-# RUN gradle :gateway:bootJar --no-daemon
+RUN gradle :gateway:bootJar --no-daemon
 
-# --- runtime stage ---
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-# COPY --from=build /app/gateway/build/libs/*.jar app.jar
+RUN apk add --no-cache wget
+COPY --from=build /app/gateway/build/libs/*.jar app.jar
 EXPOSE 8081
-# HEALTHCHECK CMD wget -qO- http://localhost:8081/actuator/health || exit 1
-# ENTRYPOINT ["java", "-jar", "app.jar"]
-CMD ["echo", "gateway image is a scaffolding placeholder — implement the service first"]
+HEALTHCHECK --interval=10s --timeout=5s --retries=12 --start-period=40s \
+  CMD wget -qO- http://localhost:8081/actuator/health || exit 1
+ENTRYPOINT ["java", "-jar", "app.jar"]

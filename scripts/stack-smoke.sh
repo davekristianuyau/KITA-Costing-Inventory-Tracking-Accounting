@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-ci-postgres}"
 export DATABASE_PASSWORD="${DATABASE_PASSWORD:-ci-postgres}"
 
-SERVICES="operations-service hr-service crm-service procurement-service workflow-service"
+SERVICES="operations-service hr-service crm-service procurement-service workflow-service gateway"
 PSQL() { docker compose exec -T postgres psql -U "${POSTGRES_USER:-kita}" -d "${POSTGRES_DB:-kita}" "$@"; }
 
 cleanup() { docker compose down -v >/dev/null 2>&1 || true; }
@@ -39,6 +39,15 @@ for s in operations hr crm procurement workflow; do
   [ "${n:-0}" -gt 0 ] || { echo "FAIL: schema '$s' has no tables"; exit 1; }
   echo "  ok: schema '$s' has $n tables"
 done
+
+echo "==> Verifying an end-to-end request through the gateway (external → gateway → service → DB)"
+gw_health=$(curl -fsS http://localhost:8081/actuator/health || true)
+echo "  gateway health: ${gw_health:-<none>}"
+echo "$gw_health" | grep -q '"status":"UP"' || { echo "FAIL: gateway not UP on host :8081"; exit 1; }
+routed=$(curl -fsS http://localhost:8081/api/operations/items || true)
+# a fresh stack has no items yet — an empty JSON array is a correct DB-backed response through the gateway
+[ "$routed" = "[]" ] || { echo "FAIL: routed GET /api/operations/items returned '$routed' (expected [])"; exit 1; }
+echo "  ok: gateway routed /api/operations/items -> operations-service -> DB (got [])"
 
 echo "==> Verifying datastores are NOT reachable from the host"
 for ds in postgres redis; do

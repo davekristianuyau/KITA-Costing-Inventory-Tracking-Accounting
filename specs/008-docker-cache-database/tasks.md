@@ -87,20 +87,20 @@ crm, procurement, workflow) + gateway. `reference-service` is a dormant empty sk
 - [X] T019 [P] [US2] Create `backend/crm-service/Dockerfile` (`EXPOSE 8086`)
 - [X] T020 [P] [US2] Create `backend/procurement-service/Dockerfile` (`EXPOSE 8087`)
 - [X] T021 [P] [US2] Create `backend/workflow-service/Dockerfile` (`EXPOSE 8088`)
-- [ ] T022 [US2] Enable actuator in `backend/gateway/build.gradle.kts` (uncomment the dependency), confirm `health` exposure in `backend/gateway/src/main/resources/application.yml`, and add an actuator healthcheck to `backend/gateway/Dockerfile`
+- [X] T022 [US2] Enable actuator in `backend/gateway/build.gradle.kts` (uncomment the dependency), confirm `health` exposure in `backend/gateway/src/main/resources/application.yml`, and add an actuator healthcheck to `backend/gateway/Dockerfile`
 - [X] T023 [US2] Add `hr-service`, `crm-service`, `procurement-service`, `workflow-service` to `docker-compose.yml` (build context, `DATABASE_URL` with `currentSchema=<svc>,public`, `REDIS_*`, `/actuator/health` healthcheck, `depends_on: {postgres: service_healthy}`, `kita` network, no host port)
-- [ ] T024 [US2] In `backend/gateway/src/main/resources/application.yml` add routes for operations/hr/crm/procurement/workflow; in `docker-compose.yml` make `gateway` `depends_on` all five services healthy, publish only `8081`, and keep `reference-service` + `frontend` out of the default stack (commented/dormant)
+- [X] T024 [US2] In `backend/gateway/src/main/resources/application.yml` add routes for operations/hr/crm/procurement/workflow; in `docker-compose.yml` make `gateway` `depends_on` all five services healthy, publish only `8081`, and keep `reference-service` + `frontend` out of the default stack (commented/dormant)
 
-> **Gateway note (discovered during implementation):** `backend/gateway` is an unimplemented spec-002
-> skeleton (0 Java files; Boot plugin + `spring-cloud-starter-gateway` commented out). T022/T024 therefore
-> require first *implementing* a minimal Spring Cloud Gateway app (Boot plugin + Spring Cloud BOM +
-> `GatewayApplication` + actuator), so they are split into their own slice. The rest of US2 (all five
-> services + datastores building and running health-gated via `docker compose up`, schema-isolated,
-> datastores private) is DONE and verified by `scripts/stack-smoke.sh`. Until the gateway lands, the stack
-> has no external host port (services are private); the smoke test exercises health + isolation directly.
+> **Gateway note:** `backend/gateway` was an unimplemented spec-002 skeleton, so T022/T024 first
+> *implemented* a minimal Spring Cloud Gateway app — Boot plugin + Spring Cloud BOM (`2025.0.0`) +
+> `spring-cloud-starter-gateway` + actuator in `build.gradle.kts`, a `GatewayApplication` main class, and
+> routes for all five services via a Java `RouteLocator` (`RoutesConfig`, robust across config-namespace
+> changes) instead of YAML. Dockerfile fixed to Java 17 + actuator healthcheck. Compose exposes only the
+> gateway on host `8081`, gated on all services healthy. Verified: `scripts/stack-smoke.sh` routes an
+> external `GET /api/operations/items` through gateway → operations-service → DB.
 
-**Checkpoint**: All five services + datastores come up with one command, health-gated, schema-isolated,
-datastores private (verified). Gateway front-door pending its own slice.
+**Checkpoint**: The whole backend comes up with one command, health-gated, schema-isolated, datastores
+private, **only the gateway exposed** — verified end-to-end by `scripts/stack-smoke.sh`.
 
 ---
 
@@ -146,10 +146,10 @@ datastores private (verified). Gateway front-door pending its own slice.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T034 [P] Update root `README.md` and `specs/008-docker-cache-database/quickstart.md` with the one-command stack workflow (`make up`/`down`/`clean`)
-- [ ] T035 Run `cd backend && ./gradlew build` to confirm the schema + Redis config changes compile and all existing suites still pass
-- [ ] T036 [P] Secret-hygiene check: grep the repo for committed credentials, confirm `.env` is gitignored and only `.env.example` is tracked (Constitution III, FR-010)
-- [ ] T037 Run `specs/008-docker-cache-database/quickstart.md` end-to-end and confirm SC-001..SC-008
+- [X] T034 [P] Update root `README.md` and `specs/008-docker-cache-database/quickstart.md` with the one-command stack workflow (`make up`/`down`/`clean`)
+- [X] T035 Run `cd backend && ./gradlew build` to confirm the schema + Redis config changes compile and all existing suites still pass
+- [X] T036 [P] Secret-hygiene check: grep the repo for committed credentials, confirm `.env` is gitignored and only `.env.example` is tracked (Constitution III, FR-010)
+- [X] T037 Run `specs/008-docker-cache-database/quickstart.md` end-to-end and confirm SC-001..SC-008
 
 ---
 

@@ -57,16 +57,37 @@ roll-up + margin, and availability/movement query APIs. See its
 - **JDK 17** and **Docker Desktop** (running). Node 22 is needed only once the frontend app is built.
 - The repo ships a Gradle wrapper (`backend/gradlew`) — no separate Gradle install required.
 
-## Run locally (development)
+## Run the full backend stack (feature 008)
 
-Run the operations-service against a local PostgreSQL:
+One command brings up the whole backend — API gateway + all backend services + a real **PostgreSQL 16**
+database and **Redis 7.4** cache — health-gated, on a private network with **only the gateway exposed**
+(`http://localhost:8081`). The containerized datastores are production-representative (pinned versions,
+same migrations and config mechanism — see [`docs/parity.md`](docs/parity.md)); each service owns its own
+schema in the single database.
 
 ```bash
-# 1) start PostgreSQL (published on localhost:5432, db/user/pass = kita/kita/change-me)
-docker compose up -d postgres
+cp .env.example .env      # local credentials (gitignored; never commit a real .env)
+make up                   # build images + start the stack (docker compose up -d --build)
+make ps                   # all services should be (healthy)
 
-# 2) run the service (Flyway migrates on startup; Party validation uses the dev stub)
-cd backend && ./gradlew :operations-service:bootRun
+curl localhost:8081/actuator/health              # gateway UP
+curl localhost:8081/api/operations/items         # routed: gateway → operations-service → DB
+
+make down                 # stop, KEEP data   |   make clean = stop + remove data volumes
+```
+
+Verify scripts: [`scripts/stack-smoke.sh`](scripts/stack-smoke.sh) (build + health + schema isolation +
+private datastores + gateway routing), [`scripts/verify-persistence.sh`](scripts/verify-persistence.sh)
+(data survives a DB restart), [`scripts/check-parity.sh`](scripts/check-parity.sh) (pin + schema parity).
+Full walkthrough: [`specs/008-docker-cache-database/quickstart.md`](specs/008-docker-cache-database/quickstart.md).
+
+## Run a single service (development)
+
+Run one service against a local PostgreSQL (opt into a DB host port via `docker-compose.override.yml`):
+
+```bash
+docker compose up -d postgres redis
+cd backend && ./gradlew :operations-service:bootRun   # Flyway migrates into its own schema on startup
 ```
 
 Then it serves at `http://localhost:8083/api/operations`:
@@ -85,9 +106,11 @@ Key endpoints (base `/api/operations`): `items`, `uoms`, `locations`, `adjustmen
 
 ### Make targets
 ```bash
-make up      # docker compose up -d (postgres + services)
-make down    # stop the stack
-make test    # backend tests (operations-service)
+make up      # build + start the full stack (gateway + services + postgres + redis)
+make down    # stop the stack (keeps data volumes)
+make clean   # stop + remove data volumes (clean slate)
+make ps      # stack status   |   make logs = tail logs
+make test    # backend tests
 make lint    # Spotless + Checkstyle
 ```
 

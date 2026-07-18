@@ -1,10 +1,10 @@
 # Local containerized backend stack (008-docker-cache-database).
-# Only the gateway is host-exposed (added in the full-stack slice); Postgres/Redis/services stay on the
-# internal `kita` network. Opt into DB/Redis host ports with docker-compose.override.yml (see .example).
+# Only the gateway is host-exposed (8081); Postgres/Redis/services stay on the internal `kita` network.
+# Opt into DB/Redis host ports with docker-compose.override.yml (see .example).
 # Pinned engine versions match production for parity. Secrets come from `.env` (never committed).
 #
-# Scope note: hr/crm/procurement/workflow services + the gateway are added in the full-stack slice;
-# reference-service (empty skeleton) and the frontend (not yet specced) are intentionally out of scope.
+# Scope note: reference-service (empty skeleton) and the frontend (not yet specced) are intentionally
+# out of scope and not started here.
 
 services:
   postgres:
@@ -129,6 +129,31 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8088/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [kita]
+
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "8081:8081"      # the ONLY host-exposed service — the public entry point (FR-008)
+    depends_on:
+      operations-service:
+        condition: service_healthy
+      hr-service:
+        condition: service_healthy
+      crm-service:
+        condition: service_healthy
+      procurement-service:
+        condition: service_healthy
+      workflow-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
