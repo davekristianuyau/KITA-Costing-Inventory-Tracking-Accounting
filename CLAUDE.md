@@ -124,14 +124,14 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/008-docker-cache-database/plan.md` (containerized DB + cache runtime — makes the spec-002 compose
-skeleton real: PostgreSQL 16 + Redis 7.4 pinned; one `kita` DB with one schema per service
-(`?currentSchema=<svc>,public`, Flyway default-schema, pgcrypto in public); add missing hr/crm/
-procurement/workflow Dockerfiles; one health-gated `docker compose up` of gateway + 6 backend services +
-Postgres + Redis, gateway-only host-exposed; shared Redis cache via Spring Cache with graceful
-degradation, one @Cacheable demonstrator in reference-service; secrets via `.env`/secret store, local↔prod
-parity. Clarified 2026-07-18: single DB schema-per-service, shared cache used where needed, backend-only
-(frontend deferred)).
+`specs/009-client-login-deploy-sim/plan.md` (client login + per-client deployment simulation — first real
+frontend login page (React/Vite) + NEW `identity-service` (Spring Boot: BCrypt auth, user/client directory,
+JWT with a `client` claim) + NEW tenant-aware `edge-gateway` (Spring Cloud Gateway: `/auth`→identity,
+`/api`→client backend by JWT claim, strips+sets trusted `X-Kita-*`). Local Docker `sim/` runs TWO isolated
+feature-008 stacks as separate Compose projects on a shared network + edge/identity/frontend + LocalStack
+imitating one client's AWS deploy (reusing 001 Terraform via tflocal; ECS/RDS are LocalStack Pro → compute is
+the local stack stand-in). Clarified 2026-07-18: centralized auth+routing, 2 clients + LocalStack (AWS only),
+real intended behavior delivered as a local sim. Isolation enforced at edge AND per-client gateway).
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -221,3 +221,7 @@ achieved. To revert an artifact to its original state, run
 [2026-07-18 13:21] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
 [2026-07-18 13:30] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
 [2026-07-18 14:30] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 21:17] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 21:29] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 21:49] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 22:02] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
