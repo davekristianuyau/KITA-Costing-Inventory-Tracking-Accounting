@@ -26,7 +26,7 @@ scaffold becomes real; `sim/` orchestrates two feature-008 stacks + edge/identit
 - [X] T001 Add `:identity-service` and `:edge-gateway` to `backend/settings.gradle.kts`
 - [X] T002 [P] Create `backend/identity-service` module: `build.gradle.kts` (web, security, data-jpa, flyway, postgres, `com.nimbusds:nimbus-jose-jwt` for JWS/JWE), `IdentityServiceApplication`, `application.yml` (port 8090)
 - [X] T003 [P] Create `backend/edge-gateway` module: `build.gradle.kts` (Spring Cloud Gateway `2025.0.0` + `nimbus-jose-jwt` for verify/decrypt), `EdgeGatewayApplication`, `application.yml`
-- [ ] T004 [P] Enable the frontend build: install deps, `frontend/src/main.tsx` + `App.tsx` + router shell (`/login` + a protected route placeholder); wire `frontend/Dockerfile` to `npm ci && npm run build`
+- [X] T004 [P] Enable the frontend build: install deps, `frontend/src/main.tsx` + `App.tsx` + router shell (`/login` + a protected route placeholder); wire `frontend/Dockerfile` to `npm ci && npm run build`
 - [X] T005 [P] `.env.example`: RSA signing keypair (identity **private**, shared **public**), JWE encryption key, demo company/user seed values, and edge/identity/service URLs — placeholders only (no real keys committed); document key generation
 
 ---
@@ -58,13 +58,13 @@ and read data; invalid → clear error; sign out → session no longer works.
 ### Tests for User Story 1 ⚠️ (write first, must fail)
 
 - [X] T011 [P] [US1] identity IT `AuthControllerIT` (Testcontainers Postgres): `POST /auth/login` valid → 200 + Set-Cookie (httpOnly) + resolved client; invalid/unknown → 401 (non-revealing); locked → 423 (contracts/identity-api.md)
-- [ ] T012 [P] [US1] frontend `Login.test.tsx` (Vitest + Testing Library): idle→submitting→success/error states; generic error on 401; no token in JS-readable storage (contracts/frontend-login.md)
+- [X] T012 [P] [US1] frontend `Login.test.tsx` (Vitest + Testing Library): idle→submitting→success/error states; generic error on 401; no token in JS-readable storage (contracts/frontend-login.md)
 
 ### Implementation for User Story 1
 
 - [X] T013 [US1] identity `AuthController`: `POST /auth/login` (company+username+password → BCrypt verify → issue JWE cookie via TokenService), `POST /auth/logout` (clear cookie / revoke jti), per-account throttling (FR-009)
 - [X] T014 [US1] edge routing: `/auth/**` → identity-service; `/api/**` → the client backend guarded by `SessionTokenVerifier` — on success **strip** inbound `X-Kita-*` and set trusted `X-Kita-User`/`X-Kita-Client` from the token; 401 when missing/invalid (contracts/edge-routing.md)
-- [ ] T015 [P] [US1] frontend `pages/Login.tsx` + `auth/` context + protected-route wrapper + sign-out; `api/` openapi-fetch client that relies on the session cookie; redirect on success, generic error on failure (contracts/frontend-login.md)
+- [X] T015 [P] [US1] frontend `pages/Login.tsx` + `auth/` context + protected-route wrapper + sign-out; `api/` openapi-fetch client that relies on the session cookie; redirect on success, generic error on failure (contracts/frontend-login.md)
 - [ ] T016 [US1] Wire one client backend (a feature-008 stack) reachable through the edge and confirm the end-to-end login → routed `/api` read works
 
 **Checkpoint**: MVP — a user logs in and works against their own client backend behind the edge.
