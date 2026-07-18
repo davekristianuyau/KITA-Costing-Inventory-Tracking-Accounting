@@ -1,0 +1,22 @@
+# Edge gateway — the single public entry point. Routes in RoutesConfig (Java); auth in SessionAuthFilter.
+server:
+  port: 8080
+
+spring:
+  application:
+    name: edge-gateway
+
+edge:
+  jwt:
+    # Base64 keys SHARED with identity (identity signs with the private key; the edge only verifies +
+    # decrypts). When blank, ephemeral keys are used and verification FAILS CLOSED (dev only).
+    public-key: ${IDENTITY_JWT_PUBLIC_KEY:} # base64 X509 RSA public (verify)
+    enc-key: ${IDENTITY_JWT_ENC_KEY:}       # base64 32-byte AES (JWE decrypt)
+  cookie:
+    name: ${IDENTITY_COOKIE_NAME:kita_session}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
