@@ -65,7 +65,7 @@ and read data; invalid → clear error; sign out → session no longer works.
 - [X] T013 [US1] identity `AuthController`: `POST /auth/login` (company+username+password → BCrypt verify → issue JWE cookie via TokenService), `POST /auth/logout` (clear cookie / revoke jti), per-account throttling (FR-009)
 - [X] T014 [US1] edge routing: `/auth/**` → identity-service; `/api/**` → the client backend guarded by `SessionTokenVerifier` — on success **strip** inbound `X-Kita-*` and set trusted `X-Kita-User`/`X-Kita-Client` from the token; 401 when missing/invalid (contracts/edge-routing.md)
 - [X] T015 [P] [US1] frontend `pages/Login.tsx` + `auth/` context + protected-route wrapper + sign-out; `api/` openapi-fetch client that relies on the session cookie; redirect on success, generic error on failure (contracts/frontend-login.md)
-- [ ] T016 [US1] Wire one client backend (a feature-008 stack) reachable through the edge and confirm the end-to-end login → routed `/api` read works
+- [X] T016 [US1] Wire one client backend (a feature-008 stack) reachable through the edge and confirm the end-to-end login → routed `/api` read works — proven by the live sim: `sim-smoke.sh` logs in via the edge and the authenticated `/api` call routes to the client's 008 backend
 
 **Checkpoint**: MVP — a user logs in and works against their own client backend behind the edge.
 
@@ -139,12 +139,12 @@ imitated deployment; confirm 0 real cloud credentials used.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T029 [P] Structured logging on identity + edge (auth outcomes + routing decisions, **never** credentials/tokens); health endpoints on both (Constitution V)
-- [ ] T030 [P] Security review: grep + review for any plaintext credential/token stored or logged; confirm keys/secrets come only from env, none committed (SC-007, FR-010)
-- [ ] T031 [P] Update root `README.md` + `specs/009-client-login-deploy-sim/quickstart.md` with the login + simulation workflow
-- [ ] T032 Full build: `frontend` (`npm run build` + tests) + `:identity-service:build` + `:edge-gateway:build` + backend build all green
-- [ ] T033 Run `quickstart.md` end-to-end: sim up → login as both clients → prove isolation → exercise the AWS imitation
-- [ ] T034 [P] CI: add jobs to build/test frontend + identity + edge; run `sim/sim-smoke.sh` as a separate non-blocking job
+- [X] T029 [P] Structured logging on identity + edge (auth outcomes + routing decisions, **never** credentials/tokens); health endpoints on both (Constitution V) — JSON `logback-spring.xml` on identity/edge/gateway; AuthService logs login ok/denied (reason, no password); edge logs route/reject/503
+- [X] T030 [P] Security review: grep + review for any plaintext credential/token stored or logged; confirm keys/secrets come only from env, none committed (SC-007, FR-010) — clean: no secret values logged, no key/secret files tracked, all secrets `${env}`
+- [X] T031 [P] Update root `README.md` + `specs/009-client-login-deploy-sim/quickstart.md` with the login + simulation workflow — README services table + a 009 section; quickstart fixed to cookie auth + Floci
+- [X] T032 Full build: `frontend` (`npm run build` + tests) + `:identity-service:build` + `:edge-gateway:build` + backend build all green — frontend 4 tests + build; session-verify/edge/gateway/identity (incl. Testcontainers IT) all green
+- [X] T033 Run `quickstart.md` end-to-end: sim up → login as both clients → prove isolation → exercise the AWS imitation — `sim-smoke.sh` PASS (both clients) + `aws-imitation/verify.sh` PASS
+- [X] T034 [P] CI: add jobs to build/test frontend + identity + edge; run `sim/sim-smoke.sh` as a separate non-blocking job — ci.yml: new modules in backend job, `frontend` job, non-blocking `sim-smoke` job
 
 ---
 

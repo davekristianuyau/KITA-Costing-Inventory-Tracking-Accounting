@@ -27,11 +27,17 @@ master data lives in a separate **Party service** (referenced by ID).
 
 | Service | Path | Tech | Status |
 |---------|------|------|--------|
-| Frontend | [`frontend/`](frontend/) | React + TypeScript + Vite, served by Nginx | scaffold |
-| API gateway | [`backend/gateway/`](backend/gateway/) | Spring Cloud Gateway (routes `/api/operations/**`) | scaffold |
+| Frontend | [`frontend/`](frontend/) | React + TypeScript + Vite; login page + auth context + protected routing, served by Nginx | **implemented + tested** |
+| Identity service | [`backend/identity-service/`](backend/identity-service/) | Spring Boot; BCrypt auth, user/client directory, asymmetric (RS256) + JWE session token | **implemented + tested** |
+| Edge gateway | [`backend/edge-gateway/`](backend/edge-gateway/) | Spring Cloud Gateway; single public edge, verifies the session + routes `/api` by tenant `client` claim | **implemented + tested** |
+| API gateway (per-client) | [`backend/gateway/`](backend/gateway/) | Spring Cloud Gateway; routes `/api/**` to services + rejects foreign `client` claims (`CLIENT_ID`) | **implemented** |
+| Session verify | [`backend/session-verify/`](backend/session-verify/) | shared library: JWE-decrypt + RS256-verify of the session token (edge + gateways) | **implemented + tested** |
 | **Operations service** | [`backend/operations-service/`](backend/operations-service/) | Spring Boot + JPA + Flyway; inventory, sales, BOM, production, costing | **implemented + tested** |
 | Reference service | [`backend/reference-service/`](backend/reference-service/) | template for new services | scaffold |
 | PostgreSQL | (Docker) | Postgres 16 | — |
+
+> Additional implemented domain services (features 004–007): `hr-service`, `crm-service`,
+> `procurement-service`, `workflow-service`. See [`specs/`](specs/).
 
 The **operations-service** (feature 003) is the first real domain: item/UoM catalog, a stock
 movement ledger (no negative stock), reservations (no oversell), bills of materials (kit &
@@ -80,6 +86,29 @@ Verify scripts: [`scripts/stack-smoke.sh`](scripts/stack-smoke.sh) (build + heal
 private datastores + gateway routing), [`scripts/verify-persistence.sh`](scripts/verify-persistence.sh)
 (data survives a DB restart), [`scripts/check-parity.sh`](scripts/check-parity.sh) (pin + schema parity).
 Full walkthrough: [`specs/008-docker-cache-database/quickstart.md`](specs/008-docker-cache-database/quickstart.md).
+
+## Client login + multi-client simulation (feature 009)
+
+A user logs in with **company + username + password**; the identity service authenticates (BCrypt) and issues
+an **asymmetrically-signed, JWE-encrypted** session token in an httpOnly cookie (90-min lifetime). The
+**edge gateway** — the single public entry — verifies it and routes `/api` to that user's **isolated client
+backend** by the token's `client` claim, stripping/setting trusted `X-Kita-*` headers. Isolation is enforced
+twice: at the edge, and again at each per-client gateway (which rejects any `client` ≠ its `CLIENT_ID`).
+Because the token is asymmetric, no backend can forge a valid one.
+
+[`sim/`](sim/) runs the whole model locally in Docker — two isolated feature-008 stacks (one Compose project
+each) + identity + edge + frontend — and [`sim/aws-imitation/`](sim/aws-imitation/) "deploys" a client's AWS
+stack with **real Terraform against [Floci](https://floci.io/)** (a local cloud emulator; no real cloud spend).
+
+```bash
+bash sim/sim-up.sh                          # 2 client stacks + identity + edge + frontend (only frontend exposed)
+open http://localhost:8080/login            # company=client-a user=alice / company=client-b user=bob (demo-pass)
+bash sim/sim-smoke.sh                        # health + isolation + per-client login → own backend
+bash sim/aws-imitation/deploy.sh client-a   # real Terraform → Floci (no real cloud); then verify.sh
+bash sim/sim-down.sh                         # independent teardown
+```
+
+Full walkthrough: [`specs/009-client-login-deploy-sim/quickstart.md`](specs/009-client-login-deploy-sim/quickstart.md).
 
 ## Run a single service (development)
 

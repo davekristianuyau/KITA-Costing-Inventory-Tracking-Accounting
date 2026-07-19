@@ -82,6 +82,11 @@ public class SessionAuthFilter implements GlobalFilter, Ordered {
             .build(true)
             .toUri();
     exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, target);
+    log.info(
+        "edge route client={} user={} path={}",
+        session.client(),
+        session.subject(),
+        request.getURI().getPath());
 
     ServerHttpRequest mutated =
         request

@@ -17,15 +17,21 @@ are private. (US3)
 
 ## 2. Log in as each client and prove isolation
 
-- Open the frontend, log in as **client-a**'s user → land in the app; the data shown comes from **client-a's**
-  backend only.
-- Log in (separately) as **client-b**'s user → land in **client-b's** backend; different, isolated data. (US1/US2)
+- Open the frontend, log in with **company + username + password** as **client-a** (`alice`) → land in the app;
+  the data comes from **client-a's** backend only.
+- Log in (separately) as **client-b** (`bob`) → land in **client-b's** backend; isolated data. (US1/US2)
+
+The session is an httpOnly, JWE-encrypted cookie (no token in page-readable storage); the edge routes `/api`
+strictly by the token's `client` claim, so there is no URL/param to point at another tenant.
 
 ```bash
-# API-level checks through the edge:
-TOKEN_A=$(curl -s localhost:8080/auth/login -d '{"username":"...","password":"...","client":"client-a"}' -H 'content-type: application/json' | jq -r .token)
-curl -s localhost:8080/api/operations/items -H "Authorization: Bearer $TOKEN_A"   # → client-a data
-# a client-a token aimed at client-b's data must NOT succeed (isolation is by claim, not by URL param):
+# API-level checks through the edge (the cookie carries the session — no Authorization header):
+curl -s -c a.jar localhost:8080/auth/login -H 'content-type: application/json' \
+  -d '{"company":"client-a","username":"alice","password":"demo-pass"}'   # → 200 + Set-Cookie
+curl -s -b a.jar localhost:8080/api/operations/...                        # → routed to client-a only
+# no cookie / a forged cookie → 401; the per-client gateway also rejects any client != its CLIENT_ID (403).
+
+bash sim/sim-smoke.sh    # automated: health, only-frontend-exposed, both clients login→own backend
 ```
 
 **Expect**: correct client data for each; **0** cross-tenant access; invalid credentials → 401. (SC-002/003)
@@ -36,19 +42,24 @@ curl -s localhost:8080/api/operations/items -H "Authorization: Bearer $TOKEN_A" 
 - Stop a client's backend → that client's users see a clear "temporarily unavailable" state. (SC-006)
 - Let a session expire / sign out → redirected to `/login`; old token no longer works. (FR-007/008)
 
-## 4. AWS deployment imitation (LocalStack) — US4
+## 4. AWS deployment imitation (Floci) — US4
 
 ```bash
-bash sim/aws-imitation/deploy.sh client-a     # tflocal applies the 001 AWS module against LocalStack (no real cloud)
+bash sim/aws-imitation/deploy.sh client-a     # real Terraform (001 module) applied against Floci — no real cloud
+bash sim/aws-imitation/verify.sh client-a     # resources exist in Floci; 0 real creds; login reaches the deployment
 ```
 
-**Expect**: the client-a AWS deployment path runs end-to-end against LocalStack using **0** real cloud
+Floci is a drop-in [LocalStack replacement](https://floci.io/) (port 4566). Terraform + AWS CLI run in
+containers, so no host `terraform`/`aws` is needed. The running feature-008 stack is the compute/DB stand-in.
+
+**Expect**: the client-a AWS deployment path runs end-to-end against Floci using **0** real cloud
 credentials; the login flow reaches client-a's locally-imitated deployment. (SC-005)
 
 ## 5. Teardown
 
 ```bash
-bash sim/sim-down.sh          # removes each client's containers + data independently, plus edge/identity/localstack
+bash sim/sim-down.sh          # removes each client's containers + data independently, plus edge/identity
+docker compose -p kita-floci -f sim/aws-imitation/docker-compose.floci.yml down -v   # stop Floci
 ```
 
 (FR-017)
