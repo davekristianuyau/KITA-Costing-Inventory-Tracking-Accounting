@@ -124,15 +124,16 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/010-floci-multicloud-ci/plan.md` (fix CI infra + local multi-cloud Terraform deploy via Floci). Two
-goals: (1) fix the RED `infra` CI gate — add `required_version`/`required_providers` to the 001 modules that
-tflint flags (additive, no behavior change); (2) upgrade the gate from validate-only to actually
-`terraform apply` the REAL 001 modules against local **Floci** emulators (AWS :4566, GCP :4588, Azure :4577),
-apply→verify(state list)→destroy, 0 real cloud creds/spend. New `sim/cloud-deploy/` harness (thin per-cloud
-wrapper roots → `infra/terraform/modules/<cloud>`); 001 modules get an additive default-off `emulated` flag that
-skips emulator-unsupported resources (real-cloud plan unchanged). Per-cloud coverage measured EMPIRICALLY by a
-probe FIRST (FR-011, task 1). Terraform pinned 1.9.8 (containerized). CI: fast fmt/validate/tflint gate BLOCKING
-(now green) + new NON-BLOCKING `cloud-deploy` job. Builds on feature 009's Floci pattern.
+`specs/011-service-console-ui/plan.md` (polished frontend **console foundation**). Evolve the 009 React18/Vite5
+frontend: redesigned login + **one top tab per backend service** + light/dark theme (CSS-vars, localStorage,
+no-flash) + a **per-service workspace framework** (service tab → left pane of that service's functions →
+workspace that runs a function via the 009 edge + shows result/loading/error), proven with ONE reference
+function. Design system: **Tailwind + Radix primitives + lucide-react** icons. **FULL per-service UIs are SEPARATE
+follow-on specs** (start with Operations) — a per-service **function manifest** is the seam. Local env brings up
+`floci-aws` WITH the **Docker socket mounted + -u root** (verified in /plan: Floci then RUNS real compute — an ECS
+task served nginx HTTP 200 — NOT mocked) and the **Floci UI `floci/floci-ui`:4500** (the user's "could not reach
+container runtime" error = missing socket). Only frontend + Floci UI host-exposed; 0 real cloud. Builds on 009
+(auth/edge) + 010 (floci-aws deploy). See [[floci-emulators-reference]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -243,3 +244,14 @@ achieved. To revert an artifact to its original state, run
 [2026-07-19 16:14] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 16:23] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 16:36] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 16:44] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 17:02] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 17:08] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 17:38] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 17:46] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 18:10] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 19:33] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 20:58] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:14] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:23] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:34] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
