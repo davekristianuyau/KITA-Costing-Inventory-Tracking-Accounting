@@ -104,13 +104,13 @@ log in as each client's user → correct isolated routing; tear down independent
 
 ### Tests for User Story 3 ⚠️ (write first, must fail)
 
-- [ ] T025 [P] [US3] `sim/sim-smoke.sh`: both client stacks + identity + edge + frontend healthy; login as each client via the edge → own backend; datastores/services private; only frontend host-exposed — fails until T022–T024 land
+- [~] T025 [P] [US3] `sim/sim-smoke.sh`: both client stacks + identity + edge + frontend healthy; login as each client via the edge → own backend; datastores/services private; only frontend host-exposed — fails until T022–T024 land *(script written; live PASS pending a `sim-up.sh` bring-up)*
 
 ### Implementation for User Story 3
 
-- [ ] T022 [P] [US3] `sim/client-overlay.yml`: overlay on the feature-008 `docker-compose.yml` that removes the gateway host port and injects `CLIENT_ID` (so the same 008 stack runs per client)
-- [ ] T023 [US3] `sim/docker-compose.edge.yml`: identity-service + its Postgres + edge-gateway + frontend on a shared external network; edge attaches to both client networks and routes to `kita-client-a-gateway-1` / `kita-client-b-gateway-1` (research D5)
-- [ ] T024 [US3] `sim/sim-up.sh` + `sim/sim-down.sh`: bring up two client projects (`-p kita-client-a` / `-p kita-client-b` with the overlay) on the shared network + the edge project; teardown removes each client's containers + volumes independently (FR-017)
+- [X] T022 [P] [US3] `sim/client-overlay.yml`: overlay on the feature-008 `docker-compose.yml` that removes the gateway host port and injects `CLIENT_ID` (so the same 008 stack runs per client)
+- [X] T023 [US3] `sim/docker-compose.edge.yml`: identity-service + its Postgres + edge-gateway + frontend on a shared external network; edge attaches to both client networks and routes to `kita-client-a-gateway-1` / `kita-client-b-gateway-1` (research D5)
+- [X] T024 [US3] `sim/sim-up.sh` + `sim/sim-down.sh`: bring up two client projects (`-p kita-client-a` / `-p kita-client-b` with the overlay) on the shared network + the edge project; teardown removes each client's containers + volumes independently (FR-017)
 
 **Checkpoint**: the full multi-client login/routing model runs and is demonstrable locally.
 

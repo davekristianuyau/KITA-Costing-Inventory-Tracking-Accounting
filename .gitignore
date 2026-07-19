@@ -40,3 +40,7 @@ docker-compose.override.yml    # local-only host-port overrides (keep the .examp
 Thumbs.db
 *.swp
 # .vscode/ is intentionally tracked so shared editor settings sync across machines
+
+# --- sim generated secrets (009) ---
+sim/.env.keys
+sim/.env

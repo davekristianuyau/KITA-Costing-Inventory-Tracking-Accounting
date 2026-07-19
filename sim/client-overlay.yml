@@ -1,0 +1,14 @@
+# sim/client-overlay.yml — overlay on the ROOT docker-compose.yml (feature 008) so the same stack runs
+# once PER CLIENT as a separate Compose project (`-p kita-client-a` / `-p kita-client-b`). It:
+#   • removes the gateway's host port (two client projects can't both bind 8081; in the sim only the
+#     frontend is host-exposed — the client gateways are reached by the edge over the shared network);
+#   • injects the tenant identity (CLIENT_ID) + the shared verification keys so the gateway's
+#     ClientClaimFilter enforces per-client isolation (rejects any token whose client != CLIENT_ID).
+services:
+  gateway:
+    ports: !override [] # drop the 8081 host publish from 008
+    environment:
+      CLIENT_ID: ${CLIENT_ID:?CLIENT_ID is required (set per client project by sim-up.sh)}
+      IDENTITY_JWT_PUBLIC_KEY: ${IDENTITY_JWT_PUBLIC_KEY:?shared public key required}
+      IDENTITY_JWT_ENC_KEY: ${IDENTITY_JWT_ENC_KEY:?shared enc key required}
+      IDENTITY_COOKIE_NAME: ${IDENTITY_COOKIE_NAME:-kita_session}
