@@ -104,7 +104,7 @@ log in as each client's user → correct isolated routing; tear down independent
 
 ### Tests for User Story 3 ⚠️ (write first, must fail)
 
-- [~] T025 [P] [US3] `sim/sim-smoke.sh`: both client stacks + identity + edge + frontend healthy; login as each client via the edge → own backend; datastores/services private; only frontend host-exposed — fails until T022–T024 land *(script written; live PASS pending a `sim-up.sh` bring-up)*
+- [X] T025 [P] [US3] `sim/sim-smoke.sh`: both client stacks + identity + edge + frontend healthy; login as each client via the edge → own backend; datastores/services private; only frontend host-exposed — **live PASS** (20 containers; both clients login=200 → routed /api; unauth/forged → 401; :8081/:8090 not host-exposed)
 
 ### Implementation for User Story 3
 

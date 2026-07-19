@@ -12,7 +12,8 @@ trap 'rm -rf "$tmp"' EXIT
 
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$tmp/priv.pem" 2>/dev/null
 
-priv="$(openssl pkey -in "$tmp/priv.pem" -outform DER | base64 -w0)"
+# -topk8 forces PKCS#8 DER (Java's PKCS8EncodedKeySpec); plain `openssl pkey -outform DER` emits PKCS#1.
+priv="$(openssl pkcs8 -topk8 -nocrypt -in "$tmp/priv.pem" -outform DER | base64 -w0)"
 pub="$(openssl pkey -in "$tmp/priv.pem" -pubout -outform DER | base64 -w0)"
 enc="$(openssl rand 32 | base64 -w0)"
 
