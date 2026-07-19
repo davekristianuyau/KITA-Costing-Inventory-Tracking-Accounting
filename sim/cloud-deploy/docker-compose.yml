@@ -13,13 +13,13 @@ services:
     networks: [clouddeploy]
 
   floci-gcp: # GCP emulator
-    image: floci-io/floci-gcp:latest
+    image: floci/floci-gcp:latest
     container_name: floci-gcp
     ports: ["4588:4588"]
     networks: [clouddeploy]
 
   floci-az: # Azure emulator
-    image: floci-io/floci-az:latest
+    image: floci/floci-az:latest
     container_name: floci-az
     ports: ["4577:4577"]
     networks: [clouddeploy]

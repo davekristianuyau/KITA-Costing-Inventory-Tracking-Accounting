@@ -79,7 +79,7 @@ destroyed, dummy creds only).
 
 **Independent Test**: `deploy-check.sh gcp` and `deploy-check.sh azure` each pass for the emulator-supported set.
 
-- [ ] T016 [P] [US3] Run `bash sim/cloud-deploy/probe.sh gcp`; commit `sim/cloud-deploy/coverage/gcp.md`
+- [X] T016 [P] [US3] Run `bash sim/cloud-deploy/probe.sh gcp`; commit `sim/cloud-deploy/coverage/gcp.md`
 - [ ] T017 [P] [US3] Run `bash sim/cloud-deploy/probe.sh azure`; commit `sim/cloud-deploy/coverage/azure.md`
 - [ ] T018 [US3] Add `emulated` flag to `infra/terraform/modules/gcp`, guarding the `unsupported` set from `coverage/gcp.md` (expected: `google_compute_*`, `google_sql_*`, `google_vpc_access_connector`, `google_service_networking_connection`)
 - [ ] T019 [US3] Add `emulated` flag to `infra/terraform/modules/azure`, guarding the `unsupported` set from `coverage/azure.md` (expected: `azurerm_container_app*`, `azurerm_postgresql_flexible_*`, `azurerm_virtual_network`/`azurerm_subnet`, `azurerm_log_analytics_workspace`, `azurerm_private_dns_*`)
