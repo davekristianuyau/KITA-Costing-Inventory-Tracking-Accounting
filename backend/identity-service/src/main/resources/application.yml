@@ -1,0 +1,49 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: identity-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/kita?currentSchema=identity,public}
+    username: ${DATABASE_USER:kita}
+    password: ${DATABASE_PASSWORD:change-me}
+    hikari:
+      connection-init-sql: SET search_path TO identity, public
+  jpa:
+    hibernate:
+      ddl-auto: validate # schema owned by Flyway
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: identity
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    default-schema: identity
+    schemas: identity
+    create-schemas: true
+
+identity:
+  jwt:
+    # Base64 keys; when blank, ephemeral keys are generated at startup (dev only — the edge needs the
+    # SAME keys to verify/decrypt, so production MUST supply these from the secret store).
+    private-key: ${IDENTITY_JWT_PRIVATE_KEY:}   # base64 PKCS8 RSA private (signing)
+    public-key: ${IDENTITY_JWT_PUBLIC_KEY:}     # base64 X509 RSA public (verify)
+    enc-key: ${IDENTITY_JWT_ENC_KEY:}           # base64 32-byte AES (JWE encrypt/decrypt)
+    ttl-minutes: ${IDENTITY_JWT_TTL_MINUTES:90} # forced re-auth window
+  cookie:
+    name: ${IDENTITY_COOKIE_NAME:kita_session}
+    secure: ${IDENTITY_COOKIE_SECURE:false}     # true in production (HTTPS)
+  security:
+    max-failed-attempts: ${IDENTITY_MAX_FAILED:5}
+    lock-minutes: ${IDENTITY_LOCK_MINUTES:15}
+  seed:
+    enabled: ${IDENTITY_SEED_ENABLED:true}      # seed two demo clients/users if the store is empty
+    demo-password: ${IDENTITY_SEED_PASSWORD:demo-pass}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

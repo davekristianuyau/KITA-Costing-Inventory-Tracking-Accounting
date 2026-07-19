@@ -17,7 +17,24 @@ jobs:
       # so the Windows/Docker-Desktop workaround in operations-service is inert here.
       - name: Build, test and lint backend/
         working-directory: backend
-        run: ./gradlew :operations-service:build :hr-service:build :crm-service:build :procurement-service:build :workflow-service:build --no-daemon
+        run: ./gradlew :operations-service:build :hr-service:build :crm-service:build :procurement-service:build :workflow-service:build :identity-service:build :edge-gateway:build :gateway:build :session-verify:build --no-daemon
+
+  # Frontend (009): type-check, unit tests (Vitest), production build.
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install, test and build frontend/
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run build
 
   # Full containerized stack smoke test (008): build all images, health-gated up, schema isolation,
   # datastores private. Uses the runner's Docker daemon.
@@ -32,6 +49,22 @@ jobs:
           POSTGRES_PASSWORD: ci-postgres
           DATABASE_PASSWORD: ci-postgres
         run: bash scripts/stack-smoke.sh
+
+  # Full multi-client login/routing simulation (009): two isolated client stacks + identity + edge +
+  # frontend, then the smoke test (health, only-frontend-exposed, per-client login → own backend).
+  # Heavy (~13 images) → NON-BLOCKING, as planned; the auth/routing/isolation logic is unit/IT-covered above.
+  sim-smoke:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bring up the sim and smoke-test it
+        run: |
+          bash sim/sim-up.sh
+          bash sim/sim-smoke.sh
+      - name: Tear down
+        if: always()
+        run: bash sim/sim-down.sh || true
 
   # Blocking infra quality gates (Principle VII, FR-006). No cloud credentials needed.
   infra:

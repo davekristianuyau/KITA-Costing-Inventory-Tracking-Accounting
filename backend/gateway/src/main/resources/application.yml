@@ -6,6 +6,17 @@ spring:
   application:
     name: gateway
 
+# Per-client tenant hardening (009). When CLIENT_ID is set (the sim runs one gateway per client), the
+# ClientClaimFilter verifies the session token with identity's PUBLIC key and rejects any token whose
+# `client` claim ≠ CLIENT_ID. Unset (feature-008 standalone) → the filter is a pass-through.
+gateway:
+  client-id: ${CLIENT_ID:}
+  jwt:
+    public-key: ${IDENTITY_JWT_PUBLIC_KEY:} # base64 X509 RSA public (verify)
+    enc-key: ${IDENTITY_JWT_ENC_KEY:}       # base64 32-byte AES (JWE decrypt)
+  cookie:
+    name: ${IDENTITY_COOKIE_NAME:kita_session}
+
 management:
   endpoints:
     web:

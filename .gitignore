@@ -40,3 +40,13 @@ docker-compose.override.yml    # local-only host-port overrides (keep the .examp
 Thumbs.db
 *.swp
 # .vscode/ is intentionally tracked so shared editor settings sync across machines
+
+# --- sim generated secrets (009) ---
+sim/.env.keys
+sim/.env
+
+# --- sim aws-imitation terraform state (009 US4) ---
+sim/aws-imitation/.terraform/
+sim/aws-imitation/.terraform.lock.hcl
+sim/aws-imitation/terraform.tfstate
+sim/aws-imitation/terraform.tfstate.backup

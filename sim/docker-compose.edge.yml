@@ -1,0 +1,102 @@
+# sim/docker-compose.edge.yml — the shared layer on top of the two client stacks (US3): central identity
+# (+ its own Postgres), the tenant-aware edge, and the frontend. Brought up as its own Compose project
+# (`-p kita-edge`) AFTER the client projects, so it can attach to their networks as `external`.
+#
+# Only the frontend is host-exposed. The edge attaches to BOTH client networks and routes /api to each
+# client's gateway BY CONTAINER NAME (kita-client-a-gateway-1 / kita-client-b-gateway-1) — unique, so no
+# collision with the identical `gateway` service alias present on both client networks.
+name: kita-edge
+
+services:
+  identity-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${IDENTITY_DB:-identitydb}
+      POSTGRES_USER: ${IDENTITY_DB_USER:-identity}
+      POSTGRES_PASSWORD: ${IDENTITY_DB_PASSWORD:?IDENTITY_DB_PASSWORD is required}
+    volumes:
+      - identity-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-identity} -d $${POSTGRES_DB:-identitydb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [edge]
+
+  identity-service:
+    build:
+      context: ../backend
+      dockerfile: identity-service/Dockerfile
+    environment:
+      DATABASE_URL: jdbc:postgresql://identity-postgres:5432/${IDENTITY_DB:-identitydb}?currentSchema=identity,public
+      DATABASE_USER: ${IDENTITY_DB_USER:-identity}
+      DATABASE_PASSWORD: ${IDENTITY_DB_PASSWORD:?IDENTITY_DB_PASSWORD is required}
+      IDENTITY_JWT_PRIVATE_KEY: ${IDENTITY_JWT_PRIVATE_KEY:?signing private key required}
+      IDENTITY_JWT_PUBLIC_KEY: ${IDENTITY_JWT_PUBLIC_KEY:?public key required}
+      IDENTITY_JWT_ENC_KEY: ${IDENTITY_JWT_ENC_KEY:?enc key required}
+      IDENTITY_COOKIE_SECURE: "false" # sim is plain HTTP on localhost
+      IDENTITY_SEED_ENABLED: "true"
+      IDENTITY_SEED_PASSWORD: ${IDENTITY_SEED_PASSWORD:-demo-pass}
+    depends_on:
+      identity-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8090/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [edge]
+
+  edge:
+    build:
+      context: ../backend
+      dockerfile: edge-gateway/Dockerfile
+    environment:
+      IDENTITY_SERVICE_URL: http://identity-service:8090
+      IDENTITY_JWT_PUBLIC_KEY: ${IDENTITY_JWT_PUBLIC_KEY:?public key required}
+      IDENTITY_JWT_ENC_KEY: ${IDENTITY_JWT_ENC_KEY:?enc key required}
+      IDENTITY_COOKIE_NAME: ${IDENTITY_COOKIE_NAME:-kita_session}
+      CLIENT_A_BACKEND_URL: http://kita-client-a-gateway-1:8081
+      CLIENT_B_BACKEND_URL: http://kita-client-b-gateway-1:8081
+    depends_on:
+      identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [edge, client-a, client-b]
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080" # the ONLY host-exposed service
+    depends_on:
+      edge:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    networks: [edge]
+
+volumes:
+  identity-pgdata:
+
+networks:
+  edge:
+    driver: bridge
+  # The two client stacks' networks, created by their own Compose projects (external here).
+  client-a:
+    external: true
+    name: kita-client-a_kita
+  client-b:
+    external: true
+    name: kita-client-b_kita
