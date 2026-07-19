@@ -29,6 +29,12 @@ deploys on AWS, GCP, and Azure," catching real regressions the current gate miss
   module for that cloud as-is with no real cloud.
 - Q: Real cloud credentials or spend at any point? → A: **Never.** Everything runs against the local emulators
   with dummy credentials (as established for AWS in feature 009).
+- Q: After measuring coverage (FR-011), GCP and Azure emulators turned out to cover only storage + secrets —
+  not the Compute/VPC/managed-DB the 001 GCP/Azure modules are built on (Floci-GCP `google_compute_network`
+  create → HTTP 405). Deploy them anyway? → A (2026-07-19): **No — drop GCP and Azure from this feature for
+  now.** Ship 010 as: the fixed gate (US1) + the **AWS** module deploying to Floci (US2), one command + CI
+  (US4, AWS). GCP/Azure local deploy is deferred to a future spec once their emulators cover compute/DB. The
+  measured GCP coverage is kept as evidence (`sim/cloud-deploy/coverage/gcp.md`).
 - Q: How should the deploy check handle 001-module resources a cloud's Floci emulator can't provision (e.g.
   GCP Cloud SQL/Compute, Azure Container Apps/PostgreSQL)? → A: **Determine each cloud's actual Floci coverage
   empirically first** — probe which resource types apply successfully vs. fail against the live emulator — and
@@ -190,10 +196,10 @@ apply as a separate job.
 
 - **SC-001**: The infra CI check passes on `main` — **0** failing format/validate/lint items — and still fails
   when a genuine Terraform error is introduced.
-- **SC-002**: For **all 3** clouds, the 001 module passes `fmt`/`validate`/`plan`, and its **Floci-supported
-  resource set** (the coverage measured per FR-011) `terraform apply`s then `terraform destroy`s cleanly
-  against the local emulator — both in CI and from the single local command. (AWS is expected to cover the most;
-  GCP/Azure at least their emulator-supported resources — the exact set is the measured boundary, not zero.)
+- **SC-002**: The **AWS** 001 module `terraform apply`s (near-complete — only the slow managed RDS is skipped)
+  then `terraform destroy`s cleanly against local Floci — both in CI and from the single local command. All
+  three modules still pass `fmt`/`validate` (US1 gate). *(GCP/Azure local apply is deferred — their Floci
+  emulators cover only storage/secrets, not the compute/DB the modules need; measured in FR-011.)*
 - **SC-003**: **0** real cloud credentials, accounts, or spend are used — verifiable from the run (only dummy
   credentials and local emulator endpoints appear).
 - **SC-004**: A developer can run the full multi-cloud deploy check from a clean checkout with **one command**,

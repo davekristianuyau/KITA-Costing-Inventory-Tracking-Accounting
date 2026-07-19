@@ -110,6 +110,15 @@ bash sim/sim-down.sh                         # independent teardown
 
 Full walkthrough: [`specs/009-client-login-deploy-sim/quickstart.md`](specs/009-client-login-deploy-sim/quickstart.md).
 
+## Local cloud deploy validation (feature 010)
+
+The CI `infra` gate deploys the **real** 001 Terraform against a local [Floci](https://floci.io/) emulator —
+`apply → verify → destroy`, **no real cloud** — so it proves the modules actually stand up, not just that they
+lint. [`sim/cloud-deploy/`](sim/cloud-deploy/) runs it (`bash sim/cloud-deploy/run-all.sh`). AWS deploys the
+near-complete module (only the slow managed RDS is skipped via an additive default-off `emulated` flag);
+GCP/Azure are deferred — their emulators cover only storage/secrets (see `sim/cloud-deploy/coverage/`). A fast
+fmt/validate/tflint gate stays blocking; the heavy deploy runs as a non-blocking CI job.
+
 ## Run a single service (development)
 
 Run one service against a local PostgreSQL (opt into a DB host port via `docker-compose.override.yml`):

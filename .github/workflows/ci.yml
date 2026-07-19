@@ -66,6 +66,17 @@ jobs:
         if: always()
         run: bash sim/sim-down.sh || true
 
+  # Deploy the REAL 001 Terraform against local Floci emulators — apply → verify → destroy, no real cloud
+  # (010). AWS deploys the near-complete module; GCP/Azure are deferred (their Floci emulators cover only
+  # storage/secrets — see sim/cloud-deploy/coverage/). Heavy (starts an emulator + real apply) → NON-BLOCKING.
+  cloud-deploy:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy the 001 modules to Floci (apply → verify → destroy)
+        run: bash sim/cloud-deploy/run-all.sh
+
   # Blocking infra quality gates (Principle VII, FR-006). No cloud credentials needed.
   infra:
     runs-on: ubuntu-latest
