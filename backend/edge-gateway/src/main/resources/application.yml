@@ -14,6 +14,11 @@ edge:
     enc-key: ${IDENTITY_JWT_ENC_KEY:}       # base64 32-byte AES (JWE decrypt)
   cookie:
     name: ${IDENTITY_COOKIE_NAME:kita_session}
+  # Validated client claim → that client's backend gateway. Only listed clients are routable; a token
+  # for any other client is rejected (401). Two demo clients; each backend gateway listens on 8081.
+  backends:
+    client-a: ${CLIENT_A_BACKEND_URL:http://client-a-gateway:8081}
+    client-b: ${CLIENT_B_BACKEND_URL:http://client-b-gateway:8081}
 
 management:
   endpoints:
