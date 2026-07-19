@@ -29,6 +29,12 @@ deploys on AWS, GCP, and Azure," catching real regressions the current gate miss
   module for that cloud as-is with no real cloud.
 - Q: Real cloud credentials or spend at any point? → A: **Never.** Everything runs against the local emulators
   with dummy credentials (as established for AWS in feature 009).
+- Q: How should the deploy check handle 001-module resources a cloud's Floci emulator can't provision (e.g.
+  GCP Cloud SQL/Compute, Azure Container Apps/PostgreSQL)? → A: **Determine each cloud's actual Floci coverage
+  empirically first** — probe which resource types apply successfully vs. fail against the live emulator — and
+  let that measured coverage define the "deploy as is" boundary. The mechanism for handling unsupported
+  resources (e.g. a module compatibility flag vs. a targeted apply) is then chosen in planning based on the
+  findings, not assumed up front.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -160,6 +166,11 @@ apply as a separate job.
 - **FR-009**: The per-cloud **emulator coverage** (which module resources actually deploy vs. which are
   represented/skipped) MUST be documented so the boundary of "deploy as is" is explicit.
 - **FR-010**: The deploy checks MUST pin a single Terraform version so local and CI runs are identical.
+- **FR-011**: The per-cloud emulator coverage MUST be established **empirically** — by probing the live Floci
+  emulator for each cloud to determine which of that module's resource types actually apply vs. fail — and the
+  measured result defines the "deploy as is" boundary. The handling mechanism for unsupported resources (e.g. a
+  module compatibility flag vs. a targeted apply of the supported set) is chosen from those findings, not
+  assumed. This probe/coverage map is a prerequisite to wiring the GCP and Azure deploy checks.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -179,8 +190,10 @@ apply as a separate job.
 
 - **SC-001**: The infra CI check passes on `main` — **0** failing format/validate/lint items — and still fails
   when a genuine Terraform error is introduced.
-- **SC-002**: **All 3** clouds' 001 modules `terraform apply` successfully against their local emulators and
-  `terraform destroy` cleanly, both in CI and from the single local command.
+- **SC-002**: For **all 3** clouds, the 001 module passes `fmt`/`validate`/`plan`, and its **Floci-supported
+  resource set** (the coverage measured per FR-011) `terraform apply`s then `terraform destroy`s cleanly
+  against the local emulator — both in CI and from the single local command. (AWS is expected to cover the most;
+  GCP/Azure at least their emulator-supported resources — the exact set is the measured boundary, not zero.)
 - **SC-003**: **0** real cloud credentials, accounts, or spend are used — verifiable from the run (only dummy
   credentials and local emulator endpoints appear).
 - **SC-004**: A developer can run the full multi-cloud deploy check from a clean checkout with **one command**,
@@ -196,7 +209,8 @@ apply as a separate job.
 - **"Deploy as is"** means applying the unmodified 001 modules against the emulators; where an emulator does
   not implement a resource, that is the documented coverage boundary. Minimal, emulator-only accommodations
   (e.g., an existing variable to skip a resource, or a targeted apply) are acceptable **only** if they leave
-  real-cloud behavior unchanged (FR-005). The exact per-cloud supported set is resolved during planning/research.
+  real-cloud behavior unchanged (FR-005). The exact per-cloud supported set is **measured empirically by probing
+  the live Floci emulator** (FR-011), and that mechanism choice follows from the findings.
 - The 001 modules provision managed compute/DB (e.g., container runtime + managed PostgreSQL) plus networking,
   storage, and secrets; emulator coverage varies by cloud, so the achievable apply differs per provider and is
   mapped in research.
