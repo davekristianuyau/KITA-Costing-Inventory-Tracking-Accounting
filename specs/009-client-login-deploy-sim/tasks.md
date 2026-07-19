@@ -126,12 +126,12 @@ imitated deployment; confirm 0 real cloud credentials used.
 
 ### Tests for User Story 4 ⚠️ (write first, must fail)
 
-- [ ] T026 [US4] `sim/aws-imitation/verify.sh`: asserts the client-a Terraform applied against LocalStack (resources exist in LocalStack), used **no** real AWS credentials, and the login flow reaches client-a's imitated deployment (SC-005)
+- [X] T026 [US4] `sim/aws-imitation/verify.sh`: asserts the client-a Terraform applied against **Floci** (resources exist), used **no** real AWS credentials, and the login flow reaches client-a's imitated deployment (SC-005) — **live PASS** (S3+secret+VPC present; secret→stand-in; login=200→routed)
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] `sim/aws-imitation/`: add a `localstack` service to the sim + `tflocal`/endpoint config reusing the **001 AWS module** for the LocalStack-Community-supported resource subset (networking, S3, Secrets Manager); document ECS/RDS-are-Pro → local 008 stack is the compute/DB stand-in (research D6)
-- [ ] T028 [US4] `sim/aws-imitation/deploy.sh <client>`: run `tflocal apply` for the client's AWS deployment against LocalStack with no real credentials; connect it into the login flow so client-a resolves to the imitated deployment
+- [X] T027 [US4] `sim/aws-imitation/`: **Floci** service (drop-in LocalStack replacement, port 4566) + in-container terraform/aws-cli runners; Terraform reuses the real 001 `common` module + AWS resources (VPC/subnet/SG + S3 + Secrets Manager); 008 stack is the compute/DB stand-in (research D6). *(Switched LocalStack→Floci per 2026-07-19 request; AWS-only scope unchanged. Azure/GCP via floci-az/floci-gcp = planned follow-up.)*
+- [X] T028 [US4] `sim/aws-imitation/deploy.sh <client>`: runs `terraform apply` (in-container) for the client's AWS deployment against Floci with no real credentials; the login flow reaches the imitated deployment (its running 008 stand-in) — **live: 11 resources applied**
 
 **Checkpoint**: the client-preference → AWS-deploy path runs end-to-end locally with no cloud spend.
 

@@ -1,0 +1,43 @@
+# US4 — Floci (the local "AWS", a drop-in LocalStack replacement on port 4566) + in-container Terraform
+# and AWS-CLI runners, so no host terraform/aws is needed. Floci emulates the AWS control-plane locally
+# with zero credentials/cost. The client's feature-008 stack remains the compute/DB stand-in.
+name: kita-floci
+
+services:
+  floci:
+    image: floci/floci:latest
+    container_name: floci
+    environment:
+      FLOCI_HOSTNAME: floci # reachable as http://floci:4566 on the compose network
+      FLOCI_DEFAULT_REGION: us-east-1
+    ports:
+      - "4566:4566" # host-exposed for debugging; readiness is polled from the host
+    networks: [floci]
+
+  # One-shot Terraform runner (invoked via `docker compose run terraform ...`, not by `up`).
+  terraform:
+    image: hashicorp/terraform:1.9
+    profiles: ["tools"]
+    working_dir: /work/sim/aws-imitation
+    volumes:
+      - ../../:/work
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: ["terraform"]
+    networks: [floci]
+
+  # One-shot AWS CLI (for verify.sh) pointed at Floci; entrypoint is `aws`.
+  awscli:
+    image: amazon/aws-cli:latest
+    profiles: ["tools"]
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+    networks: [floci]
+
+networks:
+  floci:
+    name: kita-floci

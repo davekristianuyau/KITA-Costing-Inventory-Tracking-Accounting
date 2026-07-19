@@ -44,3 +44,9 @@ Thumbs.db
 # --- sim generated secrets (009) ---
 sim/.env.keys
 sim/.env
+
+# --- sim aws-imitation terraform state (009 US4) ---
+sim/aws-imitation/.terraform/
+sim/aws-imitation/.terraform.lock.hcl
+sim/aws-imitation/terraform.tfstate
+sim/aws-imitation/terraform.tfstate.backup
