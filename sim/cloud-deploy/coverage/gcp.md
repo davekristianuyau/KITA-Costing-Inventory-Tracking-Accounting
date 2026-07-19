@@ -1,38 +1,37 @@
-# Floci GCP coverage — 001 `modules/gcp` (measured 2026-07-19)
+# Floci GCP coverage — 001 `modules/gcp` (measured 2026-07-19, corrected)
 
 Method: point the Terraform `google` provider at Floci-GCP (`floci/floci-gcp:latest`, :4588) via per-service
-`*_custom_endpoint` + a dummy `GOOGLE_OAUTH_ACCESS_TOKEN`, then `terraform apply` the real 001 GCP module.
+`*_custom_endpoint` + a dummy `GOOGLE_OAUTH_ACCESS_TOKEN`, then apply resources against it.
 
 ## C2 (provider → emulator wiring): RESOLVED ✅
 
-The `google` provider **can** target Floci-GCP. All six per-service endpoint fields validate and work:
-`storage_custom_endpoint`, `secret_manager_custom_endpoint`, `compute_custom_endpoint`,
-`sql_custom_endpoint`, `vpc_access_custom_endpoint`, `service_networking_custom_endpoint`. A dummy OAuth token
-bypasses real auth. `sim/cloud-deploy/gcp/main.tf` exercises the supported services live.
+The `google` provider targets Floci-GCP fine — all six `*_custom_endpoint` fields validate and work
+(`storage`, `secret_manager`, `compute`, `sql`, `vpc_access`, `service_networking`), dummy token bypasses auth.
 
-## Coverage: NARROW (unlike AWS)
+## Coverage — most of the module's services work; only Compute/VPC is missing
 
-| 001 GCP resource | Floci-GCP |
+Floci-GCP's Terraform compat tests + a live spike confirm:
+
+| 001 GCP resource / service | Floci-GCP |
 |---|---|
-| `google_storage_bucket` | ✅ applied |
-| `google_secret_manager_secret` + `_version` | ✅ applied |
-| `random_password` | ✅ |
-| `google_compute_network` | ❌ **HTTP 405** — Compute API not implemented |
-| `google_compute_subnetwork`, `google_compute_global_address` | ❌ (Compute) |
-| `google_vpc_access_connector` | ❌ (depends on network) |
-| `google_service_networking_connection` | ❌ (depends on network) |
-| `google_sql_database_instance` / `_database` / `_user` | ❌ (private-IP needs the VPC network) |
-| `google_cloud_run_v2_service` (+ IAM) | ❌ (needs the VPC connector) |
+| `google_storage_bucket` (Cloud Storage) | ✅ applied live |
+| `google_secret_manager_secret` + `_version` | ✅ applied live |
+| `google_cloud_run_v2_service` (Cloud Run) | ✅ **applied live** |
+| `google_sql_database_instance` (Cloud SQL PostgreSQL) | ✅ **supported** (repo compat tests) |
+| `google_compute_network` / `_subnetwork` / `_global_address` (**Compute Engine VPC**) | ❌ **HTTP 405 — not emulated** |
+| `google_vpc_access_connector`, `google_service_networking_connection` | ❌ (depend on the VPC) |
 
-## Implication
+## Correction to an earlier note
 
-Floci-GCP implements **Storage + Secret Manager** (and messaging/data services), but **not the Compute
-control-plane** the 001 GCP module is built on (VPC → Cloud SQL private IP → Serverless VPC connector → Cloud
-Run). So — unlike AWS, which deploys almost entirely — the **real 001 GCP module cannot deploy against Floci**;
-only its storage + secret slice can.
+An earlier version of this file said Floci-GCP supported "only Storage + Secret Manager." **That was wrong** —
+it came from a single `terraform apply` that halted at the first error (`google_compute_network` 405), so Cloud
+SQL and Cloud Run were never attempted. Direct testing shows **Cloud Run applies** and the repo confirms **Cloud
+SQL** works. The **only** genuine gap is **Compute Engine VPC networking** (`google_compute_network` → 405).
 
-Consequently, heavily guarding the GCP module with `emulated` (skipping ~10 of ~13 resources + a large
-reference cascade) would complicate the production module for a 2-resource local apply of low value. The
-GCP/Azure deploy strategy therefore needs a scope decision (see spec/plan) rather than forcing the full-module
-guard. `fmt`/`validate`/`plan` of the real module still pass (proving it's deployable); only the local `apply`
-is bounded to the emulator-supported slice.
+## Implication (GCP is viable — deferred to implement)
+
+The 001 GCP module is blocked only by its **private-VPC foundation**: Cloud SQL uses a *private IP* (needs the
+VPC) and Cloud Run reaches it via a *VPC connector*. An `emulated` flag that skips the Compute/VPC resources and,
+in emulated mode, uses **Cloud SQL public IP** + **Cloud Run without the connector** would deploy Cloud SQL +
+Cloud Run + Storage + Secret Manager — a real app+DB deploy, not a stub. Implementation is deferred to a future
+spec; `fmt`/`validate` of the real module still pass today.

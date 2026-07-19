@@ -20,8 +20,8 @@ blocking.
 | Cloud | Floci image | Deploys the 001 module? | Notes |
 |---|---|---|---|
 | **AWS** | `floci/floci:latest` :4566 | ✅ **near-complete** | VPC/NAT/ECS/ALB/ServiceDiscovery/IAM/S3/Secrets all apply. Only `aws_db_instance` (RDS) is skipped when `emulated` — Floci emulates RDS's ~15-min provisioning (too slow), not a capability gap. See [coverage/aws.md](coverage/aws.md). |
-| **GCP** | `floci/floci-gcp:latest` :4588 | ⚠️ **deferred** | Provider→Floci works (`*_custom_endpoint` + dummy token — see `gcp/main.tf`), but Floci-GCP emulates only Storage + Secret Manager; `google_compute_network` create → **HTTP 405**, so VPC/Cloud SQL/VPC-connector/Cloud Run can't deploy. See [coverage/gcp.md](coverage/gcp.md). |
-| **Azure** | `floci/floci-az:latest` :4577 | ⚠️ **deferred** | Not wired — `azurerm` custom-endpoint support is limited and the emulator is similarly narrow. |
+| **GCP** | `floci/floci-gcp:latest` :4588 | ⚠️ **deferred (viable)** | Provider→Floci works. Storage, Secret Manager, **Cloud SQL, and Cloud Run** all work; the **only** gap is Compute Engine **VPC networking** (`google_compute_network` → 405). The module is blocked just by its private-VPC foundation; skipping Compute/VPC + Cloud SQL public IP would deploy the app+DB. See [coverage/gcp.md](coverage/gcp.md). |
+| **Azure** | `floci/floci-az:latest` :4577 | ⚠️ **deferred (viable)** | Richest emulator: **VNet + PostgreSQL Flexible + Key Vault + Storage + Resource Group** all supported; gap is **Container Apps** (compute) + Log Analytics + Private DNS. Needs TLS (`FLOCI_AZ_TLS_ENABLED`) + trusting the self-signed CA. See [coverage/azure.md](coverage/azure.md). |
 
 ## The `emulated` module flag (AWS)
 
