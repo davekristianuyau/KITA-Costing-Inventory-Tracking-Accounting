@@ -124,14 +124,15 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/009-client-login-deploy-sim/plan.md` (client login + per-client deployment simulation — first real
-frontend login page (React/Vite) + NEW `identity-service` (Spring Boot: BCrypt auth, user/client directory,
-JWT with a `client` claim) + NEW tenant-aware `edge-gateway` (Spring Cloud Gateway: `/auth`→identity,
-`/api`→client backend by JWT claim, strips+sets trusted `X-Kita-*`). Local Docker `sim/` runs TWO isolated
-feature-008 stacks as separate Compose projects on a shared network + edge/identity/frontend + LocalStack
-imitating one client's AWS deploy (reusing 001 Terraform via tflocal; ECS/RDS are LocalStack Pro → compute is
-the local stack stand-in). Clarified 2026-07-18: centralized auth+routing, 2 clients + LocalStack (AWS only),
-real intended behavior delivered as a local sim. Isolation enforced at edge AND per-client gateway).
+`specs/010-floci-multicloud-ci/plan.md` (fix CI infra + local multi-cloud Terraform deploy via Floci). Two
+goals: (1) fix the RED `infra` CI gate — add `required_version`/`required_providers` to the 001 modules that
+tflint flags (additive, no behavior change); (2) upgrade the gate from validate-only to actually
+`terraform apply` the REAL 001 modules against local **Floci** emulators (AWS :4566, GCP :4588, Azure :4577),
+apply→verify(state list)→destroy, 0 real cloud creds/spend. New `sim/cloud-deploy/` harness (thin per-cloud
+wrapper roots → `infra/terraform/modules/<cloud>`); 001 modules get an additive default-off `emulated` flag that
+skips emulator-unsupported resources (real-cloud plan unchanged). Per-cloud coverage measured EMPIRICALLY by a
+probe FIRST (FR-011, task 1). Terraform pinned 1.9.8 (containerized). CI: fast fmt/validate/tflint gate BLOCKING
+(now green) + new NON-BLOCKING `cloud-deploy` job. Builds on feature 009's Floci pattern.
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -225,3 +226,20 @@ achieved. To revert an artifact to its original state, run
 [2026-07-18 21:29] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
 [2026-07-18 21:49] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
 [2026-07-18 22:02] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 23:06] - Resume code: c329ef5d-be31-42df-9df8-02e333b7d8ba
+[2026-07-18 23:18] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 00:26] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 09:11] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 12:52] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 13:17] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 13:25] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 13:33] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 13:49] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 13:58] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 14:03] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 15:10] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 16:05] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 16:08] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 16:14] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 16:23] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 16:36] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524

@@ -19,6 +19,13 @@ variable "custom_domain" { type = string }
 variable "db_backup_retention_days" { type = number }
 variable "tags" { type = map(string) }
 
+# Local-emulator (Floci) support: when true, resources the emulator cannot provision are skipped and
+# references to them fall back to placeholders. Default false ⇒ a real-cloud deploy is unchanged (010 FR-005).
+variable "emulated" {
+  type    = bool
+  default = false
+}
+
 module "naming" {
   source      = "../common"
   client_name = var.client_name
@@ -35,9 +42,8 @@ locals {
   tags = module.naming.tags
   azs  = slice(data.aws_availability_zones.available.names, 0, 2)
 
-  public_services  = { for k, v in var.release_set : k => v if v.visibility == "public" }
-  private_services = { for k, v in var.release_set : k => v if v.visibility == "private" }
-  image_ref        = { for k, v in var.release_set : k => "${v.image}:${v.version}" }
+  public_services = { for k, v in var.release_set : k => v if v.visibility == "public" }
+  image_ref       = { for k, v in var.release_set : k => "${v.image}:${v.version}" }
 
   sizing = {
     small    = { cpu = 256, memory = 512 }
