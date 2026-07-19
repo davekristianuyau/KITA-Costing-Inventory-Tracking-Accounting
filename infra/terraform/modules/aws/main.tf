@@ -35,9 +35,8 @@ locals {
   tags = module.naming.tags
   azs  = slice(data.aws_availability_zones.available.names, 0, 2)
 
-  public_services  = { for k, v in var.release_set : k => v if v.visibility == "public" }
-  private_services = { for k, v in var.release_set : k => v if v.visibility == "private" }
-  image_ref        = { for k, v in var.release_set : k => "${v.image}:${v.version}" }
+  public_services = { for k, v in var.release_set : k => v if v.visibility == "public" }
+  image_ref       = { for k, v in var.release_set : k => "${v.image}:${v.version}" }
 
   sizing = {
     small    = { cpu = 256, memory = 512 }

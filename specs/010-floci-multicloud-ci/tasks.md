@@ -45,12 +45,12 @@ deploy behavior — a red check becomes trustworthy again.
 `tests/run.sh contract`) → all pass; introduce a real error → it fails and names the file. (No dependency on the
 deploy harness.)
 
-- [ ] T005 [P] [US1] `infra/terraform/modules/aws/versions.tf` — add `terraform { required_version = ">= 1.9" required_providers { aws = {...} random = {...} } }` (additive; tflint `terraform_required_providers`/`_version`)
-- [ ] T006 [P] [US1] `infra/terraform/modules/gcp/versions.tf` — add `required_version` + `required_providers { google = {...} random = {...} }`
-- [ ] T007 [P] [US1] `infra/terraform/modules/azure/versions.tf` — add `required_version` + `required_providers { azurerm = {...} random = {...} }`
-- [ ] T008 [P] [US1] `infra/terraform/modules/common/versions.tf` — add `required_version` (no providers; naming-only module)
-- [ ] T009 [US1] Run `terraform fmt -recursive infra/terraform`; run the full gate locally (fmt-check + `validate` + `tflint --recursive` + `bash tests/run.sh contract`) → **all green** (SC-001)
-- [ ] T010 [US1] Regression check: introduce a temporary invalid attribute in an `infra/terraform` file → gate **fails** naming the file → revert (US1 AC-2)
+- [X] T005 [P] [US1] `infra/terraform/modules/aws/versions.tf` — add `terraform { required_version = ">= 1.9" required_providers { aws = {...} random = {...} } }` (additive; tflint `terraform_required_providers`/`_version`)
+- [X] T006 [P] [US1] `infra/terraform/modules/gcp/versions.tf` — add `required_version` + `required_providers { google = {...} random = {...} }`
+- [X] T007 [P] [US1] `infra/terraform/modules/azure/versions.tf` — add `required_version` + `required_providers { azurerm = {...} random = {...} }`
+- [X] T008 [P] [US1] `infra/terraform/modules/common/versions.tf` — add `required_version` (no providers; naming-only module)
+- [X] T009 [US1] Run `terraform fmt -recursive infra/terraform`; run the full gate locally (fmt-check + `validate` + `tflint --recursive` + `bash tests/run.sh contract`) → **all green** (SC-001)
+- [X] T010 [US1] Regression check: introduce a temporary invalid attribute in an `infra/terraform` file → gate **fails** naming the file → revert (US1 AC-2)
 
 **Checkpoint**: `main`'s infra gate is green; the quality gate still catches real errors.
 
