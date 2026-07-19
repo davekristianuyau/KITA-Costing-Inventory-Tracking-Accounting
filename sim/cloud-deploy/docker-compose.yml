@@ -1,0 +1,52 @@
+# 010 — deploy the REAL 001 modules against local Floci emulators (AWS/GCP/Azure), no real cloud.
+# Emulators + one-shot Terraform/CLI runners; no host terraform/cloud-CLI needed. Terraform pinned 1.9.8.
+name: kita-clouddeploy
+
+services:
+  floci: # AWS emulator
+    image: floci/floci:latest
+    container_name: floci
+    environment:
+      FLOCI_HOSTNAME: floci
+      FLOCI_DEFAULT_REGION: us-east-1
+    ports: ["4566:4566"]
+    networks: [clouddeploy]
+
+  floci-gcp: # GCP emulator
+    image: floci-io/floci-gcp:latest
+    container_name: floci-gcp
+    ports: ["4588:4588"]
+    networks: [clouddeploy]
+
+  floci-az: # Azure emulator
+    image: floci-io/floci-az:latest
+    container_name: floci-az
+    ports: ["4577:4577"]
+    networks: [clouddeploy]
+
+  # One-shot Terraform runner (pinned) — mounts the repo so wrapper roots can reference the real 001 modules.
+  terraform:
+    image: hashicorp/terraform:1.9.8
+    profiles: ["tools"]
+    working_dir: /work
+    volumes: ["../../:/work"]
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: ["terraform"]
+    networks: [clouddeploy]
+
+  # One-shot AWS CLI (verification), pointed at Floci; entrypoint is `aws`.
+  awscli:
+    image: amazon/aws-cli:latest
+    profiles: ["tools"]
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+    networks: [clouddeploy]
+
+networks:
+  clouddeploy:
+    name: kita-clouddeploy

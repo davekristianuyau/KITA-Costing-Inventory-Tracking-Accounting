@@ -12,6 +12,9 @@ resource "random_password" "db" {
 }
 
 resource "aws_db_instance" "main" {
+  # Emulator (Floci) faithfully emulates RDS's ~15-min provisioning, which blows the deploy-check budget —
+  # so skip the managed DB when emulated (the local compute/DB stand-in covers it). Default (real cloud): 1.
+  count                  = var.emulated ? 0 : 1
   identifier             = "${local.name}-db"
   engine                 = "postgres"
   engine_version         = "16"
@@ -42,7 +45,7 @@ resource "aws_secretsmanager_secret" "db" {
 resource "aws_secretsmanager_secret_version" "db" {
   secret_id = aws_secretsmanager_secret.db.id
   secret_string = jsonencode({
-    url      = "jdbc:postgresql://${aws_db_instance.main.address}:5432/kita"
+    url      = "jdbc:postgresql://${var.emulated ? "emulated-db.local" : aws_db_instance.main[0].address}:5432/kita"
     username = "kita"
     password = random_password.db.result
   })

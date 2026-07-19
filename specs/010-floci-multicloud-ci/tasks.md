@@ -22,7 +22,7 @@ deploy harness.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Create `sim/cloud-deploy/` + `sim/cloud-deploy/docker-compose.yml` — services `floci` (floci/floci:latest, :4566), `floci-gcp` (floci-io/floci-gcp, :4588), `floci-az` (floci-io/floci-az, :4577), a one-shot `terraform` runner (`hashicorp/terraform:1.9.8`, mounts repo `../../:/work`), and an `awscli` tool (`amazon/aws-cli:latest`); add `.gitignore` entries for `sim/cloud-deploy/**/.terraform/`, `terraform.tfstate*`, `.terraform.lock.hcl`
+- [X] T001 Create `sim/cloud-deploy/` + `sim/cloud-deploy/docker-compose.yml` — services `floci` (floci/floci:latest, :4566), `floci-gcp` (floci-io/floci-gcp, :4588), `floci-az` (floci-io/floci-az, :4577), a one-shot `terraform` runner (`hashicorp/terraform:1.9.8`, mounts repo `../../:/work`), and an `awscli` tool (`amazon/aws-cli:latest`); add `.gitignore` entries for `sim/cloud-deploy/**/.terraform/`, `terraform.tfstate*`, `.terraform.lock.hcl`
 
 ---
 
@@ -30,9 +30,9 @@ deploy harness.
 
 **⚠️ Blocks the deploy stories (not US1).**
 
-- [ ] T002 `sim/cloud-deploy/probe.sh <cloud>` — generic coverage probe (contracts/probe.md): start that cloud's Floci emulator, minimally `terraform apply` each 001-module resource type in isolation against it (dummy creds), record `supported`/`unsupported` → `sim/cloud-deploy/coverage/<cloud>.md`, then destroy + tear down (FR-011)
-- [ ] T003 `sim/cloud-deploy/deploy-check.sh <cloud>` — generic check (contracts/deploy-check.md): start emulator → `terraform init/apply` the wrapper root `sim/cloud-deploy/<cloud>/` → `terraform state list` verify → `terraform destroy` → assert no residue; clear per-phase pass/fail; bounded readiness wait (no hang)
-- [ ] T004 [P] `sim/cloud-deploy/run-all.sh` — run `deploy-check.sh` for aws, gcp, azure; report per-cloud + overall pass/fail; guarantee teardown of all emulators (SC-004/SC-006)
+- [X] T002 `sim/cloud-deploy/probe.sh <cloud>` — generic coverage probe (contracts/probe.md): start that cloud's Floci emulator, minimally `terraform apply` each 001-module resource type in isolation against it (dummy creds), record `supported`/`unsupported` → `sim/cloud-deploy/coverage/<cloud>.md`, then destroy + tear down (FR-011)
+- [X] T003 `sim/cloud-deploy/deploy-check.sh <cloud>` — generic check (contracts/deploy-check.md): start emulator → `terraform init/apply` the wrapper root `sim/cloud-deploy/<cloud>/` → `terraform state list` verify → `terraform destroy` → assert no residue; clear per-phase pass/fail; bounded readiness wait (no hang)
+- [X] T004 [P] `sim/cloud-deploy/run-all.sh` — run `deploy-check.sh` for aws, gcp, azure; report per-cloud + overall pass/fail; guarantee teardown of all emulators (SC-004/SC-006)
 
 ---
 
@@ -63,11 +63,11 @@ deploy harness.)
 **Independent Test**: `bash sim/cloud-deploy/deploy-check.sh aws` → pass (resources in `state list`, then
 destroyed, dummy creds only).
 
-- [ ] T011 [US2] Run `bash sim/cloud-deploy/probe.sh aws`; commit the resulting `sim/cloud-deploy/coverage/aws.md` (measured AWS coverage — FR-011)
-- [ ] T012 [US2] Add `variable "emulated"` (bool, default false) to `infra/terraform/modules/aws` and guard any resources `coverage/aws.md` marks `unsupported` with `count`/`for_each` (contracts/module-emulated-flag.md); default off ⇒ real-cloud unchanged
-- [ ] T013 [US2] Create `sim/cloud-deploy/aws/main.tf` — provider `aws` with `endpoints`→`http://floci:4566` + dummy creds + skip flags, calling `module "aws" { source = "../../../infra/terraform/modules/aws" emulated = true ... }` (supply `client_name`, `env`, `region`, `release_set`, `size`, `custom_domain=""`, `db_backup_retention_days`, `tags`)
-- [ ] T014 [US2] Run `bash sim/cloud-deploy/deploy-check.sh aws` → apply/verify/destroy **pass**; confirm only dummy creds + the local endpoint were used (SC-002/SC-003)
-- [ ] T015 [P] [US2] Real-cloud invariant: `terraform plan` of `modules/aws` with `emulated = false` is unchanged vs. the pre-feature baseline (FR-005)
+- [X] T011 [US2] Run `bash sim/cloud-deploy/probe.sh aws`; commit the resulting `sim/cloud-deploy/coverage/aws.md` (measured AWS coverage — FR-011)
+- [X] T012 [US2] Add `variable "emulated"` (bool, default false) to `infra/terraform/modules/aws` and guard any resources `coverage/aws.md` marks `unsupported` with `count`/`for_each` (contracts/module-emulated-flag.md); default off ⇒ real-cloud unchanged
+- [X] T013 [US2] Create `sim/cloud-deploy/aws/main.tf` — provider `aws` with `endpoints`→`http://floci:4566` + dummy creds + skip flags, calling `module "aws" { source = "../../../infra/terraform/modules/aws" emulated = true ... }` (supply `client_name`, `env`, `region`, `release_set`, `size`, `custom_domain=""`, `db_backup_retention_days`, `tags`)
+- [X] T014 [US2] Run `bash sim/cloud-deploy/deploy-check.sh aws` → apply/verify/destroy **pass**; confirm only dummy creds + the local endpoint were used (SC-002/SC-003)
+- [X] T015 [P] [US2] Real-cloud invariant: `terraform plan` of `modules/aws` with `emulated = false` is unchanged vs. the pre-feature baseline (FR-005)
 
 **Checkpoint**: the real AWS module deploys locally, apply→destroy clean, zero real cloud.
 

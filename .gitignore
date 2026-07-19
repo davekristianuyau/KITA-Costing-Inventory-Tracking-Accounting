@@ -50,3 +50,8 @@ sim/aws-imitation/.terraform/
 sim/aws-imitation/.terraform.lock.hcl
 sim/aws-imitation/terraform.tfstate
 sim/aws-imitation/terraform.tfstate.backup
+
+# --- sim/cloud-deploy terraform state (010) ---
+sim/cloud-deploy/**/.terraform/
+sim/cloud-deploy/**/.terraform.lock.hcl
+sim/cloud-deploy/**/terraform.tfstate*

@@ -19,6 +19,13 @@ variable "custom_domain" { type = string }
 variable "db_backup_retention_days" { type = number }
 variable "tags" { type = map(string) }
 
+# Local-emulator (Floci) support: when true, resources the emulator cannot provision are skipped and
+# references to them fall back to placeholders. Default false ⇒ a real-cloud deploy is unchanged (010 FR-005).
+variable "emulated" {
+  type    = bool
+  default = false
+}
+
 module "naming" {
   source      = "../common"
   client_name = var.client_name

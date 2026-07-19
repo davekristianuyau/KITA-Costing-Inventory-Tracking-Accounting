@@ -26,7 +26,7 @@ output "resource_ids" {
   value = merge(
     {
       cluster       = aws_ecs_cluster.main.id
-      database      = aws_db_instance.main.id
+      database      = var.emulated ? "emulated" : aws_db_instance.main[0].id
       load_balancer = aws_lb.main.id
       bucket        = aws_s3_bucket.main.id
     },
