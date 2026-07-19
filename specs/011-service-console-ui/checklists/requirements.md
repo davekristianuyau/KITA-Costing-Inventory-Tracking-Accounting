@@ -33,10 +33,12 @@
 
 - "Beautiful/modern" is made testable via FR-009 + SC-005 (responsive to 768px, keyboard-navigable, WCAG AA
   contrast in both themes, current icon set) rather than left subjective.
-- **Two assumptions carry real scope weight and are the best candidates for `/speckit-clarify`:** (1) "functions
-  of a service" = a **generic function/operation explorer**, not bespoke domain screens for every operation;
-  (2) "test/access floci-aws in browser" = the **running local backend serves app traffic** while `floci-aws`
-  holds the deployed cloud resources (Floci mocks compute, so it can't serve the app itself). Both are resolved
-  as documented assumptions to keep the spec unblocked; confirm before planning if either is wrong.
+- **RESOLVED in Clarifications (2026-07-19):** (1) each service gets **full functionality, split into separate
+  per-service specs** — 011 is the foundation + framework + one reference function; (2) **floci-aws must actually
+  run** (Docker socket mounted) with the **Floci UI accessible**, and whether it serves full app traffic is a
+  **planning-phase verification** (the earlier "Floci mocks compute" was an untested assumption); (3) **one tab
+  per service**.
+- **Deferred to `/speckit-plan` (verification, not spec ambiguity):** does Floci serve ECS/ALB app traffic with
+  the Docker runtime available? Research via Floci docs + [floci-cli](https://github.com/floci-io/floci-cli).
 - References to features 008/009/010 and "the edge" are project context (existing system), not new
   implementation choices.

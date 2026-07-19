@@ -7,14 +7,41 @@
 
 ## Summary
 
-Turn the current minimal login/placeholder frontend (feature 009) into a **polished, modern web console**. A
-user signs in on a redesigned **login page**, then lands in a **service console**: **navigation tabs across the
-top**, a way to **select one of their client's backend services**, and — for the selected service — a **left
-navigation pane listing that service's functions**. Selecting a function opens a **workspace** where the user
-can **view and exercise (test) it** and see the result, right in the browser. A **light/dark theme toggle** is
-available everywhere and remembers the choice. The whole experience runs **locally against the client's
-environment**, with the client's **AWS resources deployed to the local `floci-aws` emulator** (feature 010) as
-the cloud target — everything reachable and testable from the browser with no real cloud.
+Turn the current minimal login/placeholder frontend (feature 009) into a **polished, modern web console** — and
+lay the **foundation** for full per-service UIs. This feature (011) delivers the **console shell**: a redesigned
+**login page**, a navigation model of **one top tab per backend service**, a **light/dark theme toggle**, and the
+**per-service workspace framework** (a service tab opens a **left navigation pane of that service's functions**
+beside a **workspace** area). The **complete functionality of each service** is then built out in **its own
+follow-on spec**, one per service (starting with **Operations**) — so each service gets a real, full UI rather
+than a shallow generic explorer. The whole experience runs **locally**, with the client's **AWS resources
+deployed to the local `floci-aws` emulator** (feature 010) as the cloud target and the **Floci UI accessible** —
+everything reachable and testable from the browser with **no real cloud**.
+
+## Clarifications
+
+### Session 2026-07-19
+
+- Q: How deep should each service's functions go in the console? → A: **Full functionality per service,
+  delivered as SEPARATE per-service specs.** 011 is re-scoped to the **console foundation** (login + shell + one
+  tab per service + theme + the per-service workspace framework + the floci-aws-backed local environment + the
+  Floci UI). Each service's **complete UI** is a **follow-on spec**, one per service, **starting with Operations**
+  then the remaining services (CRM, Procurement, HR, Workflow — order refined per value).
+- Q: Given Floci mocks compute, what does "test/access floci-aws in the browser" mean? → A: **It should actually
+  work.** Bring up **floci-aws with the host Docker runtime available** (mount `/var/run/docker.sock`, run as
+  root) so Floci can run the deployed compute and the app is reachable/testable in the browser, **and the Floci
+  UI must be accessible** (the current *"Could not start the Floci UI: … could not reach the container runtime"*
+  error is exactly this missing Docker-socket mount). **Whether Floci serves full ECS/ALB app traffic is to be
+  verified in `/speckit-plan`** — the earlier "Floci only mocks compute" note was an untested assumption.
+- Q: How do the top tabs map to services? → A: **One tab per service** — each backend service is a top tab;
+  selecting it shows that service's functions in the left pane. The **tabs ARE the service selection** (no
+  separate picker).
+
+## Planned per-service specs (the split)
+
+011 is the foundation. Each service's full UI follows as its own spec, in this intended order (adjustable):
+**Operations** (first — the richest domain: catalog, inventory, BOM, production, sales, costing) → **CRM** →
+**Procurement** → **HR** → **Workflow**. Each per-service spec fills in its tab's left-pane functions and full
+workspaces on top of the 011 framework.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -64,27 +91,29 @@ client are listed and selectable; the theme toggle and my identity/client are vi
 
 ---
 
-### User Story 3 - Per-service workspace: left pane of functions + test them (Priority: P2)
+### User Story 3 - Per-service workspace framework (Priority: P2)
 
-As a signed-in user working in a service, I see a **left pane listing that service's functions**; when I select a
-function, a **workspace** opens where I can **view it and run it (provide inputs, submit, see the result)** — so I
-can actually exercise the service from the browser.
+As a signed-in user, when I open a service's tab I see the **per-service workspace framework**: a **left pane**
+where that service's functions are listed and a **workspace area** where a selected function opens — so the
+console has a consistent, reusable frame that each per-service spec fills with that service's real functionality.
 
-**Why this priority**: This is the core working surface — where the console becomes useful, not just pretty. It
-depends on US2.
+**Why this priority**: This is the reusable frame every follow-on per-service spec builds on. 011 delivers the
+framework and proves it end-to-end with **one reference function** wired to the real backend (through the edge);
+the **full** function set per service is delivered in that service's own spec.
 
-**Independent Test**: Select a service → its functions appear in a left pane; select a function → a workspace
-opens; provide any required inputs and run it → a result (or a clear error) is displayed; the backend was
-actually called.
+**Independent Test**: Open a service tab → the left-pane + workspace frame renders; a **reference function** is
+present, and running it calls the real backend through the edge and shows the result (or a clear error) with a
+loading state; switching left-pane items updates the workspace without a full reload.
 
 **Acceptance Scenarios**:
 
-1. **Given** a selected service, **When** its workspace loads, **Then** a left pane lists that service's
-   functions and the main area shows the selected function.
-2. **Given** a function, **When** I provide its inputs and run it, **Then** the app calls the service and shows
-   the result (data) or a clear, actionable error, with a visible loading state in between.
-3. **Given** the workspace, **When** I switch functions in the left pane, **Then** the main area updates to the
-   newly selected function without a full reload.
+1. **Given** a service tab, **When** it opens, **Then** the left-pane + workspace frame renders and the
+   left pane shows that service's function list (populated fully by the service's own spec; 011 shows at least a
+   reference entry).
+2. **Given** the reference function, **When** I run it, **Then** the console calls the real service through the
+   edge and shows the result or a clear, actionable error, with a visible loading state in between.
+3. **Given** the workspace, **When** I switch the selected function in the left pane, **Then** the workspace area
+   updates to the newly selected function without a full page reload.
 
 ---
 
@@ -97,18 +126,21 @@ browser** with **no real cloud**, so I can demonstrate the end-to-end product lo
 **Why this priority**: Ties the console to the local, cloud-free environment the rest of the project is built
 around; valuable but depends on US1–US3 existing.
 
-**Independent Test**: From a documented startup, `floci-aws` is running with the client's AWS resources deployed,
-the backend services are up, and the console is reachable in a browser; a user can log in and exercise a service
-function end-to-end using **0** real cloud credentials.
+**Independent Test**: From a documented startup, `floci-aws` is running **with the Docker runtime available**
+(so it can run deployed compute), the client's AWS resources are deployed to it, the **Floci UI opens without
+error**, the console is reachable in a browser, and a user can log in and exercise a service function end-to-end
+using **0** real cloud credentials.
 
 **Acceptance Scenarios**:
 
-1. **Given** the documented local startup, **When** it completes, **Then** `floci-aws` is running with the
-   client's AWS resources deployed, the backend is up, and the console is reachable at a local URL in the browser.
+1. **Given** the documented local startup, **When** it completes, **Then** `floci-aws` is running with the host
+   Docker socket mounted, the client's AWS resources are deployed to it, the **Floci UI is accessible** (no
+   *"could not reach the container runtime"* error), and the console is reachable at a local URL.
 2. **Given** the environment is up, **When** I log in and run a service function, **Then** it works end-to-end
-   locally with no real cloud credentials or spend.
-3. **Given** the environment, **When** the client's deployment is inspected, **Then** the deployed AWS resources
-   exist in `floci-aws` (the client's chosen-cloud deployment is represented locally).
+   locally with **0** real cloud credentials or spend.
+3. **Given** the environment, **When** the client's deployment is inspected (console and/or the Floci UI), **Then**
+   the deployed AWS resources exist in `floci-aws` — the client's chosen-cloud deployment is represented, and the
+   browser can reach/test the running services.
 
 ### Edge Cases
 
@@ -130,20 +162,25 @@ function end-to-end using **0** real cloud credentials.
 - **FR-002**: The system MUST provide a **light/dark theme toggle** available on the login page and throughout
   the console; the choice MUST apply app-wide, switch **instantly without a flash**, and **persist** across
   reloads and sessions, defaulting to the operating-system preference on first visit.
-- **FR-003**: After sign-in, the console MUST present the **backend services available to the signed-in user's
-  client** and let the user **select** one to work with.
-- **FR-004**: The console MUST provide **navigation tabs across the top** for primary navigation between console
-  areas.
-- **FR-005**: For a selected service, the console MUST show a **left navigation pane listing that service's
-  functions**, and selecting a function MUST open its workspace in the main area (without a full page reload).
-- **FR-006**: Each function workspace MUST let the user **view the function, provide any required inputs, run it,
-  and see the result** (or a clear error) — i.e. the user can **test** the service from the browser; a **loading
-  state** MUST be shown while the call is in flight.
+- **FR-003**: After sign-in, the console MUST present **one top tab per backend service available to the
+  signed-in user's client**; the tabs **are** the service selection (no separate picker).
+- **FR-004**: The console MUST provide **navigation tabs across the top** — **one tab per service** — and
+  selecting a tab MUST switch to that service's workspace.
+- **FR-005**: For the selected service tab, the console MUST show a **left navigation pane listing that service's
+  functions** alongside a **workspace area**; selecting a function MUST open it in the workspace **without a full
+  page reload**. (011 provides this framework + a reference function; each service's full function set is its own
+  follow-on spec.)
+- **FR-006**: A function workspace MUST let the user **view the function, provide any required inputs, run it,
+  and see the result** (or a clear error) — i.e. **test** the service from the browser — with a **loading state**
+  while the call is in flight. 011 MUST demonstrate this end-to-end with at least **one reference function**.
 - **FR-007**: The console MUST be **accessible in a standard web browser at a local URL**; consistent with
-  feature 009, **only the frontend is host-exposed** and it reaches backend services through the existing edge.
-- **FR-008**: The local environment MUST bring up **`floci-aws` running with the client's AWS resources
-  deployed** (reusing feature 010) alongside the running backend, and the console MUST function against it using
-  **0 real cloud credentials or spend**.
+  feature 009, **only the frontend (and the Floci UI, for inspection)** is host-exposed and the console reaches
+  backend services through the existing edge.
+- **FR-008**: The local environment MUST bring up **`floci-aws` with the host Docker runtime available** (the
+  Docker socket mounted, run as root) so it can run the deployed compute, deploy the client's AWS resources to it
+  (reusing feature 010), keep the **Floci UI accessible** (no *"could not reach the container runtime"* error),
+  and function using **0 real cloud credentials or spend**. *(Whether Floci serves full app traffic from the
+  deployed ECS/ALB is verified in planning.)*
 - **FR-009**: The UI MUST meet a modern quality bar: **responsive** down to tablet width, **keyboard-navigable**,
   sufficient **color contrast in both themes**, and consistent use of a **current icon set** and visual style.
 - **FR-010**: The console MUST show clear **loading, empty, error, and unauthorized** states for service and
@@ -169,8 +206,10 @@ function end-to-end using **0** real cloud credentials.
   sign-in.
 - **SC-002**: Toggling light/dark restyles the entire app in **under 200 ms with no flash**, and the choice
   survives a reload.
-- **SC-003**: With the documented local environment up (backend + `floci-aws`), the console is reachable in a
-  browser and a user can **sign in and run at least one function of each available service** end-to-end.
+- **SC-003**: With the documented local environment up (backend + `floci-aws` with the Docker runtime), the
+  console is reachable in a browser, the **Floci UI opens with no "container runtime" error**, and a user can
+  **sign in and run the reference function through a service tab** end-to-end (full per-service functions arrive
+  in their own specs).
 - **SC-004**: A user can **invoke a service function and see its result (or a clear error)** from the browser,
   with a visible loading state, in **100%** of attempts against a healthy backend.
 - **SC-005**: The UI passes a basic accessibility bar — **WCAG AA color contrast in both themes**, full keyboard
@@ -184,16 +223,15 @@ function end-to-end using **0** real cloud credentials.
 - **Builds on**: feature 009 (login, identity, tenant-aware edge routing, the React/Vite frontend shell),
   feature 010 (`floci-aws` local AWS deploy of the 001 module), and feature 008 (the containerized backend
   services). This feature **redesigns and extends** that frontend rather than starting over.
-- **"Functions of a service"** are presented as a **generic function/operation explorer** per service — the left
-  pane lists the service's callable operations, and the workspace provides an input form + result view to run
-  each — **not** bespoke, fully-designed domain screens for every operation of all five services (that would be
-  an ERP's worth of UI and is out of scope here). Rich per-domain screens can come in later features.
-- **"floci-aws should be running… test and access it in my browser"** is interpreted as: the **running backend
-  services** (the local containers) serve the app traffic the browser exercises, **while `floci-aws` is the
-  client's AWS deployment target** where the cloud resources are provisioned and verifiable. Floci emulates the
-  AWS **control plane** (ECS/ALB/RDS as mocks) and does **not** run the app containers, so the console's live
-  calls hit the running local backend, and `floci-aws` represents the deployed cloud infrastructure. *(This is
-  the most consequential interpretation — worth confirming in `/speckit-clarify`.)*
+- **Each service gets FULL functionality**, but delivered as **separate per-service specs** (see "Planned
+  per-service specs"). 011 delivers only the **console foundation + the per-service workspace framework + one
+  reference function**; it does **not** implement any service's full UI.
+- **`floci-aws` must actually run and be usable**, not just represent a deployment: it is brought up **with the
+  host Docker socket mounted** (run as root) so Floci can run the deployed compute, the **Floci UI is
+  accessible**, and the browser can reach/test the running services. The earlier "Floci only mocks compute (ECS/
+  ALB), so it can't serve the app" note was an **untested assumption and may be wrong** (cf. the corrected GCP
+  finding); `/speckit-plan` **verifies empirically** whether Floci serves ECS/ALB app traffic with the Docker
+  runtime available, using the Floci docs + the [floci-cli](https://github.com/floci-io/floci-cli).
 - **Services shown** default to the current backend set (operations, HR, CRM, procurement, workflow) reachable
   through the edge; the exact per-service function lists derive from each service's existing operations.
 - **Icons/visual system**: a modern, open, actively-maintained icon set and a consistent design system; specific
@@ -208,9 +246,11 @@ function end-to-end using **0** real cloud credentials.
 
 ## Out of Scope
 
-- Fully-designed, production-grade domain UIs for every operation of every service (this feature delivers the
-  console + a function explorer, not a complete ERP UI).
-- Real cloud deployment or serving app traffic from `floci-aws` (Floci mocks compute; real cloud is feature 001).
+- **The full per-service UIs themselves** — 011 is only the foundation + framework + one reference function;
+  each service's complete functionality is delivered in **its own follow-on spec** (see "Planned per-service
+  specs"), not here.
+- **Real cloud** deployment (that is feature 001); 011 is local-only against `floci-aws`. *(Whether `floci-aws`
+  itself serves the deployed app traffic locally is not asserted here — it is verified in planning.)*
 - GCP/Azure consoles or deployments (AWS/`floci-aws` only here).
 - New backend capabilities — the console surfaces existing service functions; it does not add domain features.
 - Native mobile apps (responsive web only).
