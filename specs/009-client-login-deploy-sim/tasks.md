@@ -82,13 +82,13 @@ aimed at client-B is rejected; a token minted with a backend's own key is reject
 ### Tests for User Story 2 ⚠️ (write first, must fail)
 
 - [X] T017 [US2] edge routing test (WebTestClient/MockWebServer): a `client=A` token routes only to A's backend; `client=B` never contacted; unreachable backend → 503; missing/expired → 401 (SC-002/006)
-- [ ] T018 [US2] per-client gateway test: a token whose `client` ≠ the gateway's configured `CLIENT_ID` is rejected (FR-006)
-- [ ] T019 [US2] forgery test (SC-008): a token signed with a client backend's **own** key is rejected by the edge and by every client gateway (asymmetric verify — only identity's key validates)
+- [X] T018 [US2] per-client gateway test: a token whose `client` ≠ the gateway's configured `CLIENT_ID` is rejected (FR-006)
+- [X] T019 [US2] forgery test (SC-008): a token signed with a client backend's **own** key is rejected by the edge and by every client gateway (asymmetric verify — only identity's key validates)
 
 ### Implementation for User Story 2
 
 - [X] T020 [US2] edge: dynamic routing — resolve the validated `client` claim to `<client>-gateway:8081`; unknown/inactive client → 401; unreachable → 503 (no fallback) (contracts/edge-routing.md)
-- [ ] T021 [US2] per-client gateway hardening: add a `CLIENT_ID` env + a filter in `backend/gateway` that verifies the token (public key) and rejects any `client` claim ≠ `CLIENT_ID` (defense-in-depth), reusing the verifier from T010
+- [X] T021 [US2] per-client gateway hardening: add a `CLIENT_ID` env + a filter in `backend/gateway` that verifies the token (public key) and rejects any `client` claim ≠ `CLIENT_ID` (defense-in-depth), reusing the verifier from T010 (extracted to shared `:session-verify` module)
 
 **Checkpoint**: isolation proven — 0 cross-tenant access, no backend can forge or accept a foreign token.
 

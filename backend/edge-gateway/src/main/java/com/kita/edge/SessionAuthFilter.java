@@ -1,6 +1,8 @@
 package com.kita.edge;
 
-import com.kita.edge.token.SessionTokenVerifier;
+import com.kita.session.InvalidSessionException;
+import com.kita.session.SessionToken;
+import com.kita.session.SessionVerifier;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
@@ -38,10 +40,10 @@ public class SessionAuthFilter implements GlobalFilter, Ordered {
   private static final Logger log = LoggerFactory.getLogger(SessionAuthFilter.class);
   private static final String KITA_PREFIX = "X-Kita-";
 
-  private final SessionTokenVerifier verifier;
+  private final SessionVerifier verifier;
   private final EdgeProperties props;
 
-  public SessionAuthFilter(SessionTokenVerifier verifier, EdgeProperties props) {
+  public SessionAuthFilter(SessionVerifier verifier, EdgeProperties props) {
     this.verifier = verifier;
     this.props = props;
   }
@@ -58,10 +60,10 @@ public class SessionAuthFilter implements GlobalFilter, Ordered {
       return unauthorized(exchange, "no session cookie");
     }
 
-    SessionTokenVerifier.Session session;
+    SessionToken session;
     try {
       session = verifier.verify(cookie.getValue());
-    } catch (SessionTokenVerifier.InvalidSessionException e) {
+    } catch (InvalidSessionException e) {
       return unauthorized(exchange, e.getMessage());
     }
 

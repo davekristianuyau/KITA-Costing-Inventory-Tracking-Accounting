@@ -12,9 +12,9 @@ dependencyManagement {
 }
 
 dependencies {
+    implementation(project(":session-verify")) // shared verify (RS256) + decrypt (JWE) — no minting
     implementation("org.springframework.cloud:spring-cloud-starter-gateway")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("com.nimbusds:nimbus-jose-jwt:9.40") // verify (RS256) + decrypt (JWE) — no minting
     implementation("net.logstash.logback:logstash-logback-encoder:8.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

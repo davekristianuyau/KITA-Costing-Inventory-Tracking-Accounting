@@ -1,4 +1,4 @@
-package com.kita.edge.token;
+package com.kita.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,15 +28,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Verifies the asymmetric token contract (T010): a token minted with identity's private key is accepted
- * and its claims extracted; a token signed with any OTHER key (a backend forging its own) is rejected
- * (SC-008); an expired token is rejected.
+ * Verifies the asymmetric token contract: a token minted with identity's private key is accepted and its
+ * claims extracted; a token signed with any OTHER key (a backend forging its own) is rejected (SC-008);
+ * an expired token is rejected; garbage is rejected.
  */
-class SessionTokenVerifierTest {
+class SessionVerifierTest {
 
   private static KeyPair identityKeys;
   private static byte[] encKey;
-  private static SessionTokenVerifier verifier;
+  private static SessionVerifier verifier;
 
   @BeforeAll
   static void setup() throws Exception {
@@ -48,7 +48,7 @@ class SessionTokenVerifierTest {
 
     String pubB64 = Base64.getEncoder().encodeToString(identityKeys.getPublic().getEncoded());
     String encB64 = Base64.getEncoder().encodeToString(encKey);
-    verifier = new SessionTokenVerifier(new EdgeTokenKeys(pubB64, encB64));
+    verifier = SessionVerifier.fromBase64(pubB64, encB64);
   }
 
   @Test
@@ -62,7 +62,7 @@ class SessionTokenVerifierTest {
             List.of("USER"),
             Instant.now().plus(Duration.ofMinutes(90)));
 
-    SessionTokenVerifier.Session session = verifier.verify(token);
+    SessionToken session = verifier.verify(token);
 
     assertThat(session.subject()).isEqualTo("alice");
     assertThat(session.client()).isEqualTo("client-a");
@@ -84,8 +84,7 @@ class SessionTokenVerifierTest {
             List.of("USER"),
             Instant.now().plus(Duration.ofMinutes(90)));
 
-    assertThatThrownBy(() -> verifier.verify(forged))
-        .isInstanceOf(SessionTokenVerifier.InvalidSessionException.class);
+    assertThatThrownBy(() -> verifier.verify(forged)).isInstanceOf(InvalidSessionException.class);
   }
 
   @Test
@@ -99,14 +98,13 @@ class SessionTokenVerifierTest {
             List.of("USER"),
             Instant.now().minus(Duration.ofMinutes(1)));
 
-    assertThatThrownBy(() -> verifier.verify(expired))
-        .isInstanceOf(SessionTokenVerifier.InvalidSessionException.class);
+    assertThatThrownBy(() -> verifier.verify(expired)).isInstanceOf(InvalidSessionException.class);
   }
 
   @Test
   void rejectsGarbage() {
     assertThatThrownBy(() -> verifier.verify("not-a-token"))
-        .isInstanceOf(SessionTokenVerifier.InvalidSessionException.class);
+        .isInstanceOf(InvalidSessionException.class);
   }
 
   /** Mirror of identity's TokenService#issue: sign RS256 then JWE-encrypt (dir, A256GCM). */
