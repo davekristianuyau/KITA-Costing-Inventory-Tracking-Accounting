@@ -1,8 +1,11 @@
 # Data Model — Operations Service UI
 
-The UI adds no persistence. This captures (a) the **operations entities as surfaced** by the existing DTOs (the
-shapes the manifest renders) and (b) the **manifest-model additions** the framework needs. Field names/types
-mirror `operations-service`'s `api/*Dtos.java` exactly so result rendering matches the wire.
+No new tables or schema changes. The backend addition (FR-015, Q1=C) is **read-only endpoints over existing
+entities** (see [contracts/operations-read-api.md](./contracts/operations-read-api.md)). This captures (a) the
+**operations entities as surfaced** by the DTOs (the shapes the manifest renders — now including the newly
+listable sales orders, builds, goods receipts, single item, and locations) and (b) the **manifest-model
+additions** the framework needs. Field names/types mirror `operations-service`'s `api/*Dtos.java` exactly so
+result rendering matches the wire.
 
 ## Surfaced operations entities (read/response shapes)
 
@@ -21,7 +24,9 @@ mirror `operations-service`'s `api/*Dtos.java` exactly so result rendering match
 - **Build** (`BuildResponse`, from create): `id`, `finishedItemId`, `quantity` (dec), `status`.
 - **Sales Order** (`SalesOrderResponse`, from create/lifecycle): `id`, `customerRef`, `status`,
   `lines[]` = **Sales Line** (`itemId`, `quantity`, `unitPrice`, `reservedQty`, `fulfilledQty`).
-- **Goods Receipt** (`GoodsReceiptResponse`, from create): `id`, `supplierRef`, `locationId`.
+- **Goods Receipt** (`GoodsReceiptResponse`): `id`, `supplierRef`, `locationId` — **additively extended** for the
+  new list/detail reads (FR-015) with `lines[]` (itemId, lotCode?, expiryDate?, quantity, uom?, unitCost) and
+  `receivedAt`. Additive only; the existing create path is unaffected.
 - **Cost & Margin** (`CostMargin`, from `GET /items/{id}/cost`): the item's cost breakdown + margin vs. an
   optional sale price (single object; fields rendered as returned).
 

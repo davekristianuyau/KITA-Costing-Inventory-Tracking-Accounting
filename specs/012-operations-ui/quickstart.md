@@ -1,7 +1,16 @@
 # Quickstart — Operations Service UI
 
-Validates the full Operations workspace on top of the 011 console. Run from the repo root on branch
-`012-operations-ui`. **0 real cloud**, **0 backend changes**.
+Validates the full Operations workspace on top of the 011 console, plus the bounded **read-only** backend
+endpoints (FR-015). Run from the repo root on branch `012-operations-ui`. **0 real cloud.**
+
+## 0. Backend read endpoints (FR-015)
+
+```bash
+cd backend && ./gradlew :operations-service:build   # includes the new GET contract tests (red-first)
+```
+
+**Expect**: green — `GET /items/{id}`, `GET /locations`, and list+get for `/sales-orders`, `/builds`, `/receipts`
+return the documented shapes (or 404 for a missing id); no existing operations-service test regresses.
 
 ## 1. Bring up the environment
 
@@ -27,6 +36,8 @@ Receiving):
   cyclic BOM shows a clear "cycle detected" error, never hangs.
 - **Cost & margin** → pick an item (+ optional sale price) → the cost/margin detail renders (values shown exactly
   as returned).
+- **Sales orders / Production builds / Goods receipts** → each lists its records; opening one shows its detail
+  (via the FR-015 reads).
 
 ## 3. Write actions (US4–US5)
 
@@ -35,9 +46,11 @@ Receiving):
 - **New item** → create → then **Items** shows it.
 - **Stock adjustment** → post → then **Stock on hand** / **Movement ledger** for that item reflect it.
 - **Production build** → run → build status returns; **Stock on hand** reflects consumed components + output.
-- **New sales order** → create with lines → the order + lines + status render (no re-list endpoint — the action
-  response is the result). **Confirm / Fulfill / Cancel** by id transition its status.
-- **Goods receipt** → post → receipt returns; **Stock on hand** for the received items reflects it.
+- **New sales order** → create with lines → the order + lines + status render, and it then appears in the
+  **Sales orders** list. **Confirm / Fulfill / Cancel** by id transition its status (re-open via Sales order
+  detail).
+- **Goods receipt** → post → it appears in the **Goods receipts** list; **Stock on hand** for the received items
+  reflects it.
 
 ## 4. Automated checks
 
@@ -51,5 +64,6 @@ cd frontend && npm run build      # type-check + production build
 (Login, Console, Workspace) stay green.
 
 Details: [contracts/operations-manifest.md](./contracts/operations-manifest.md),
+[contracts/operations-read-api.md](./contracts/operations-read-api.md),
 [contracts/workspace-framework-extensions.md](./contracts/workspace-framework-extensions.md),
 [data-model.md](./data-model.md), [research.md](./research.md).

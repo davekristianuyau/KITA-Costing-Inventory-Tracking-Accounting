@@ -20,10 +20,12 @@ source: {
 }
 ```
 
-Behavior:
+Behavior (per Q2=A / FR-017 — searchable, load-once, client-side):
 
-- On the function opening (or first focus), the picker fetches `source.path` via the generic edge fetch and maps
-  each row to `{ value: row[valueKey], label: labelKeys.map(k => row[k]).join(labelSep ?? " — ") }`.
+- On the function opening (or first focus), the picker fetches `source.path` **once** via the generic edge fetch
+  and maps each row to `{ value: row[valueKey], label: labelKeys.map(k => row[k]).join(labelSep ?? " — ") }`.
+- Presents a **searchable** control: the user types to **filter client-side (type-ahead)**; the rendered option
+  list is **capped** at a sensible limit (no re-fetch, no server-side search endpoint).
 - Shows its **own** loading / error / empty state independent of the function's Run result; a load failure lets
   the user retry and does not block unrelated inputs.
 - Behaves like any input for **required validation** (a required reference with no selection blocks Run).

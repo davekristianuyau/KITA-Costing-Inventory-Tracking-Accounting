@@ -23,23 +23,21 @@ wire to endpoints that exist (no backend code). Resolved by reading the controll
 
 **Decision**: the manifest maps only to the above. **No backend endpoints are added.**
 
-## D2 — Reconciling the spec with the real API (write-only resources)
+## D2 — Reconciling the spec with the real API (write-only resources) — RESOLVED by adding reads (Q1=C)
 
-Several spec reads have **no backing GET**. Resolutions (no backend change):
+Several spec reads had **no backing GET**. Clarification **Q1=C** resolved this by **adding the missing read
+endpoints now** (FR-015) rather than working around them. Resolutions:
 
-- **"View an item's detail" (FR-002)** → the `GET /items` row already carries the full `ItemResponse` (sku,
-  name, type, uom, valuation, perishable, standard cost). The catalog **list is the detail source**; a selected
-  row can be shown as a detail panel client-side. No `GET /items/{id}` is needed or exists.
-- **"Reservations" (FR-004)** → there is no separate reservations endpoint; `GET /items/{id}/availability`
-  returns `reserved` and `available` per location. **Availability IS the reservations view** (available =
-  onHand − reserved). The spec's US2 "reservations" maps here.
-- **Sales orders, builds, goods receipts, BOMs, locations are write-only** (create/act returns the resource, but
-  there is no list/get to re-read them). **Decision**: these functions render their **action response** as the
-  result (e.g. the created sales order with its lines + status; a build's status). Verification of effect uses a
-  **downstream read where one exists**: after an adjustment/build/receipt, `GET /movements` and
-  `GET /items/{id}/availability` reflect the stock change; after `POST /items`, `GET /items` shows the new item.
-  A created sales order cannot be re-listed via the API — this is called out as a known gap; a future
-  `GET /sales-orders` is **out of scope** (would be a backend spec).
+- **"View an item's detail" (FR-002)** → add **`GET /items/{id}`** (thin: `ItemRepository.findById` → the
+  existing `ItemResponse`). The catalog list stays the browse view; detail is a real fetch.
+- **"Reservations" (FR-004)** → unchanged: `GET /items/{id}/availability` already returns `reserved`/`available`
+  per location. **Availability IS the reservations view** (available = onHand − reserved). No new endpoint.
+- **Sales orders, builds, goods receipts, locations were write-only** → **add read endpoints** (D8): list + get
+  for sales orders, builds, and goods receipts; a locations list. These make the UI able to list/re-open them and
+  make US4/US5 acceptance testable. Stock effects remain additionally verifiable via `GET /movements` and
+  `GET /items/{id}/availability`.
+- **BOMs** → `GET /boms/{parentItemId}/explosion` already exists; a BOM list is **not required by any user story**
+  and is not added (YAGNI).
 
 ## D3 — Usable inputs: reference picker + enum selects (the one framework enhancement)
 
@@ -49,10 +47,11 @@ UUIDs.
 
 **Decision**: extend the shared workspace framework (not this feature alone) with:
 
-- A new `InputField` kind **`reference`** — a select whose options load from a **list endpoint** via the edge,
-  mapping each row to `{ value, label }` (e.g. `GET /api/operations/items` → value = `id`, label = `sku — name`).
-  Config on the field: the source path, and which fields are value/label. Loaded once when the function opens;
-  its own loading/error state; required-validation like any input.
+- A new `InputField` kind **`reference`** — a **searchable picker** whose options load from a **list endpoint**
+  via the edge, mapping each row to `{ value, label }` (e.g. `GET /api/operations/items` → value = `id`,
+  label = `sku — name`). Config: the source path + which fields are value/label. Per **Q2=A / FR-017**: loads
+  **once** when the function opens, filters **client-side (type-ahead)**, and **caps** the rendered options (no
+  server-side search endpoint). Its own loading/error state; required-validation like any input.
 - Enum inputs use the existing **`select`** with static options from the known backend enums:
   - `ItemType` = RAW_MATERIAL | COMPONENT | FINISHED_GOOD | KIT
   - `UomFamily` = MASS | COUNT | LENGTH | VOLUME | OTHER
@@ -89,12 +88,40 @@ requirements table.
 view; the optional `salePrice` input lets the user see margin against a price. Monetary values are shown exactly
 as returned (decimals) — never recomputed client-side (Constitution III).
 
+## D8 — Backend read endpoints to add (FR-015)
+
+Per Q1=C, add these **read-only** endpoints to operations-service. All are thin and reuse the existing
+repositories/DTOs; each is tenant-scoped automatically by the 008 schema-per-service datasource (`findAll`/
+`findById` run against the client's schema — no tenancy code, no cross-client exposure).
+
+| Endpoint | Backing | Response |
+|---|---|---|
+| `GET /items/{id}` | `ItemRepository.findById` | existing `ItemResponse` (404 if absent) |
+| `GET /locations` | `StockLocationRepository.findAll` | `LocationResponse[]` (existing shape) |
+| `GET /sales-orders` | `SalesOrderRepository.findAll` | `SalesOrderResponse[]` (existing shape: id, customerRef, status, lines) |
+| `GET /sales-orders/{id}` | `SalesOrderRepository.findById` | `SalesOrderResponse` (404 if absent) |
+| `GET /builds` | `BuildRepository.findAll` | `BuildResponse[]` (existing shape: id, finishedItemId, quantity, status) |
+| `GET /builds/{id}` | `BuildRepository.findById` | `BuildResponse` (404 if absent) |
+| `GET /receipts` | `GoodsReceiptRepository.findAll` | `GoodsReceiptResponse[]` — **may add `lines` + `receivedAt`** to the existing (id, supplierRef, locationId) shape for a useful list/detail |
+| `GET /receipts/{id}` | `GoodsReceiptRepository.findById` | `GoodsReceiptResponse` (404 if absent) |
+
+**Decisions**:
+- **Read-only, additive**: new `@GetMapping`s + new `list()/get(id)` service methods; **no existing endpoint,
+  entity, or write path is modified** (FR-014).
+- **DTOs**: reuse the existing response records; only `GoodsReceiptResponse` may gain `lines`/`receivedAt` so its
+  list/detail is meaningful (the create-response was minimal). Additive record change, no wire break.
+- **TDD**: each new GET gets a red-first MockMvc contract test (list returns created rows; get returns the row or
+  404); ordering is newest-first where a timestamp exists, else insertion/id order.
+- **Scope guard**: no BOM list (no story needs it); no new writes; no pagination endpoint (the record picker
+  filters client-side per D3/FR-017).
+
 ## Summary of decisions
 
-1. Manifest wires only to the five GETs + the POST writes that exist; **no backend code**.
-2. Item detail = list row; reservations = availability columns; write-only resources render their action
-   response and are verified via downstream reads where one exists (created sales orders can't be re-listed —
-   noted gap, out of scope).
-3. Add a shared **reference-picker** `InputField` kind (options from a list endpoint) + enum `select`s.
+1. Manifest wires to the existing GETs/POSTs **plus** the new read endpoints from D8.
+2. Item detail = `GET /items/{id}`; reservations = availability columns; sales orders/builds/receipts become
+   **listable/viewable** via the new reads (Q1=C), and stock effects stay verifiable via movements/availability.
+3. Add shared **reference-picker** (searchable, load-once/type-ahead — FR-017) + **list** `InputField` kinds +
+   enum `select`s.
 4. Resolve item UUIDs → `SKU — name` in result tables via the items list.
 5. Valuation = AVCO|FIFO (FEFO is a lot policy); BOM explosion renders as a flat table; cost/margin as detail.
+6. Backend addition is **read-only, additive, tenant-scoped by schema**, each with a red-first contract test.
