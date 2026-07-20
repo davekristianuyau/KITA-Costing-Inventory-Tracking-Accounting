@@ -159,3 +159,43 @@ describe("CRM manifest — US3 discount + loyalty rules", () => {
     expect(edge).toHaveBeenCalledWith("GET", "/api/crm/loyalty/tiers", undefined);
   });
 });
+
+describe("CRM manifest — US4 write actions", () => {
+  it("create-customer: blocks on missing required fields then POSTs", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({ ok: true, status: 201, data: { id: "c9", customerCode: "CUST-9" } });
+    renderFn("create-customer");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(screen.getByText(/customer code is required/i)).toBeInTheDocument();
+    expect(edge).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText(/customer code/i), "CUST-9");
+    await user.selectOptions(screen.getByLabelText(/^type/i), "BUSINESS");
+    await user.type(screen.getByLabelText(/^name/i), "New Corp");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/crm/customers",
+      expect.objectContaining({ customerCode: "CUST-9", type: "BUSINESS", name: "New Corp" }),
+    );
+  });
+
+  it("add-entitlement: posts a SENIOR/PWD entitlement for a picked customer", async () => {
+    const user = userEvent.setup();
+    edge.mockImplementation((_m: string, url: string) =>
+      url === "/api/crm/customers"
+        ? Promise.resolve({ ok: true, status: 200, data: customers })
+        : Promise.resolve({ ok: true, status: 201, data: { kind: "SENIOR" } }),
+    );
+    renderFn("add-entitlement");
+    await user.click(await screen.findByText(/CUST-1 — Acme Co/));
+    await user.selectOptions(screen.getByLabelText(/kind/i), "SENIOR");
+    await user.type(screen.getByLabelText(/valid from/i), "2026-01-01");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/crm/customers/c1/entitlements",
+      expect.objectContaining({ kind: "SENIOR", validFrom: "2026-01-01" }),
+    );
+  });
+});

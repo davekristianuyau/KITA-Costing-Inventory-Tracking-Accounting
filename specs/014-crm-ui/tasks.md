@@ -106,9 +106,9 @@ mandated discount; evaluate loyalty → the customer's tier updates; create a di
 
 ### Frontend (writes already exist — no backend change)
 
-- [ ] T015 [P] [US4] Extend `frontend/tests/CrmManifest.test.tsx` (red): `create-customer` blocks on missing required inputs then POSTs; `add-entitlement` (SENIOR/PWD); `evaluate-loyalty`; `create-discount-rule` run against the mocked edge
-- [ ] T016 [US4] Add the **write** functions to `crm.ts` — `create-customer`, `update-customer`, `add-entitlement`, `evaluate-loyalty`, `create-discount-rule`, `set-discount-policy`, `create-loyalty-tier` — reading the enum option lists (CustomerStatus, DiscountOrigin, DiscountComputationKind, StackingMode) and the `LoyaltyTierDto` shape from `crm-service` at this point; use customer reference pickers + enum selects
-- [ ] T017 [US4] Verify US4: `cd frontend && npm test && npm run build` green; create→list round-trips (customers) work against the mocked edge
+- [X] T015 [P] [US4] Extend `frontend/tests/CrmManifest.test.tsx` (red): `create-customer` blocks on missing required inputs then POSTs; `add-entitlement` (SENIOR/PWD); `evaluate-loyalty`; `create-discount-rule` run against the mocked edge
+- [X] T016 [US4] Add the **write** functions to `crm.ts` — `create-customer`, `update-customer`, `add-entitlement`, `evaluate-loyalty`, `create-discount-rule`, `set-discount-policy`, `create-loyalty-tier` — reading the enum option lists (CustomerStatus, DiscountOrigin, DiscountComputationKind, StackingMode) and the `LoyaltyTierDto` shape from `crm-service` at this point; use customer reference pickers + enum selects
+- [X] T017 [US4] Verify US4: `cd frontend && npm test && npm run build` green; create→list round-trips (customers) work against the mocked edge
 
 **Checkpoint**: the full write surface works and is verifiable via the reads.
 
