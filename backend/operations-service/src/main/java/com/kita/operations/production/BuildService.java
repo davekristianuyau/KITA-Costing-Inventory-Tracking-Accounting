@@ -15,6 +15,7 @@ import com.kita.operations.inventory.StockLocation;
 import com.kita.operations.inventory.StockLocationRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,16 @@ public class BuildService {
     this.ledger = ledger;
     this.valuation = valuation;
     this.audit = audit;
+  }
+
+  @Transactional(readOnly = true)
+  public List<Build> list() {
+    return builds.findAll();
+  }
+
+  @Transactional(readOnly = true)
+  public Build get(UUID id) {
+    return builds.findById(id).orElseThrow(() -> new DomainException.NotFound("Build not found: " + id));
   }
 
   @Transactional

@@ -124,16 +124,19 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/011-service-console-ui/plan.md` (polished frontend **console foundation**). Evolve the 009 React18/Vite5
-frontend: redesigned login + **one top tab per backend service** + light/dark theme (CSS-vars, localStorage,
-no-flash) + a **per-service workspace framework** (service tab → left pane of that service's functions →
-workspace that runs a function via the 009 edge + shows result/loading/error), proven with ONE reference
-function. Design system: **Tailwind + Radix primitives + lucide-react** icons. **FULL per-service UIs are SEPARATE
-follow-on specs** (start with Operations) — a per-service **function manifest** is the seam. Local env brings up
-`floci-aws` WITH the **Docker socket mounted + -u root** (verified in /plan: Floci then RUNS real compute — an ECS
-task served nginx HTTP 200 — NOT mocked) and the **Floci UI `floci/floci-ui`:4500** (the user's "could not reach
-container runtime" error = missing socket). Only frontend + Floci UI host-exposed; 0 real cloud. Builds on 009
-(auth/edge) + 010 (floci-aws deploy). See [[floci-emulators-reference]].
+`specs/012-operations-ui/plan.md` (**Operations service full UI** — the first per-service UI on the 011 console
+foundation). Fill the 011 Operations tab with the full `operations-service` **manifest** (catalog/inventory/BOM/
+production/sales/costing); each function = a manifest entry rendered by the 011 `FunctionWorkspace` and called via
+the generic authenticated edge fetch (`src/api/edge.ts`). Phase 0 read the controllers: only 5 GET reads existed
+(items, availability, movements, BOM explosion, cost). **Clarify Q1=C → 012 now ALSO adds bounded read-only
+backend endpoints (FR-015):** `GET /items/{id}`, list `/locations`, and list+get for `/sales-orders` `/builds`
+`/receipts` — thin `findAll`/`findById` on existing repos, tenant-scoped by the 008 schema, reusing DTOs
+(GoodsReceiptResponse gains lines/receivedAt), each with a red-first MockMvc contract test; NO existing endpoint/
+write logic changes. Shared framework add: a searchable **record-picker** `InputField` (load-once + client-side
+type-ahead, Q2=A/FR-017 → pick items by SKU/name, not UUID) + enum selects + repeatable list inputs + id→label
+result resolution. Valuation = AVCO|FIFO (FEFO is a lot policy); BOM explosion is a flat table. Builds on 011
+(console/workspace/manifest/edge) + 003 (operations-service). Full UIs for HR/CRM/Procurement/Workflow = specs
+013–016. See [[frontend-and-aws-pipeline-roadmap]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -255,3 +258,13 @@ achieved. To revert an artifact to its original state, run
 [2026-07-19 21:14] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:23] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:34] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:44] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:53] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:55] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 22:00] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-20 10:12] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 10:33] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:00] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:01] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:07] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:09] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a

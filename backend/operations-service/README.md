@@ -21,3 +21,16 @@ The Accounting service consumes this service's read APIs; it does not touch the 
 - `GET /api/operations/items/{id}/cost?salePrice=` — rolled-up cost and margin.
 
 On-hand always reconciles to the sum of an item's movements; `available = on_hand − reserved`.
+
+## Read endpoints added for the console UI (feature 012, FR-015)
+
+Read-only, additive endpoints so the service console can list/view resources that were previously
+write-only (no existing endpoint or write/business logic changed). Tenant-scoped by the per-service
+schema; each covered by a MockMvc contract test.
+
+- `GET /api/operations/items/{id}` — a single catalog item.
+- `GET /api/operations/locations` — the client's stock locations.
+- `GET /api/operations/sales-orders` and `/{id}` — sales orders with lines + status.
+- `GET /api/operations/builds` and `/{id}` — production builds with status.
+- `GET /api/operations/receipts` and `/{id}` — goods receipts (with `lines` + `receivedAt`, added
+  additively to `GoodsReceiptResponse`).

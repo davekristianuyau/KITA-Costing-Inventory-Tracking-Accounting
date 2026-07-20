@@ -10,8 +10,10 @@ import com.kita.operations.catalog.Item;
 import com.kita.operations.catalog.ItemView;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,6 +49,11 @@ public class CatalogController {
   public List<ItemResponse> listItems() {
     // Served from the shared cache (invalidated on item create); falls back to the DB if Redis is down.
     return catalog.listItemViews().stream().map(CatalogController::toResponse).toList();
+  }
+
+  @GetMapping("/items/{id}")
+  public ItemResponse getItem(@PathVariable UUID id) {
+    return toResponse(catalog.requireItem(id));
   }
 
   @PostMapping("/uoms")
