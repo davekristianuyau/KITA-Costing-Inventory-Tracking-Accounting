@@ -215,7 +215,21 @@ export const operationsManifest: ServiceManifest = {
       ],
       description: "Consume a manufactured item's components and produce output.",
     },
-    // --- Costing (US5 adds `cost`) & Receiving ---
+    // --- Costing ---
+    {
+      id: "cost",
+      label: "Cost & margin",
+      icon: "Calculator",
+      method: "GET",
+      path: "/items/{id}/cost?salePrice={salePrice}",
+      result: "detail",
+      inputs: [
+        { name: "id", label: "Item", type: "reference", required: true, source: ITEMS_SOURCE },
+        { name: "salePrice", label: "Sale price", type: "number", placeholder: "optional" },
+      ],
+      description: "Item unit cost, valuation method, and margin against a sale price.",
+    },
+    // --- Receiving ---
     {
       id: "receipts",
       label: "Goods receipts",

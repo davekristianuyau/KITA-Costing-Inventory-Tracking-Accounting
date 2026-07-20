@@ -212,3 +212,20 @@ describe("Operations manifest — US4 writes + order/build/receipt reads", () =>
     );
   });
 });
+
+describe("Operations manifest — US5 costing", () => {
+  it("cost: shows the cost/margin detail for a picked item", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/operations/items": items,
+      "/api/operations/items/id-1/cost": { unitCost: "4.00", method: "AVCO", margin: "6.00" },
+    });
+    renderFn("cost");
+    await user.click(await screen.findByText(/A-1 — Widget/));
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByText("AVCO")).toBeInTheDocument();
+    expect(screen.getByText("6.00")).toBeInTheDocument();
+    // optional salePrice left blank → dropped from the query
+    expect(edge).toHaveBeenCalledWith("GET", "/api/operations/items/id-1/cost", undefined);
+  });
+});

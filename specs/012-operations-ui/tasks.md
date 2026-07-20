@@ -145,9 +145,9 @@ shown exactly as returned. (Endpoint already exists.)
 
 ### Frontend (no backend change)
 
-- [ ] T032 [P] [US5] Extend `frontend/tests/OperationsManifest.test.tsx` (red): `cost` renders the cost/margin detail from a mocked edge response
-- [ ] T033 [US5] Add the **Costing** `cost` function (`reference→items` + optional `salePrice`, result `detail`) to the manifest
-- [ ] T034 [US5] Verify US5: `npm test && npm run build` green
+- [X] T032 [P] [US5] Extend `frontend/tests/OperationsManifest.test.tsx` (red): `cost` renders the cost/margin detail from a mocked edge response
+- [X] T033 [US5] Add the **Costing** `cost` function (`reference→items` + optional `salePrice`, result `detail`) to the manifest
+- [X] T034 [US5] Verify US5: `npm test && npm run build` green
 
 **Checkpoint**: the analytical payoff — costing + margin — completes the Operations workspace.
 
