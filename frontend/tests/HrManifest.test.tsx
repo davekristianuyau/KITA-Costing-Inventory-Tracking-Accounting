@@ -222,3 +222,29 @@ describe("HR manifest — US4 write actions", () => {
     );
   });
 });
+
+describe("HR manifest — US5 outputs", () => {
+  it("payslips: lists per-employee payslips (optional filters dropped when blank)", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/hr/employees": employees,
+      "/api/hr/payslips": [{ employeeId: "e1", gross: "50000", net: "42000" }],
+    });
+    renderFn("payslips");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("42000")).toBeInTheDocument();
+    expect(within(table).getByText(/E-001 Alice Cruz/)).toBeInTheDocument(); // employeeId resolved
+    expect(edge).toHaveBeenCalledWith("GET", "/api/hr/payslips", undefined);
+  });
+
+  it("remittances: shows per-contribution totals for a run", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/hr/payroll/runs/run1/remittances": { sss: "1000", philhealth: "500" } });
+    renderFn("remittances");
+    await user.type(screen.getByLabelText(/payroll run id/i), "run1");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByText("1000")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/hr/payroll/runs/run1/remittances", undefined);
+  });
+});

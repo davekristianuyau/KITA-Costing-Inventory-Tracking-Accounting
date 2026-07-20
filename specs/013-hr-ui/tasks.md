@@ -133,9 +133,9 @@ per-contribution totals; the register (US3) shows all employees + totals.
 
 ### Frontend (endpoints already exist — no backend change)
 
-- [ ] T021 [P] [US5] Extend `frontend/tests/HrManifest.test.tsx` (red): `payslips` (table, optional runId/employeeId) and `remittances` (detail) render + run against a mocked edge
-- [ ] T022 [US5] Add the **Outputs** functions (`payslips`, `remittances`) to `hr.ts` (register is already present from US3)
-- [ ] T023 [US5] Verify US5: `cd frontend && npm test && npm run build` green
+- [X] T021 [P] [US5] Extend `frontend/tests/HrManifest.test.tsx` (red): `payslips` (table, optional runId/employeeId) and `remittances` (detail) render + run against a mocked edge
+- [X] T022 [US5] Add the **Outputs** functions (`payslips`, `remittances`) to `hr.ts` (register is already present from US3)
+- [X] T023 [US5] Verify US5: `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: the compliance outputs complete the HR workspace.
 

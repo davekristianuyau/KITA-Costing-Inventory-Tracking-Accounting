@@ -343,6 +343,31 @@ export const hrManifest: ServiceManifest = {
     // NOTE: add-loan (POST /employees/{id}/loans) and create-deduction-rule (POST /deduction-rules)
     // have complex nested/list request bodies (loan schedule; rule computation/base + rows) — deferred
     // to a follow-up rather than shipped with an approximate form.
+    // --- Outputs (US5) ---
+    {
+      id: "payslips",
+      label: "Payslips",
+      icon: "ReceiptText",
+      method: "GET",
+      path: "/payslips?runId={runId}&employeeId={employeeId}",
+      result: "table",
+      inputs: [
+        { name: "runId", label: "Payroll run id", type: "text" },
+        { name: "employeeId", label: "Employee", type: "reference", source: EMPLOYEES_SOURCE },
+      ],
+      resultRefs: employeeLabels(["employeeId"]),
+      description: "Per-employee earnings / deductions / net (filter by run and/or employee).",
+    },
+    {
+      id: "remittances",
+      label: "Statutory remittances",
+      icon: "Landmark",
+      method: "GET",
+      path: "/payroll/runs/{id}/remittances",
+      result: "detail",
+      inputs: [{ name: "id", label: "Payroll run id", type: "text", required: true }],
+      description: "Per-contribution statutory totals (SSS / PhilHealth / Pag-IBIG / BIR) for a run.",
+    },
   ],
 };
 
