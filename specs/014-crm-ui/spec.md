@@ -12,7 +12,27 @@ into the complete CRM workspace: customer records, the multi-tier **cascading** 
 and repeat-purchase tiers, and government-mandated discounts (PH senior/PWD) with VAT handling — plus a
 **price-quote preview** that shows how a price is built up for a given customer. Every function is an entry in
 the CRM **manifest** rendered by the 011 workspace framework and called through the 009 edge. No backend
-changes — `crm-service` already provides these capabilities.
+changes — `crm-service` already provides these capabilities (unlike features 012/013, no read endpoints are added).
+
+## Clarifications
+
+### Session 2026-07-20
+
+Applied from Phase-0 backend grounding (see [research.md](./research.md); these are facts about `crm-service`,
+not open decisions):
+
+- The **quote** is `POST /discounts/compute`, which takes a customer, a sale date, and a **list of line items**
+  (item, quantity, unit price) — not a single "base amount" — and returns an itemized `breakdown[]` (each
+  cascading/statutory/VAT step) + `flags` and a `finalPrice`. The UI renders that result **verbatim** (FR-012).
+- A customer's **applied tiers** are **composed from existing reads** (customer `type` INDIVIDUAL/BUSINESS +
+  stored `loyaltyTierId` + entitlements + discount-rules + the quote breakdown) — there is no single
+  "tiers-for-a-customer" endpoint, and none is added.
+- There is **no per-customer "assign discount tier" endpoint**: discount tiers are **global rules**
+  (`discount-rules`) applied at compute time by customer attributes/entitlements; **loyalty** status is set by the
+  **evaluate** action (from activity → stored `loyaltyTierId`); a customer's `type` is set via create/update.
+- `crm-service` endpoints are **role-gated** (`CRM_ADMIN`/`SALES`), but in the service's **stub security mode**
+  (the sim default) a caller with no role header gets all roles, so the console demo session can exercise CRM;
+  real-role deployments show a clear 403 when a role is missing.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -39,20 +59,20 @@ shows the discount/loyalty tiers applied to that customer — all read-only via 
 
 ### User Story 2 - Preview a price quote (Priority: P2)
 
-A user enters a customer and a base amount and sees the **cascading** discount applied in order (e.g. a tier
-discount then a further discount), any government-mandated discount (senior/PWD), and VAT — with a clear,
-itemized before/after breakdown.
+A user enters a customer and one or more line items (item, quantity, unit price) and sees the **cascading**
+discount applied in order (e.g. a tier discount then a further discount), any government-mandated discount
+(senior/PWD), and VAT — with a clear, itemized before/after breakdown.
 
-**Why this priority**: The quote preview is the headline value of CRM pricing and is read-only; it makes the
-cascading/statutory rules concrete and auditable.
+**Why this priority**: The quote preview is the headline value of CRM pricing and does not mutate state; it makes
+the cascading/statutory rules concrete and auditable.
 
-**Independent Test**: Open Customers → Quote preview → enter a customer + amount → the itemized breakdown renders
-(each discount step, statutory discount, VAT, final price).
+**Independent Test**: Open Customers → Price quote → enter a customer + sale date + line items → the itemized
+breakdown renders (each discount step, statutory discount, VAT, final price).
 
 **Acceptance Scenarios**:
 
-1. **Given** a customer with stacked discounts, **When** a base amount is quoted, **Then** each discount is
-   applied in the correct cascading order and the itemized steps + final price render.
+1. **Given** a customer with stacked discounts, **When** a quote is run for their line items, **Then** each
+   discount is applied in the correct cascading order and the itemized steps + final price render.
 2. **Given** a senior/PWD-eligible customer, **When** a quote is previewed, **Then** the government-mandated
    discount and VAT treatment are shown per the configured rule.
 
@@ -78,21 +98,22 @@ thresholds, and the government-mandated discount rules (the generic engine + PH 
 
 ### User Story 4 - Manage customers and discount assignments (Priority: P3)
 
-A user performs the write actions: create/update a customer, assign a discount tier or loyalty status, and mark
+A user performs the write actions: create/update a customer, set its type / evaluate its loyalty tier, and mark
 a customer as government-discount eligible (senior/PWD) — each a validated form with a clear result.
 
 **Why this priority**: Writes change who gets what price; they follow the read/quote views so effects can be
 verified. Each action is independently useful.
 
-**Independent Test**: Create a customer → it appears in the list; assign a tier → the customer's tiers reflect
-it; mark senior/PWD eligible → a quote for that customer then applies the mandated discount.
+**Independent Test**: Create a customer → it appears in the list; set its type / evaluate its loyalty tier → the
+customer's detail reflects it; mark senior/PWD eligible → a quote for that customer then applies the mandated
+discount.
 
 **Acceptance Scenarios**:
 
 1. **Given** the create-customer form, **When** required fields are provided and submitted, **Then** the customer
    is created; **When** a required field is missing, **Then** the call is blocked with inline validation.
-2. **Given** a customer, **When** a discount tier or loyalty status is assigned, **Then** the customer's tiers
-   update and a subsequent quote reflects it.
+2. **Given** a customer, **When** its type is set or its loyalty tier is evaluated, **Then** the customer's
+   detail updates and a subsequent quote reflects the applicable discounts.
 3. **Given** a customer, **When** they are marked senior/PWD eligible, **Then** a quote applies the mandated
    discount and VAT rule.
 
@@ -112,11 +133,15 @@ it; mark senior/PWD eligible → a quote for that customer then applies the mand
   the 011 left pane.
 - **FR-002**: Users MUST be able to list customers and view a customer's detail.
 - **FR-003**: Users MUST be able to view the discount, loyalty, and repeat tiers that apply to a customer.
-- **FR-004**: Users MUST be able to preview a price quote for a customer and base amount, showing each cascading
-  discount step, any government-mandated discount, and VAT, with a final price.
+- **FR-004**: Users MUST be able to preview a price quote for a customer and one or more line items (item,
+  quantity, unit price) with a sale date, showing each cascading discount step, any government-mandated discount,
+  and VAT, with a final price — rendered from the backend's computed result (the UI does not recompute).
 - **FR-005**: Users MUST be able to view the configured discount-tier and statutory-discount rule definitions.
 - **FR-006**: Users MUST be able to create/update a customer via a validated form.
-- **FR-007**: Users MUST be able to assign a discount tier or loyalty status to a customer via a validated form.
+- **FR-007**: Users MUST be able to influence which tiers apply to a customer via validated forms — set the
+  customer's `type` (create/update) which drives discount-tier eligibility, and evaluate the customer's **loyalty**
+  tier from supplied activity (stored as their loyalty tier). Discount tiers themselves are global rules
+  (FR-005), not a per-customer assignment.
 - **FR-008**: Users MUST be able to mark a customer government-discount eligible (e.g. senior/PWD) via a
   validated form, after which a quote applies the mandated discount and VAT rule.
 - **FR-009**: Every function MUST show explicit loading, empty, result, and error states (reusing the 011
