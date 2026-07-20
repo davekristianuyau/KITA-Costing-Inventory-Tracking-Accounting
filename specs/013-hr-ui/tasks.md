@@ -91,14 +91,14 @@ per-employee gross/deductions/net and reconciling totals.
 
 ### Backend read (FR-015)
 
-- [ ] T013 [US3] Write `backend/hr-service/src/test/java/com/kita/hr/api/PayrollRunReadContractTest` (MockMvc, red): `GET /payroll/runs` lists created runs; `GET /payroll/runs/{id}` returns one or **404** (stub security → HR_ADMIN)
-- [ ] T014 [US3] Implement payroll-run reads — add `list()` + `get(id)` to `payroll/PayrollRunService.java` (reuse `PayrollRunRepository` + `PayrollRunResponse.from`), and `GET /payroll/runs` + `GET /payroll/runs/{id}` in `api/PayrollController.java`, role-gated (HR_ADMIN/PAYROLL_OFFICER), 404 on absent
+- [X] T013 [US3] Write `backend/hr-service/src/test/java/com/kita/hr/api/PayrollRunReadContractTest` (MockMvc, red): `GET /payroll/runs` lists created runs; `GET /payroll/runs/{id}` returns one or **404** (stub security → HR_ADMIN)
+- [X] T014 [US3] Implement payroll-run reads — add `list()` + `get(id)` to `payroll/PayrollRunService.java` (reuse `PayrollRunRepository` + `PayrollRunResponse.from`), and `GET /payroll/runs` + `GET /payroll/runs/{id}` in `api/PayrollController.java`, role-gated (HR_ADMIN/PAYROLL_OFFICER), 404 on absent
 
 ### Frontend
 
-- [ ] T015 [P] [US3] Extend `frontend/tests/HrManifest.test.tsx` (red): `payroll-runs` (table), `payroll-run` (detail), and `register` (detail) render + run against a mocked edge
-- [ ] T016 [US3] Add the **Payroll** read functions (`payroll-runs`, `payroll-run`, `register`) to `hr.ts` (register renders per-employee payslips + totals)
-- [ ] T017 [US3] Verify US3: `./gradlew :hr-service:build` (payroll-run contract) + `cd frontend && npm test && npm run build` green
+- [X] T015 [P] [US3] Extend `frontend/tests/HrManifest.test.tsx` (red): `payroll-runs` (table), `payroll-run` (detail), and `register` (detail) render + run against a mocked edge
+- [X] T016 [US3] Add the **Payroll** read functions (`payroll-runs`, `payroll-run`, `register`) to `hr.ts` (register renders per-employee payslips + totals)
+- [X] T017 [US3] Verify US3: `./gradlew :hr-service:build` (payroll-run contract) + `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: runs are listable/reviewable end-to-end; a run's lines come from its register.
 

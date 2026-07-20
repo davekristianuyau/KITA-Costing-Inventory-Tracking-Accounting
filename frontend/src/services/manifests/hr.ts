@@ -136,6 +136,35 @@ export const hrManifest: ServiceManifest = {
       result: "table",
       description: "Statutory + voluntary deduction rules.",
     },
+    // --- Payroll (US3 reads) ---
+    {
+      id: "payroll-runs",
+      label: "Payroll runs",
+      icon: "CalendarRange",
+      method: "GET",
+      path: "/payroll/runs",
+      result: "table",
+      description: "All payroll runs with their period + state.",
+    },
+    {
+      id: "payroll-run",
+      label: "Payroll run detail",
+      icon: "FileText",
+      method: "GET",
+      path: "/payroll/runs/{id}",
+      result: "detail",
+      inputs: [{ name: "id", label: "Payroll run id", type: "text", required: true }],
+    },
+    {
+      id: "register",
+      label: "Payroll register",
+      icon: "Table2",
+      method: "GET",
+      path: "/payroll/runs/{id}/register",
+      result: "detail",
+      inputs: [{ name: "id", label: "Payroll run id", type: "text", required: true }],
+      description: "Per-employee gross / deductions / net + reconciling totals for a run.",
+    },
   ],
 };
 

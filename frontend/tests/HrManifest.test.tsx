@@ -128,3 +128,36 @@ describe("HR manifest — US2 attendance + leave", () => {
     expect(edge).toHaveBeenCalledWith("GET", "/api/hr/leave/requests/lr1", undefined);
   });
 });
+
+describe("HR manifest — US3 payroll runs + register", () => {
+  it("payroll-runs: lists runs with period + state", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/hr/payroll/runs": [
+        { id: "run1", status: "COMPUTED", periodStart: "2026-03-01", periodEnd: "2026-03-31" },
+      ],
+    });
+    renderFn("payroll-runs");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("COMPUTED")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/hr/payroll/runs", undefined);
+  });
+
+  it("register: shows per-employee totals for a run", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/hr/payroll/runs/run1/register": {
+        runId: "run1",
+        employeeCount: 1,
+        totalGross: "50000",
+        totalNet: "42000",
+      },
+    });
+    renderFn("register");
+    await user.type(screen.getByLabelText(/payroll run id/i), "run1");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByText("42000")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/hr/payroll/runs/run1/register", undefined);
+  });
+});
