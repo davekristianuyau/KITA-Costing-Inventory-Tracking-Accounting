@@ -124,6 +124,28 @@ public class LeaveService {
     return balances.findByEmployeeId(employeeId);
   }
 
+  /** List leave requests, optionally narrowed by employee and/or status (FR-015). */
+  @Transactional(readOnly = true)
+  public List<LeaveRequest> listRequests(UUID employeeId, LeaveStatus status) {
+    if (employeeId != null && status != null) {
+      return requests.findByEmployeeIdAndStatus(employeeId, status);
+    }
+    if (employeeId != null) {
+      return requests.findByEmployeeId(employeeId);
+    }
+    if (status != null) {
+      return requests.findByStatus(status);
+    }
+    return requests.findAll();
+  }
+
+  @Transactional(readOnly = true)
+  public LeaveRequest getRequest(UUID id) {
+    return requests
+        .findById(id)
+        .orElseThrow(() -> new NotFoundException("leave request not found: " + id));
+  }
+
   @Transactional(readOnly = true)
   public Optional<LeaveBalance> balance(UUID employeeId, UUID leaveTypeId) {
     return balances.findByEmployeeIdAndLeaveTypeId(employeeId, leaveTypeId);

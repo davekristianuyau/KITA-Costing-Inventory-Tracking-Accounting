@@ -24,6 +24,10 @@ interface LeaveBalanceRepository extends JpaRepository<LeaveBalance, UUID> {
 interface LeaveRequestRepository extends JpaRepository<LeaveRequest, UUID> {
   List<LeaveRequest> findByEmployeeIdAndStatus(UUID employeeId, LeaveStatus status);
 
+  List<LeaveRequest> findByEmployeeId(UUID employeeId);
+
+  List<LeaveRequest> findByStatus(LeaveStatus status);
+
   // Approved leave overlapping [start, end] for an employee: existing.start <= end AND existing.end >= start.
   List<LeaveRequest> findByEmployeeIdAndStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
       UUID employeeId, LeaveStatus status, LocalDate end, LocalDate start);

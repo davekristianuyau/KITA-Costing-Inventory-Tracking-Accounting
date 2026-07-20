@@ -22,6 +22,21 @@ function initialValues(inputs: InputField[] | undefined): Values {
   return v;
 }
 
+/** Build an object body from inputs; dotted names (e.g. "period.startDate") become nested objects. */
+function buildBody(inputs: InputField[], values: Values): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  for (const f of inputs) {
+    const parts = f.name.split(".");
+    let obj = body;
+    for (let i = 0; i < parts.length - 1; i++) {
+      obj[parts[i]] = (obj[parts[i]] as Record<string, unknown>) ?? {};
+      obj = obj[parts[i]] as Record<string, unknown>;
+    }
+    obj[parts[parts.length - 1]] = values[f.name];
+  }
+  return body;
+}
+
 /** Fill {param} tokens in the path from the current input values (URL-encoded), dropping empty query params. */
 function buildPath(basePath: string, path: string, values: Values): string {
   const filled = path.replace(/\{(\w+)\}/g, (_m, name) =>
@@ -90,10 +105,14 @@ export default function FunctionWorkspace({
     setResult(null);
 
     const url = buildPath(service.basePath, fn.path, values);
-    const useBody = fn.method !== "GET" && fn.method !== "DELETE" && bodyInputs.length > 0;
-    const body = useBody
-      ? Object.fromEntries(bodyInputs.map((f) => [f.name, values[f.name]]))
-      : undefined;
+    const isWrite = fn.method !== "GET" && fn.method !== "DELETE";
+    let body: unknown;
+    if (isWrite && fn.bodyInput) {
+      // Send this input's value directly (unwrapped) — e.g. a raw array body.
+      body = values[fn.bodyInput];
+    } else if (isWrite && bodyInputs.length > 0) {
+      body = buildBody(bodyInputs, values);
+    }
 
     const res = await callEdge(fn.method, url, body);
     setResult(res);

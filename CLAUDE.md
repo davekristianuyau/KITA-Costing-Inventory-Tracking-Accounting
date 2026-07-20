@@ -124,19 +124,17 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/012-operations-ui/plan.md` (**Operations service full UI** — the first per-service UI on the 011 console
-foundation). Fill the 011 Operations tab with the full `operations-service` **manifest** (catalog/inventory/BOM/
-production/sales/costing); each function = a manifest entry rendered by the 011 `FunctionWorkspace` and called via
-the generic authenticated edge fetch (`src/api/edge.ts`). Phase 0 read the controllers: only 5 GET reads existed
-(items, availability, movements, BOM explosion, cost). **Clarify Q1=C → 012 now ALSO adds bounded read-only
-backend endpoints (FR-015):** `GET /items/{id}`, list `/locations`, and list+get for `/sales-orders` `/builds`
-`/receipts` — thin `findAll`/`findById` on existing repos, tenant-scoped by the 008 schema, reusing DTOs
-(GoodsReceiptResponse gains lines/receivedAt), each with a red-first MockMvc contract test; NO existing endpoint/
-write logic changes. Shared framework add: a searchable **record-picker** `InputField` (load-once + client-side
-type-ahead, Q2=A/FR-017 → pick items by SKU/name, not UUID) + enum selects + repeatable list inputs + id→label
-result resolution. Valuation = AVCO|FIFO (FEFO is a lot policy); BOM explosion is a flat table. Builds on 011
-(console/workspace/manifest/edge) + 003 (operations-service). Full UIs for HR/CRM/Procurement/Workflow = specs
-013–016. See [[frontend-and-aws-pipeline-roadmap]].
+`specs/013-hr-ui/plan.md` (**HR & Payroll service full UI** — the second per-service UI, after 012 Operations).
+Fill the 011 HR tab with the full `hr-service` **manifest** (employees/compensation, attendance, leave, payroll
+runs, payslip/register/remittance); each function = a manifest entry rendered by the 011 `FunctionWorkspace` via
+the generic edge fetch, **reusing the 012 shared inputs** (ReferenceInput/ListInput/id→label — NO new frontend
+framework). Phase 0 read hr-service: every endpoint is **role-gated** but `CallerContext` **stub mode** (sim
+default) → demo user = `HR_ADMIN`, so HR works; a run's per-employee lines come from the existing `/register`.
+**Clarify → 013 ALSO adds bounded read-only endpoints (FR-015, mirrors 012):** `GET /payroll/runs` (+`/{id}`),
+`GET /leave/requests` (+`/{id}`) — thin `findAll`/`findById` reusing DTOs (PayrollRunResponse/LeaveRequestResponse),
+role-gated, each with a MockMvc contract test; NO existing endpoint/write logic changes. PII (statutory ids)
+already server-masked. Builds on 011 + 012 + 004 (hr-service). Remaining per-service UIs: 014-crm / 015-procurement
+/ 016-workflow. See [[frontend-and-aws-pipeline-roadmap]] + [[spec-012-operations-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -268,3 +266,6 @@ achieved. To revert an artifact to its original state, run
 [2026-07-20 11:01] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
 [2026-07-20 11:07] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
 [2026-07-20 11:09] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 18:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 19:21] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 19:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a

@@ -97,3 +97,13 @@ in `build.gradle.kts` and is a no-op on Linux/CI.
 
 Configuration is environment-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`,
 `HR_SECURITY_STUB`); no secrets live in the repo.
+
+## Read endpoints added for the console UI (feature 013, FR-015)
+
+Read-only, additive endpoints so the service console can list/view resources that were previously
+write-only (no existing endpoint or write/business logic changed). Role-gated like their siblings;
+each covered by a MockMvc contract test.
+
+- `GET /api/hr/payroll/runs` and `/{id}` — payroll runs (period + state); a run's per-employee lines
+  remain the existing `/runs/{id}/register`.
+- `GET /api/hr/leave/requests` (optional `employeeId`/`status`) and `/{id}` — leave requests.
