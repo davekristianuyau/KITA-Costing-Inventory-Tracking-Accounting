@@ -50,6 +50,15 @@ additions to `FunctionWorkspace` support HR's request shapes (both used by later
 HR endpoints are role-gated; in the sim's stub security mode the demo session acts as `HR_ADMIN`. Statutory ids
 are masked server-side; the UI displays results as-is and stores nothing sensitive.
 
+### CRM UI (feature 014)
+
+`src/services/manifests/crm.ts` declares the whole CRM surface (customers + entitlements, the cascading discount +
+statutory rules, loyalty tiers, and the **price-quote preview**) — **frontend-only** (every crm-service read/write
+already exists) and reusing the 012/013 inputs. The quote is `POST /discounts/compute` (customer + sale date +
+**line items** list → an itemized result rendered verbatim). One small generic addition to `FunctionWorkspace`:
+the **detail view renders an array-of-objects field as a nested sub-table** (used by the quote's `breakdown[]`).
+CRM is role-gated; in stub mode the demo session has all roles.
+
 ### Dynamic edge calls
 
 `/auth/*` uses the typed `openapi-fetch` client (`src/api/client.ts`, schema-checked). Manifest paths are

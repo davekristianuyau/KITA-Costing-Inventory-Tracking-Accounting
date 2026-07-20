@@ -116,10 +116,10 @@ mandated discount; evaluate loyalty → the customer's tier updates; create a di
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T018 [P] Accessibility/responsive pass: the reused inputs stay keyboard-navigable with visible focus, and CRM result shapes (the quote breakdown sub-table + result tables) scroll (not the page) at the 011 768px floor across `frontend/src/`
-- [ ] T019 [P] Docs: add a CRM note to `frontend/README.md` (the CRM manifest is frontend-only; the quote breakdown renders via the detail sub-table)
-- [ ] T020 [P] Confirm CI covers the frontend stream: the 011 `frontend` job runs the new `CrmManifest` suite + the extended `Workspace` suite; **no backend job change** (no backend code) — adjust `.github/workflows/ci.yml` only if a gap exists
-- [ ] T021 Full verification: `cd frontend && npm test && npm run build` green; run `quickstart.md` end-to-end (reads → quote → rules → writes) with 0 real cloud
+- [X] T018 [P] Accessibility/responsive pass: the reused inputs stay keyboard-navigable with visible focus, and CRM result shapes (the quote breakdown sub-table + result tables) scroll (not the page) at the 011 768px floor across `frontend/src/`
+- [X] T019 [P] Docs: add a CRM note to `frontend/README.md` (the CRM manifest is frontend-only; the quote breakdown renders via the detail sub-table)
+- [X] T020 [P] Confirm CI covers the frontend stream: the 011 `frontend` job runs the new `CrmManifest` suite + the extended `Workspace` suite; **no backend job change** (no backend code) — adjust `.github/workflows/ci.yml` only if a gap exists
+- [X] T021 Full verification: `cd frontend && npm test && npm run build` green; run `quickstart.md` end-to-end (reads → quote → rules → writes) with 0 real cloud
 
 ---
 
