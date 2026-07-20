@@ -220,3 +220,52 @@ describe("Framework extensions (012): reference input + id→label", () => {
     expect(within(table).queryByText("id-1")).not.toBeInTheDocument();
   });
 });
+
+describe("Framework extension (014): detail sub-table for nested arrays", () => {
+  const quoteFn: ServiceFunction = {
+    id: "quote",
+    label: "Quote",
+    method: "POST",
+    path: "/quote",
+    result: "detail",
+    inputs: [],
+  };
+
+  it("renders an array-of-objects field as a nested sub-table and scalars normally", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        baseTotal: "1000",
+        finalPrice: "850",
+        breakdown: [
+          { tierCode: "VIP", origin: "TIER", amountRemoved: "100" },
+          { tierCode: "SENIOR", origin: "STATUTORY", amountRemoved: "50" },
+        ],
+        flags: ["capped", "vat-inclusive"],
+      },
+    });
+    renderWorkspace(quoteFn);
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    // scalar fields render as key/value
+    expect(await screen.findByText("850")).toBeInTheDocument();
+    // the breakdown array-of-objects renders as a sub-table with its rows
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("VIP")).toBeInTheDocument();
+    expect(within(table).getByText("SENIOR")).toBeInTheDocument();
+    expect(within(table).getByText("100")).toBeInTheDocument();
+    // the array-of-scalars flags render as a joined list (not a table row)
+    expect(screen.getByText(/capped/)).toHaveTextContent(/capped.*vat-inclusive/);
+  });
+
+  it("leaves a single-level detail object unchanged", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({ ok: true, status: 200, data: { mode: "CASCADE", active: true } });
+    renderWorkspace(quoteFn);
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByText("CASCADE")).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+});

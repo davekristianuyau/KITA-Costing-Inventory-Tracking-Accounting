@@ -24,12 +24,12 @@ shared inputs must be present — **sync `main` first (T001)**.
 
 ## Phase 1: Setup
 
-- [ ] T001 **Sync `main` into `014-crm-ui`** (`git merge origin/main`) so the 012/013 shared inputs
+- [X] T001 **Sync `main` into `014-crm-ui`** (`git merge origin/main`) so the 012/013 shared inputs
   (`frontend/src/workspace/inputs/{ReferenceInput,ListInput,FieldInput}.tsx`, `workspace/result/idLabels.ts`),
   the `reference`/`list` `InputField` kinds + `resultRefs`, and the `bodyInput`/dotted-name body building in
   `FunctionWorkspace` are present; resolve any conflicts (keep the 014 CLAUDE.md marker); confirm
   `cd frontend && npm test && npm run build` green
-- [ ] T002 [P] Create `frontend/src/services/manifests/crm.ts` and point the `crm` entry in `frontend/src/services/registry.ts` at it (migrate the placeholder `customers` function into the module)
+- [X] T002 [P] Create `frontend/src/services/manifests/crm.ts` and point the `crm` entry in `frontend/src/services/registry.ts` at it (migrate the placeholder `customers` function into the module)
 
 ---
 
@@ -37,9 +37,9 @@ shared inputs must be present — **sync `main` first (T001)**.
 
 **⚠️ Blocks the user stories — the reference sources are used everywhere; the detail sub-table is needed by the US2 quote.**
 
-- [ ] T003 Define the shared manifest sources in `frontend/src/services/manifests/crm.ts` — `CUSTOMERS_SOURCE` (`/api/crm/customers`, value `id`, label `customerCode — name`), `LOYALTY_TIERS_SOURCE` (`/api/crm/loyalty/tiers`), and `resultRefs` helpers that label `customerId` (from customers) and `loyaltyTierId` (from loyalty tiers) per contracts/crm-manifest.md
-- [ ] T004 [P] Extend `frontend/tests/Workspace.test.tsx` (red): a `detail` result whose object has an **array-of-objects** field renders a nested **sub-table**; an **array-of-scalars** field renders as a joined list; existing single-level `detail` results render unchanged
-- [ ] T005 Implement the detail sub-table in `frontend/src/workspace/FunctionWorkspace.tsx` (`DetailView`: array-of-objects → sub-table, array-of-scalars → joined list, empty array → dash) per contracts/workspace-result-enhancement.md
+- [X] T003 Define the shared manifest sources in `frontend/src/services/manifests/crm.ts` — `CUSTOMERS_SOURCE` (`/api/crm/customers`, value `id`, label `customerCode — name`), `LOYALTY_TIERS_SOURCE` (`/api/crm/loyalty/tiers`), and `resultRefs` helpers that label `customerId` (from customers) and `loyaltyTierId` (from loyalty tiers) per contracts/crm-manifest.md
+- [X] T004 [P] Extend `frontend/tests/Workspace.test.tsx` (red): a `detail` result whose object has an **array-of-objects** field renders a nested **sub-table**; an **array-of-scalars** field renders as a joined list; existing single-level `detail` results render unchanged
+- [X] T005 Implement the detail sub-table in `frontend/src/workspace/FunctionWorkspace.tsx` (`DetailView`: array-of-objects → sub-table, array-of-scalars → joined list, empty array → dash) per contracts/workspace-result-enhancement.md
 
 **Checkpoint**: the manifest module + shared sources exist; nested-array detail results (the quote) render cleanly.
 
@@ -54,9 +54,9 @@ loyalty tier; Customer entitlements shows any SENIOR/PWD eligibility.
 
 ### Frontend (all endpoints already exist — no backend change)
 
-- [ ] T006 [P] [US1] Write `frontend/tests/CrmManifest.test.tsx` (red): the `customers`, `customer`, and `entitlements` functions render and run against a mocked edge; `customer` uses the reference picker sourced from `/api/crm/customers`; `customer` detail resolves `loyaltyTierId` to its tier label
-- [ ] T007 [US1] Add the **Customers** read functions (`customers`, `customer`, `entitlements`) to `frontend/src/services/manifests/crm.ts` per contracts/crm-manifest.md (resultRefs for `customerId`/`loyaltyTierId`)
-- [ ] T008 [US1] Verify US1: `cd frontend && npm test && npm run build` green
+- [X] T006 [P] [US1] Write `frontend/tests/CrmManifest.test.tsx` (red): the `customers`, `customer`, and `entitlements` functions render and run against a mocked edge; `customer` uses the reference picker sourced from `/api/crm/customers`; `customer` detail resolves `loyaltyTierId` to its tier label
+- [X] T007 [US1] Add the **Customers** read functions (`customers`, `customer`, `entitlements`) to `frontend/src/services/manifests/crm.ts` per contracts/crm-manifest.md (resultRefs for `customerId`/`loyaltyTierId`)
+- [X] T008 [US1] Verify US1: `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: MVP — browse customers, open one, see its tier + entitlements, all through the edge.
 

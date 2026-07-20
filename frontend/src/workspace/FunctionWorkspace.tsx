@@ -239,6 +239,11 @@ function ResultTable({ rows, resolve }: { rows: unknown[]; resolve: LabelResolve
       </pre>
     );
   }
+  return <DataTable objs={objs} resolve={resolve} />;
+}
+
+/** The table markup, reused by ResultTable and DetailView sub-tables. */
+function DataTable({ objs, resolve }: { objs: Record<string, unknown>[]; resolve: LabelResolver }) {
   const cols = Array.from(new Set(objs.flatMap((o) => Object.keys(o))));
   return (
     <div className="overflow-x-auto rounded border border-border">
@@ -268,16 +273,44 @@ function ResultTable({ rows, resolve }: { rows: unknown[]; resolve: LabelResolve
   );
 }
 
+const NO_RESOLVE: LabelResolver = () => null;
+
+// Detail view: scalar fields render as key/value; an array-of-objects field renders as a nested sub-table
+// (e.g. the CRM quote's breakdown[]); an array-of-scalars renders as a joined list. (contracts, feature 014)
 function DetailView({ obj, resolve }: { obj: Record<string, unknown>; resolve: LabelResolver }) {
+  const entries = Object.entries(obj);
+  const scalars = entries.filter(([, v]) => !Array.isArray(v));
+  const arrays = entries.filter(([, v]) => Array.isArray(v)) as [string, unknown[]][];
+
   return (
-    <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[max-content_1fr]">
-      {Object.entries(obj).map(([k, v]) => (
-        <div key={k} className="contents">
-          <dt className="text-sm font-medium text-muted">{k}</dt>
-          <dd className="text-sm text-text">{resolve(k, v) ?? formatCell(v)}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="flex flex-col gap-4">
+      {scalars.length > 0 && (
+        <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[max-content_1fr]">
+          {scalars.map(([k, v]) => (
+            <div key={k} className="contents">
+              <dt className="text-sm font-medium text-muted">{k}</dt>
+              <dd className="text-sm text-text">{resolve(k, v) ?? formatCell(v)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {arrays.map(([k, arr]) => {
+        const objs = arr.filter((r): r is Record<string, unknown> => !!r && typeof r === "object");
+        const allObjects = objs.length === arr.length && objs.length > 0;
+        return (
+          <div key={k} className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-muted">{k}</span>
+            {arr.length === 0 ? (
+              <span className="text-sm text-muted">—</span>
+            ) : allObjects ? (
+              <DataTable objs={objs} resolve={NO_RESOLVE} />
+            ) : (
+              <span className="text-sm text-text">{arr.map((x) => formatCell(x)).join(" · ")}</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
