@@ -37,6 +37,19 @@ workspace-framework additions from 012 (in `src/workspace/inputs/` + `src/worksp
 
 These live in the shared framework so every later per-service UI (013–016) inherits them.
 
+### HR & Payroll UI (feature 013)
+
+`src/services/manifests/hr.ts` declares the whole HR surface (employees + compensation, attendance, leave,
+payroll runs, payslip/register/remittance) — **reusing the 012 inputs**, no new framework. Two small, generic
+additions to `FunctionWorkspace` support HR's request shapes (both used by later services too):
+
+- **`bodyInput`** on a function — send that one input's value as the whole request body **unwrapped**, e.g. the
+  DTR ingest which takes a raw `List<DtrRequest>` array.
+- **dotted input names** (`period.startDate`) build a **nested** object body, e.g. the payroll-run `period`.
+
+HR endpoints are role-gated; in the sim's stub security mode the demo session acts as `HR_ADMIN`. Statutory ids
+are masked server-side; the UI displays results as-is and stores nothing sensitive.
+
 ### Dynamic edge calls
 
 `/auth/*` uses the typed `openapi-fetch` client (`src/api/client.ts`, schema-checked). Manifest paths are

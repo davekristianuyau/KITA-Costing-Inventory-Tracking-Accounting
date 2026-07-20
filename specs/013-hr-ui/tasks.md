@@ -143,10 +143,10 @@ per-contribution totals; the register (US3) shows all employees + totals.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T024 [P] Accessibility/responsive pass: the reused 012 inputs stay keyboard-navigable with visible focus, and HR result shapes (register/payslip/remittance detail + tables) scroll (not the page) at the 011 768px floor across `frontend/src/`
-- [ ] T025 [P] Docs: add an HR note to `frontend/README.md` (the HR manifest reuses the 012 inputs) and note the FR-015 read endpoints in `backend/hr-service/README.md`
-- [ ] T026 [P] Confirm CI covers both streams: the 011 `frontend` job runs the new `HrManifest` suite; the backend job runs `:hr-service:build` (the new contract tests) — adjust `.github/workflows/ci.yml` only if a gap exists
-- [ ] T027 Full verification: `cd backend && ./gradlew :hr-service:build` + `cd frontend && npm test && npm run build` green; run `quickstart.md` end-to-end (reads → writes → list/verify) with 0 real cloud
+- [X] T024 [P] Accessibility/responsive pass: the reused 012 inputs stay keyboard-navigable with visible focus, and HR result shapes (register/payslip/remittance detail + tables) scroll (not the page) at the 011 768px floor across `frontend/src/`
+- [X] T025 [P] Docs: add an HR note to `frontend/README.md` (the HR manifest reuses the 012 inputs) and note the FR-015 read endpoints in `backend/hr-service/README.md`
+- [X] T026 [P] Confirm CI covers both streams: the 011 `frontend` job runs the new `HrManifest` suite; the backend job runs `:hr-service:build` (the new contract tests) — adjust `.github/workflows/ci.yml` only if a gap exists
+- [X] T027 Full verification: `cd backend && ./gradlew :hr-service:build` + `cd frontend && npm test && npm run build` green; run `quickstart.md` end-to-end (reads → writes → list/verify) with 0 real cloud
 
 ---
 
