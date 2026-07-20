@@ -117,20 +117,20 @@ build → it appears in Builds and stock reflects it; create a sales order → i
 
 ### Backend reads (FR-015)
 
-- [ ] T021 [P] [US4] Write `SalesOrderReadContractTest` (MockMvc, red): `GET /sales-orders` lists created orders; `GET /sales-orders/{id}` returns one or **404**
-- [ ] T022 [P] [US4] Write `BuildReadContractTest` (MockMvc, red): `GET /builds` lists; `GET /builds/{id}` returns one or **404**
-- [ ] T023 [P] [US4] Write `GoodsReceiptReadContractTest` (MockMvc, red): `GET /receipts` lists (with `lines`/`receivedAt`); `GET /receipts/{id}` returns one or **404**
-- [ ] T024 [US4] Implement sales-order reads — `list()`/`get(id)` in `sales/SalesOrderService.java` + `GET /sales-orders` and `/{id}` in `api/SalesOrderController.java` (existing `toResponse`, 404 on absent)
-- [ ] T025 [US4] Implement build reads — `list()`/`get(id)` in `production/BuildService.java` + `GET /builds` and `/{id}` in `api/BuildController.java`
-- [ ] T026 [US4] Implement goods-receipt reads — `list()`/`get(id)` in `procurement/GoodsReceiptService.java` + `GET /receipts` and `/{id}` in `api/GoodsReceiptController.java`; **additively** extend `GoodsReceiptResponse` in `api/ReceiptDtos.java` with `lines[]` + `receivedAt` (no change to the create path's other behavior)
+- [X] T021 [P] [US4] Write `SalesOrderReadContractTest` (MockMvc, red): `GET /sales-orders` lists created orders; `GET /sales-orders/{id}` returns one or **404**
+- [X] T022 [P] [US4] Write `BuildReadContractTest` (MockMvc, red): `GET /builds` lists; `GET /builds/{id}` returns one or **404**
+- [X] T023 [P] [US4] Write `GoodsReceiptReadContractTest` (MockMvc, red): `GET /receipts` lists (with `lines`/`receivedAt`); `GET /receipts/{id}` returns one or **404**
+- [X] T024 [US4] Implement sales-order reads — `list()`/`get(id)` in `sales/SalesOrderService.java` + `GET /sales-orders` and `/{id}` in `api/SalesOrderController.java` (existing `toResponse`, 404 on absent)
+- [X] T025 [US4] Implement build reads — `list()`/`get(id)` in `production/BuildService.java` + `GET /builds` and `/{id}` in `api/BuildController.java`
+- [X] T026 [US4] Implement goods-receipt reads — `list()`/`get(id)` in `procurement/GoodsReceiptService.java` + `GET /receipts` and `/{id}` in `api/GoodsReceiptController.java`; **additively** extend `GoodsReceiptResponse` in `api/ReceiptDtos.java` with `lines[]` + `receivedAt` (no change to the create path's other behavior)
 
 ### Frontend
 
-- [ ] T027 [P] [US4] Write `frontend/tests/ListInput.test.tsx` (red): the repeatable list input adds/removes rows, each row rendering its nested fields (incl. `reference`), submits an array, and a required list blocks Run until it has a valid row
-- [ ] T028 [US4] Implement `frontend/src/workspace/inputs/ListInput.tsx` and render the `list` kind in `FunctionWorkspace.tsx`
-- [ ] T029 [P] [US4] Extend `frontend/tests/OperationsManifest.test.tsx` (red): the create-* forms validate required inputs and run; `sales-orders`/`builds`/`receipts` render lists and `*-detail` renders one (mock the edge)
-- [ ] T030 [US4] Add the **write** functions (`create-item`, `create-uom`, `create-conversion`, `create-location`, `post-adjustment`, `create-bom` [list], `create-build`, `create-sales-order` [list], `confirm/fulfill/cancel-sales-order`, `post-receipt` [list]) and the **read** functions (`sales-orders`, `sales-order`, `builds`, `build`, `receipts`, `receipt`) to `frontend/src/services/manifests/operations.ts` per operations-manifest.md (enum selects for ItemType/UomFamily/ValuationMethod/BomType)
-- [ ] T031 [US4] Verify US4: `:operations-service:build` (the 3 read contract tests) + `npm test && npm run build` green; create→list round-trips work against the mocked edge
+- [X] T027 [P] [US4] Write `frontend/tests/ListInput.test.tsx` (red): the repeatable list input adds/removes rows, each row rendering its nested fields (incl. `reference`), submits an array, and a required list blocks Run until it has a valid row
+- [X] T028 [US4] Implement `frontend/src/workspace/inputs/ListInput.tsx` and render the `list` kind in `FunctionWorkspace.tsx`
+- [X] T029 [P] [US4] Extend `frontend/tests/OperationsManifest.test.tsx` (red): the create-* forms validate required inputs and run; `sales-orders`/`builds`/`receipts` render lists and `*-detail` renders one (mock the edge)
+- [X] T030 [US4] Add the **write** functions (`create-item`, `create-uom`, `create-conversion`, `create-location`, `post-adjustment`, `create-bom` [list], `create-build`, `create-sales-order` [list], `confirm/fulfill/cancel-sales-order`, `post-receipt` [list]) and the **read** functions (`sales-orders`, `sales-order`, `builds`, `build`, `receipts`, `receipt`) to `frontend/src/services/manifests/operations.ts` per operations-manifest.md (enum selects for ItemType/UomFamily/ValuationMethod/BomType)
+- [X] T031 [US4] Verify US4: `:operations-service:build` (the 3 read contract tests) + `npm test && npm run build` green; create→list round-trips work against the mocked edge
 
 **Checkpoint**: the full write surface + the new reads — every create/lifecycle action is verifiable via a read.
 

@@ -151,3 +151,64 @@ describe("Operations manifest — US3 BOM explosion", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/cycle detected/i);
   });
 });
+
+describe("Operations manifest — US4 writes + order/build/receipt reads", () => {
+  it("create-item: blocks on missing required fields then POSTs the item", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({ ok: true, status: 201, data: { id: "x", sku: "NEW" } });
+    renderFn("create-item");
+
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(screen.getByText(/sku is required/i)).toBeInTheDocument();
+    expect(edge).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText(/^sku/i), "NEW");
+    await user.type(screen.getByLabelText(/^name/i), "New Item");
+    await user.selectOptions(screen.getByLabelText(/^type/i), "FINISHED_GOOD");
+    await user.type(screen.getByLabelText(/base unit code/i), "ea");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/operations/items",
+      expect.objectContaining({ sku: "NEW", name: "New Item", type: "FINISHED_GOOD", baseUom: "ea" }),
+    );
+  });
+
+  it("sales-orders: lists created orders", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/operations/sales-orders": [{ id: "so1", customerRef: "CUST-1", status: "DRAFT" }],
+    });
+    renderFn("sales-orders");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("CUST-1")).toBeInTheDocument();
+    expect(within(table).getByText("DRAFT")).toBeInTheDocument();
+  });
+
+  it("create-sales-order: submits a lines array built from the list input", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/operations/items": items,
+      "/api/operations/sales-orders": { id: "so1", status: "DRAFT" },
+    });
+    renderFn("create-sales-order");
+
+    await user.type(screen.getByLabelText(/customer reference/i), "CUST-1");
+    await user.click(screen.getByRole("button", { name: /add row/i }));
+    await user.click(await screen.findByText(/A-1 — Widget/)); // pick the row's item (reference)
+    await user.type(screen.getByLabelText(/quantity/i), "3");
+    await user.type(screen.getByLabelText(/unit price/i), "10");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/operations/sales-orders",
+      expect.objectContaining({
+        customerRef: "CUST-1",
+        lines: [expect.objectContaining({ itemId: "id-1", quantity: "3", unitPrice: "10" })],
+      }),
+    );
+  });
+});

@@ -7,18 +7,18 @@ import { AlertCircle, Loader2, Play } from "lucide-react";
 import { callEdge, type EdgeResult } from "../api/edge";
 import type { InputField, ServiceFunction, ServiceManifest } from "../services/types";
 import Button from "../ui/Button";
-import { inputClass } from "../ui/Field";
-import { cn } from "../ui/cn";
-import ReferenceInput from "./inputs/ReferenceInput";
+import FieldInput from "./inputs/FieldInput";
+import ListInput from "./inputs/ListInput";
 import { useResultLabels, type LabelResolver } from "./result/idLabels";
 
 type RunState = "idle" | "running" | "done";
 
-type Values = Record<string, string | boolean>;
+type Row = Record<string, unknown>;
+type Values = Record<string, unknown>;
 
 function initialValues(inputs: InputField[] | undefined): Values {
   const v: Values = {};
-  for (const f of inputs ?? []) v[f.name] = f.type === "boolean" ? false : "";
+  for (const f of inputs ?? []) v[f.name] = f.type === "list" ? [] : f.type === "boolean" ? false : "";
   return v;
 }
 
@@ -61,14 +61,21 @@ export default function FunctionWorkspace({
     [fn],
   );
 
-  function setField(name: string, value: string | boolean) {
+  function setField(name: string, value: unknown) {
     setValues((v) => ({ ...v, [name]: value }));
   }
 
   function validate(): boolean {
     const next: Record<string, string> = {};
     for (const f of fn.inputs ?? []) {
-      if (f.required && (values[f.name] === "" || values[f.name] === undefined)) {
+      const val = values[f.name];
+      if (f.type === "list") {
+        const rows = Array.isArray(val) ? (val as Row[]) : [];
+        const needsRow = f.required || (f.minRows ?? 0) > 0;
+        if (needsRow && rows.length === 0) {
+          next[f.name] = `${f.label} needs at least one row`;
+        }
+      } else if (f.required && (val === "" || val === undefined)) {
         next[f.name] = `${f.label} is required`;
       }
     }
@@ -103,15 +110,30 @@ export default function FunctionWorkspace({
       <form onSubmit={onRun} className="flex flex-col gap-4">
         {hasInputs && (
           <div className="grid gap-4 sm:grid-cols-2">
-            {(fn.inputs ?? []).map((f) => (
-              <InputControl
-                key={f.name}
-                field={f}
-                value={values[f.name]}
-                error={errors[f.name]}
-                onChange={(val) => setField(f.name, val)}
-              />
-            ))}
+            {(fn.inputs ?? []).map((f) =>
+              f.type === "list" ? (
+                <div key={f.name} className="sm:col-span-2">
+                  <ListInput
+                    id={f.name}
+                    label={f.label}
+                    fields={f.fields ?? []}
+                    value={(values[f.name] as Row[]) ?? []}
+                    required={f.required}
+                    minRows={f.minRows}
+                    error={errors[f.name]}
+                    onChange={(rows) => setField(f.name, rows)}
+                  />
+                </div>
+              ) : (
+                <FieldInput
+                  key={f.name}
+                  field={f}
+                  value={(values[f.name] as string | boolean) ?? (f.type === "boolean" ? false : "")}
+                  error={errors[f.name]}
+                  onChange={(val) => setField(f.name, val)}
+                />
+              ),
+            )}
           </div>
         )}
         <div>
@@ -128,101 +150,6 @@ export default function FunctionWorkspace({
 
       <ResultView state={state} result={result} kind={fn.result} resolve={resolveLabel} />
     </section>
-  );
-}
-
-function InputControl({
-  field,
-  value,
-  error,
-  onChange,
-}: {
-  field: InputField;
-  value: string | boolean;
-  error?: string;
-  onChange: (v: string | boolean) => void;
-}) {
-  const id = `fn-input-${field.name}`;
-  const describedBy = error ? `${id}-error` : undefined;
-
-  // Reference picker renders its own label + search UI (FR-017).
-  if (field.type === "reference" && field.source) {
-    return (
-      <ReferenceInput
-        id={id}
-        label={field.label}
-        source={field.source}
-        value={value as string}
-        required={field.required}
-        error={error}
-        onChange={(v) => onChange(v)}
-      />
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      {field.type !== "boolean" && (
-        <label htmlFor={id} className="text-sm font-medium text-text">
-          {field.label}
-          {field.required && <span className="text-danger"> *</span>}
-        </label>
-      )}
-      {field.type === "textarea" ? (
-        <textarea
-          id={id}
-          value={value as string}
-          placeholder={field.placeholder}
-          aria-invalid={!!error}
-          aria-describedby={describedBy}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn(inputClass, "h-24 py-2")}
-        />
-      ) : field.type === "select" ? (
-        <select
-          id={id}
-          value={value as string}
-          aria-invalid={!!error}
-          aria-describedby={describedBy}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputClass}
-        >
-          <option value="">Select…</option>
-          {(field.options ?? []).map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
-      ) : field.type === "boolean" ? (
-        <label htmlFor={id} className="flex items-center gap-2 text-sm font-medium text-text">
-          <input
-            id={id}
-            type="checkbox"
-            checked={value as boolean}
-            onChange={(e) => onChange(e.target.checked)}
-            className="h-4 w-4 rounded border-border"
-          />
-          {field.label}
-        </label>
-      ) : (
-        <input
-          id={id}
-          type={field.type === "number" ? "number" : "text"}
-          value={value as string}
-          placeholder={field.placeholder}
-          aria-invalid={!!error}
-          aria-describedby={describedBy}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputClass}
-        />
-      )}
-      {error && (
-        <p id={describedBy} className="text-xs text-danger">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }
 
