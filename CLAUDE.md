@@ -124,16 +124,19 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/011-service-console-ui/plan.md` (polished frontend **console foundation**). Evolve the 009 React18/Vite5
-frontend: redesigned login + **one top tab per backend service** + light/dark theme (CSS-vars, localStorage,
-no-flash) + a **per-service workspace framework** (service tab → left pane of that service's functions →
-workspace that runs a function via the 009 edge + shows result/loading/error), proven with ONE reference
-function. Design system: **Tailwind + Radix primitives + lucide-react** icons. **FULL per-service UIs are SEPARATE
-follow-on specs** (start with Operations) — a per-service **function manifest** is the seam. Local env brings up
-`floci-aws` WITH the **Docker socket mounted + -u root** (verified in /plan: Floci then RUNS real compute — an ECS
-task served nginx HTTP 200 — NOT mocked) and the **Floci UI `floci/floci-ui`:4500** (the user's "could not reach
-container runtime" error = missing socket). Only frontend + Floci UI host-exposed; 0 real cloud. Builds on 009
-(auth/edge) + 010 (floci-aws deploy). See [[floci-emulators-reference]].
+`specs/014-crm-ui/plan.md` (**CRM service full UI** — the third per-service UI, after 012 Operations + 013 HR).
+Fill the 011 Customers tab with the full `crm-service` **manifest** (customers, cascading discount + statutory
+rules, loyalty tiers, entitlements, **price-quote preview**); each function = a manifest entry rendered by the 011
+`FunctionWorkspace` via the generic edge fetch, **reusing the 012/013 shared inputs** (reference/list/id→label +
+bodyInput/dotted-name bodies). Phase 0 read crm-service: **all needed reads already exist → 014 is FRONTEND-ONLY,
+NO backend code** (unlike 012/013). Quote = `POST /discounts/compute` (customer + saleDate + **line items** list →
+itemized `breakdown[]` + flags/VAT, rendered verbatim). A customer's tiers = composed reads (customer `type` +
+stored `loyaltyTierId` + entitlements + discount-rules + quote breakdown); "assign tier" is rule-driven, loyalty
+via evaluate POST — no assign-tier endpoint. Role-gated but `crm.security.stub` default → demo session gets all
+roles. **One small generic framework add:** `DetailView` renders array-of-objects result fields (the quote
+`breakdown[]`) as a **sub-table**. ⚠️ **Sync `main` into 014 first** (branch predates the 012/013 merges). Builds
+on 011 + 012 + 013 + 005 (crm-service). Remaining: 015-procurement / 016-workflow. See
+[[frontend-and-aws-pipeline-roadmap]] + [[spec-013-hr-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
