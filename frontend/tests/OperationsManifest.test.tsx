@@ -114,3 +114,40 @@ describe("Operations manifest — US2 movements + locations", () => {
     expect(edge).toHaveBeenCalledWith("GET", "/api/operations/locations", undefined);
   });
 });
+
+describe("Operations manifest — US3 BOM explosion", () => {
+  it("explodes a BOM into a flat requirements table", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/operations/items": items,
+      "/api/operations/boms/id-1/explosion?quantity=2": [
+        { componentItemId: "id-2", requiredQuantity: 4, uom: "ea" },
+      ],
+    });
+    renderFn("bom-explosion");
+    await user.click(await screen.findByText(/A-1 — Widget/));
+    await user.type(screen.getByLabelText(/quantity/i), "2");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("4")).toBeInTheDocument();
+    expect(within(table).getByText(/B-2 — Gadget/)).toBeInTheDocument(); // componentItemId resolved
+    expect(edge).toHaveBeenCalledWith(
+      "GET",
+      "/api/operations/boms/id-1/explosion?quantity=2",
+      undefined,
+    );
+  });
+
+  it("shows a clear error for a cyclic BOM", async () => {
+    const user = userEvent.setup();
+    edge.mockImplementation((_m: string, url: string) =>
+      url === "/api/operations/items"
+        ? Promise.resolve({ ok: true, status: 200, data: items })
+        : Promise.resolve({ ok: false, status: 409, data: null, error: "cycle detected" }),
+    );
+    renderFn("bom-explosion");
+    await user.click(await screen.findByText(/A-1 — Widget/));
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/cycle detected/i);
+  });
+});

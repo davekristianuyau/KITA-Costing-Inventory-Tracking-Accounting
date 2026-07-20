@@ -97,9 +97,9 @@ requirements; a cyclic BOM shows a clear "cycle detected" error and never hangs.
 
 ### Frontend (no backend change)
 
-- [ ] T018 [P] [US3] Extend `frontend/tests/OperationsManifest.test.tsx` (red): `bom-explosion` renders the flat requirements table on success and the error state on a cycle/error response (mock the edge)
-- [ ] T019 [US3] Add the **BOM** `bom-explosion` function (`reference→items` parent + optional `quantity`, result `table`) to the manifest; item columns resolve via id→label
-- [ ] T020 [US3] Verify US3: `npm test && npm run build` green
+- [X] T018 [P] [US3] Extend `frontend/tests/OperationsManifest.test.tsx` (red): `bom-explosion` renders the flat requirements table on success and the error state on a cycle/error response (mock the edge)
+- [X] T019 [US3] Add the **BOM** `bom-explosion` function (`reference→items` parent + optional `quantity`, result `table`) to the manifest; item columns resolve via id→label
+- [X] T020 [US3] Verify US3: `npm test && npm run build` green
 
 **Checkpoint**: the signature manufacturing view works end-to-end.
 

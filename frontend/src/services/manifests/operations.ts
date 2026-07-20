@@ -83,5 +83,26 @@ export const operationsManifest: ServiceManifest = {
       result: "table",
       description: "Stock locations for this client.",
     },
+    // --- BOM ---
+    {
+      id: "bom-explosion",
+      label: "BOM explosion",
+      icon: "Network",
+      method: "GET",
+      path: "/boms/{parentItemId}/explosion?quantity={quantity}",
+      result: "table",
+      inputs: [
+        {
+          name: "parentItemId",
+          label: "Manufactured item",
+          type: "reference",
+          required: true,
+          source: ITEMS_SOURCE,
+        },
+        { name: "quantity", label: "Quantity", type: "number", placeholder: "default 1" },
+      ],
+      resultRefs: [{ columns: ["componentItemId"], source: ITEMS_SOURCE }],
+      description: "Flat component requirements for a manufactured item (already exploded + summed).",
+    },
   ],
 };
