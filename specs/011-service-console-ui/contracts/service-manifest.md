@@ -36,8 +36,11 @@ type InputField = {
 ## Framework behavior (011)
 
 - Renders each service's `functions` in the **left pane**; the selected function's `inputs` become a **run-form**.
-- **Run** issues `method basePath+path` through the **009 edge** (openapi-fetch, cookie auth), showing a
-  **loading** state, then renders the response per `result` (table/json/detail/message) or a clear **error**.
+- **Run** issues `method basePath+path` through the **009 edge** with a **generic authenticated fetch**
+  (`fetch(url, {credentials:"include"})` — see `src/api/edge.ts`), showing a **loading** state, then renders
+  the response per `result` (table/json/detail/message) or a clear **error**. (The typed openapi-fetch `api`
+  client only knows the `/auth/*` schema, so dynamic manifest paths use the generic fetch; `/auth` still uses
+  the typed client.)
 - Path `{param}` tokens are substituted from `inputs`; missing required inputs block the call with inline
   validation.
 

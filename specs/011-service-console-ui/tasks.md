@@ -115,9 +115,9 @@ client's AWS resources deployed, the 009 backend, and the console — browser-ac
 **Independent Test**: Run the startup → floci-aws + Floci UI up, resources deployed, console reachable; log in +
 run the reference function; the Floci UI opens with no "container runtime" error.
 
-- [ ] T021 [US4] `sim/console-up.sh` (+ any compose) — bring up **floci-aws with `-v /var/run/docker.sock:/var/run/docker.sock` and `-u root`** and the **Floci UI (`floci/floci-ui:4500`)**, then the 009 backend/edge/frontend, and deploy the client's AWS resources (reuse feature 010); **only the frontend + Floci UI host-exposed** (contracts/local-environment.md)
-- [ ] T022 [US4] `sim/console-down.sh` + confirm the **Floci UI opens** (`curl -sf localhost:4500` → 200, no *"could not reach the container runtime"* error) and that datastores/edge/emulator internals are not host-exposed
-- [ ] T023 [US4] `sim/console-smoke.sh` — env up → console reachable → login as a demo client → run the reference function (200/routed) → Floci UI reachable → **0 real cloud creds**; independent teardown
+- [X] T021 [US4] `sim/console-up.sh` (+ any compose) — bring up **floci-aws with `-v /var/run/docker.sock:/var/run/docker.sock` and `-u root`** and the **Floci UI (`floci/floci-ui:4500`)**, then the 009 backend/edge/frontend, and deploy the client's AWS resources (reuse feature 010); **only the frontend + Floci UI host-exposed** (contracts/local-environment.md)
+- [X] T022 [US4] `sim/console-down.sh` + confirm the **Floci UI opens** (`curl -sf localhost:4500` → 200, no *"could not reach the container runtime"* error) and that datastores/edge/emulator internals are not host-exposed
+- [X] T023 [US4] `sim/console-smoke.sh` — env up → console reachable → login as a demo client → run the reference function (200/routed) → Floci UI reachable → **0 real cloud creds**; independent teardown
 
 **Checkpoint**: the whole console runs locally against a live, inspectable floci-aws.
 
