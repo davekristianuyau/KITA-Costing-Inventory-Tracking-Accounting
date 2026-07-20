@@ -6,26 +6,11 @@
 // reference entries that the per-service specs replace with each service's full manifest.
 import type { ServiceManifest } from "./types";
 import { operationsManifest } from "./manifests/operations";
+import { hrManifest } from "./manifests/hr";
 
 export const registry: ServiceManifest[] = [
   operationsManifest,
-  {
-    id: "hr",
-    label: "HR & Payroll",
-    icon: "Users",
-    basePath: "/api/hr",
-    functions: [
-      {
-        id: "employees",
-        label: "Employees",
-        icon: "Users",
-        method: "GET",
-        path: "/employees",
-        result: "table",
-        description: "Reference entry — the HR spec authors the full manifest.",
-      },
-    ],
-  },
+  hrManifest,
   {
     id: "crm",
     label: "Customers",

@@ -24,12 +24,12 @@ must be present — **sync `main` first (T001)**.
 
 ## Phase 1: Setup
 
-- [ ] T001 **Sync `main` into `013-hr-ui`** (`git merge origin/main`) so the 012 shared inputs
+- [X] T001 **Sync `main` into `013-hr-ui`** (`git merge origin/main`) so the 012 shared inputs
   (`frontend/src/workspace/inputs/ReferenceInput.tsx`, `ListInput.tsx`, `FieldInput.tsx`,
   `workspace/result/idLabels.ts`) and the `reference`/`list` `InputField` kinds + `resultRefs` in
   `frontend/src/services/types.ts` are present; resolve any conflicts; confirm `cd frontend && npm test && npm run build` green
-- [ ] T002 [P] Create `frontend/src/services/manifests/hr.ts` and point the `hr` entry in `frontend/src/services/registry.ts` at it (migrate the placeholder `employees` function into the module)
-- [ ] T003 [P] Backend baseline sanity: `cd backend && ./gradlew :hr-service:compileJava :hr-service:compileTestJava` green before any change
+- [X] T002 [P] Create `frontend/src/services/manifests/hr.ts` and point the `hr` entry in `frontend/src/services/registry.ts` at it (migrate the placeholder `employees` function into the module)
+- [X] T003 [P] Backend baseline sanity: `cd backend && ./gradlew :hr-service:compileJava :hr-service:compileTestJava` green before any change
 
 ---
 
@@ -37,7 +37,7 @@ must be present — **sync `main` first (T001)**.
 
 **⚠️ Blocks the user stories — the reference sources are used by every area.**
 
-- [ ] T004 Define the shared manifest sources in `frontend/src/services/manifests/hr.ts` — `EMPLOYEES_SOURCE` (`/api/hr/employees`, value `id`, label `employeeNo — firstName lastName`), `LEAVE_TYPES_SOURCE` (`/api/hr/leave/types`), and an `employeeLabels(columns)` helper for `resultRefs` (relabel `employeeId` columns) per contracts/hr-manifest.md
+- [X] T004 Define the shared manifest sources in `frontend/src/services/manifests/hr.ts` — `EMPLOYEES_SOURCE` (`/api/hr/employees`, value `id`, label `employeeNo — firstName lastName`), `LEAVE_TYPES_SOURCE` (`/api/hr/leave/types`), and an `employeeLabels(columns)` helper for `resultRefs` (relabel `employeeId` columns) per contracts/hr-manifest.md
 
 **Checkpoint**: the manifest module + shared sources exist; functions can now be added per story.
 
@@ -52,9 +52,9 @@ must be present — **sync `main` first (T001)**.
 
 ### Frontend (all endpoints already exist — no backend change)
 
-- [ ] T005 [P] [US1] Write `frontend/tests/HrManifest.test.tsx` (red): the `employees`, `employee`, `compensation`, and `status-history` functions render and run against a mocked edge; `employee` uses the reference picker sourced from `/api/hr/employees`
-- [ ] T006 [US1] Add the **Employees** read functions (`employees`, `employee`, `compensation`, `status-history`) to `frontend/src/services/manifests/hr.ts` per contracts/hr-manifest.md
-- [ ] T007 [US1] Verify US1: `cd frontend && npm test && npm run build` green
+- [X] T005 [P] [US1] Write `frontend/tests/HrManifest.test.tsx` (red): the `employees`, `employee`, `compensation`, and `status-history` functions render and run against a mocked edge; `employee` uses the reference picker sourced from `/api/hr/employees`
+- [X] T006 [US1] Add the **Employees** read functions (`employees`, `employee`, `compensation`, `status-history`) to `frontend/src/services/manifests/hr.ts` per contracts/hr-manifest.md
+- [X] T007 [US1] Verify US1: `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: MVP — browse employees, open one, see compensation + status history, all through the edge.
 
