@@ -155,10 +155,10 @@ shown exactly as returned. (Endpoint already exists.)
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T035 [P] Accessibility/responsive pass across the new inputs/results: the reference picker + list input are keyboard-navigable with visible focus, and result tables scroll (not the page) at the 011 768px floor
-- [ ] T036 [P] Docs: extend `frontend/README.md` (Operations manifest + record picker) and note the FR-015 read endpoints in `backend/operations-service/README.md`
-- [ ] T037 [P] Confirm CI covers both streams: the 011 `frontend` job runs the new Vitest suites; the backend job runs `:operations-service:build` (the new contract tests) — adjust `.github/workflows/ci.yml` only if a gap exists
-- [ ] T038 Full verification: `cd backend && ./gradlew :operations-service:build` + `cd frontend && npm test && npm run build` green; run `quickstart.md` end-to-end (reads → writes → list/verify) with 0 real cloud
+- [X] T035 [P] Accessibility/responsive pass across the new inputs/results: the reference picker + list input are keyboard-navigable with visible focus, and result tables scroll (not the page) at the 011 768px floor
+- [X] T036 [P] Docs: extend `frontend/README.md` (Operations manifest + record picker) and note the FR-015 read endpoints in `backend/operations-service/README.md`
+- [X] T037 [P] Confirm CI covers both streams: the 011 `frontend` job runs the new Vitest suites; the backend job runs `:operations-service:build` (the new contract tests) — adjust `.github/workflows/ci.yml` only if a gap exists
+- [X] T038 Full verification: `cd backend && ./gradlew :operations-service:build` + `cd frontend && npm test && npm run build` green; run `quickstart.md` end-to-end (reads → writes → list/verify) with 0 real cloud
 
 ---
 

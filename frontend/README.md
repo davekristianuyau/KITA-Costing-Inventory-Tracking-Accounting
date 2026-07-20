@@ -23,6 +23,20 @@ A polished console foundation on top of the 009 auth/edge:
 Design system: **Tailwind CSS** tokens (`src/index.css`, `tailwind.config.js`) + **Radix UI** primitives
 (`src/ui/`) + **lucide-react** icons. Full per-service UIs are **separate specs** (start with Operations).
 
+### Operations UI (feature 012)
+
+The first full per-service UI: `src/services/manifests/operations.ts` declares the whole Operations surface
+(catalog, inventory, BOM, production, sales, costing) as manifest functions. It exercises the shared
+workspace-framework additions from 012 (in `src/workspace/inputs/` + `src/workspace/result/`):
+
+- **`reference` input** (`ReferenceInput`) — a searchable picker whose options load once from a list endpoint
+  (e.g. `GET /api/operations/items`), so users pick by SKU/name instead of typing a UUID (FR-017).
+- **`list` input** (`ListInput`) — repeatable rows for array bodies (BOM components, order/receipt lines).
+- **id→label resolution** (`result/idLabels.ts`) — a function's `resultRefs` relabel UUID result columns to a
+  human label (e.g. item id → `SKU — name`).
+
+These live in the shared framework so every later per-service UI (013–016) inherits them.
+
 ### Dynamic edge calls
 
 `/auth/*` uses the typed `openapi-fetch` client (`src/api/client.ts`, schema-checked). Manifest paths are
