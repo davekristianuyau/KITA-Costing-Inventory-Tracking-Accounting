@@ -24,8 +24,8 @@ additions) and makes a **bounded, read-only** addition to `backend/operations-se
 
 ## Phase 1: Setup
 
-- [ ] T001 [P] Create `frontend/src/services/manifests/operations.ts` and point the `operations` entry in `frontend/src/services/registry.ts` at it — migrate the existing `items` reference function into the new manifest module (registry keeps only wiring)
-- [ ] T002 [P] Backend baseline sanity: `cd backend && ./gradlew :operations-service:compileJava :operations-service:compileTestJava` green before any change
+- [X] T001 [P] Create `frontend/src/services/manifests/operations.ts` and point the `operations` entry in `frontend/src/services/registry.ts` at it — migrate the existing `items` reference function into the new manifest module (registry keeps only wiring)
+- [X] T002 [P] Backend baseline sanity: `cd backend && ./gradlew :operations-service:compileJava :operations-service:compileTestJava` green before any change
 
 ---
 
