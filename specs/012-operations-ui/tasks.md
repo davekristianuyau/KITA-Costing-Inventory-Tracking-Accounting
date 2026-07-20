@@ -33,11 +33,11 @@ additions) and makes a **bounded, read-only** addition to `backend/operations-se
 
 **⚠️ Blocks the user stories — the reference picker + id→label are needed as early as US1.**
 
-- [ ] T003 [P] Extend `frontend/src/services/types.ts`: add the `"reference"` `InputField` kind (`source: {path, valueKey, labelKeys, labelSep?}`) and the `"list"` kind (`fields: InputField[]`, `minRows?`) per contracts/workspace-framework-extensions.md — backward-compatible with 011's existing fields
-- [ ] T004 [P] Write `frontend/tests/ReferenceInput.test.tsx` (red): the picker loads options once from a list endpoint (mock the edge), filters client-side (type-ahead), caps rendered options, blocks Run when required + empty, and submits the underlying id
-- [ ] T005 Implement `frontend/src/workspace/inputs/ReferenceInput.tsx` — searchable picker: load-once via `src/api/edge.ts`, client-side type-ahead filter + render cap (FR-017), own loading/error/empty state, required-validation, submits `valueKey`
-- [ ] T006 Wire `frontend/src/workspace/FunctionWorkspace.tsx` to render the `reference` input kind and add the id→label result helper (`frontend/src/workspace/result/idLabels.ts`) that resolves item UUID columns → `SKU — name` from the cached items list
-- [ ] T007 Extend `frontend/tests/Workspace.test.tsx` (red→green): `reference` input renders/validates; result tables show `SKU — name` for item columns; existing 011 assertions still pass
+- [X] T003 [P] Extend `frontend/src/services/types.ts`: add the `"reference"` `InputField` kind (`source: {path, valueKey, labelKeys, labelSep?}`) and the `"list"` kind (`fields: InputField[]`, `minRows?`) per contracts/workspace-framework-extensions.md — backward-compatible with 011's existing fields
+- [X] T004 [P] Write `frontend/tests/ReferenceInput.test.tsx` (red): the picker loads options once from a list endpoint (mock the edge), filters client-side (type-ahead), caps rendered options, blocks Run when required + empty, and submits the underlying id
+- [X] T005 Implement `frontend/src/workspace/inputs/ReferenceInput.tsx` — searchable picker: load-once via `src/api/edge.ts`, client-side type-ahead filter + render cap (FR-017), own loading/error/empty state, required-validation, submits `valueKey`
+- [X] T006 Wire `frontend/src/workspace/FunctionWorkspace.tsx` to render the `reference` input kind and add the id→label result helper (`frontend/src/workspace/result/idLabels.ts`) that resolves item UUID columns → `SKU — name` from the cached items list
+- [X] T007 Extend `frontend/tests/Workspace.test.tsx` (red→green): `reference` input renders/validates; result tables show `SKU — name` for item columns; existing 011 assertions still pass
 
 **Checkpoint**: the record picker + id→label work; manifests can now declare reference inputs and readable tables.
 

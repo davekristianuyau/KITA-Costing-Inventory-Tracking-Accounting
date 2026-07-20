@@ -9,6 +9,8 @@ import type { InputField, ServiceFunction, ServiceManifest } from "../services/t
 import Button from "../ui/Button";
 import { inputClass } from "../ui/Field";
 import { cn } from "../ui/cn";
+import ReferenceInput from "./inputs/ReferenceInput";
+import { useResultLabels, type LabelResolver } from "./result/idLabels";
 
 type RunState = "idle" | "running" | "done";
 
@@ -40,6 +42,7 @@ export default function FunctionWorkspace({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [state, setState] = useState<RunState>("idle");
   const [result, setResult] = useState<EdgeResult | null>(null);
+  const resolveLabel = useResultLabels(fn.resultRefs);
 
   const hasInputs = (fn.inputs?.length ?? 0) > 0;
   const bodyInputs = useMemo(
@@ -112,7 +115,7 @@ export default function FunctionWorkspace({
         </div>
       </form>
 
-      <ResultView state={state} result={result} kind={fn.result} />
+      <ResultView state={state} result={result} kind={fn.result} resolve={resolveLabel} />
     </section>
   );
 }
@@ -130,6 +133,22 @@ function InputControl({
 }) {
   const id = `fn-input-${field.name}`;
   const describedBy = error ? `${id}-error` : undefined;
+
+  // Reference picker renders its own label + search UI (FR-017).
+  if (field.type === "reference" && field.source) {
+    return (
+      <ReferenceInput
+        id={id}
+        label={field.label}
+        source={field.source}
+        value={value as string}
+        required={field.required}
+        error={error}
+        onChange={(v) => onChange(v)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       {field.type !== "boolean" && (
@@ -200,10 +219,12 @@ function ResultView({
   state,
   result,
   kind,
+  resolve,
 }: {
   state: RunState;
   result: EdgeResult | null;
   kind: ServiceFunction["result"];
+  resolve: LabelResolver;
 }) {
   if (state === "running") {
     return (
@@ -237,9 +258,9 @@ function ResultView({
     return <p className="text-sm text-muted">No results.</p>;
   }
 
-  if (kind === "table" && Array.isArray(data)) return <ResultTable rows={data} />;
+  if (kind === "table" && Array.isArray(data)) return <ResultTable rows={data} resolve={resolve} />;
   if (kind === "detail" && data && typeof data === "object" && !Array.isArray(data)) {
-    return <DetailView obj={data as Record<string, unknown>} />;
+    return <DetailView obj={data as Record<string, unknown>} resolve={resolve} />;
   }
   if (kind === "message") {
     return <p className="text-sm text-text">{typeof data === "string" ? data : String(data)}</p>;
@@ -252,7 +273,7 @@ function ResultView({
   );
 }
 
-function ResultTable({ rows }: { rows: unknown[] }) {
+function ResultTable({ rows, resolve }: { rows: unknown[]; resolve: LabelResolver }) {
   const objs = rows.filter((r): r is Record<string, unknown> => !!r && typeof r === "object");
   if (objs.length === 0) {
     return (
@@ -279,7 +300,7 @@ function ResultTable({ rows }: { rows: unknown[] }) {
             <tr key={i} className="odd:bg-bg">
               {cols.map((c) => (
                 <td key={c} className="border-b border-border px-3 py-2 text-text">
-                  {formatCell(row[c])}
+                  {resolve(c, row[c]) ?? formatCell(row[c])}
                 </td>
               ))}
             </tr>
@@ -290,13 +311,13 @@ function ResultTable({ rows }: { rows: unknown[] }) {
   );
 }
 
-function DetailView({ obj }: { obj: Record<string, unknown> }) {
+function DetailView({ obj, resolve }: { obj: Record<string, unknown>; resolve: LabelResolver }) {
   return (
     <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[max-content_1fr]">
       {Object.entries(obj).map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="text-sm font-medium text-muted">{k}</dt>
-          <dd className="text-sm text-text">{formatCell(v)}</dd>
+          <dd className="text-sm text-text">{resolve(k, v) ?? formatCell(v)}</dd>
         </div>
       ))}
     </dl>
