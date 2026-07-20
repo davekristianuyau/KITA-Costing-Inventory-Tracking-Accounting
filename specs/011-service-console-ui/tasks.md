@@ -70,14 +70,14 @@ theme toggle + user/client visible; sign-out → `/login`.
 
 ### Tests for User Story 2 ⚠️ (write first, must fail)
 
-- [ ] T010 [P] [US2] `frontend/tests/Console.test.tsx`: after auth, `TopTabs` renders one tab per registry service; selecting a tab updates the route to `/app/:service`; theme toggle + user/client + sign-out present; unauthenticated → redirected to `/login`
+- [X] T010 [P] [US2] `frontend/tests/Console.test.tsx`: after auth, `TopTabs` renders one tab per registry service; selecting a tab updates the route to `/app/:service`; theme toggle + user/client + sign-out present; unauthenticated → redirected to `/login`
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] `frontend/src/app/AppLayout.tsx` — the shell: top bar (brand, `ThemeToggle`, user/client, sign-out) + `TopTabs` (one per service from `registry`) + a content `<Outlet/>`
-- [ ] T012 [US2] `frontend/src/app/TopTabs.tsx` — one tab per service (Radix Tabs, accessible, active tab derived from the URL), navigating to `/app/:service`
-- [ ] T013 [US2] Routing in `frontend/src/App.tsx` + `frontend/src/routes/` — `/app` → redirect to the first service; `/app/:service` and `/app/:service/:function` under the protected `AppLayout` (reuse 009 `ProtectedRoute`); replace the 009 placeholder `Dashboard`
-- [ ] T014 [US2] Verify US2: tests + build green; tabs are keyboard-navigable (arrow keys, focus visible)
+- [X] T011 [US2] `frontend/src/app/AppLayout.tsx` — the shell: top bar (brand, `ThemeToggle`, user/client, sign-out) + `TopTabs` (one per service from `registry`) + a content `<Outlet/>`
+- [X] T012 [US2] `frontend/src/app/TopTabs.tsx` — one tab per service (Radix Tabs, accessible, active tab derived from the URL), navigating to `/app/:service`
+- [X] T013 [US2] Routing in `frontend/src/App.tsx` + `frontend/src/routes/` — `/app` → redirect to the first service; `/app/:service` and `/app/:service/:function` under the protected `AppLayout` (reuse 009 `ProtectedRoute`); replace the 009 placeholder `Dashboard`
+- [X] T014 [US2] Verify US2: tests + build green; tabs are keyboard-navigable (arrow keys, focus visible)
 
 **Checkpoint**: the navigation shell works — one tab per service, theme, sign-out.
 
