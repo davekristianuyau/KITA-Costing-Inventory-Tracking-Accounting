@@ -23,12 +23,12 @@ Contract: [procurement-manifest.md](./contracts/procurement-manifest.md). The sh
 
 ## Phase 1: Setup
 
-- [ ] T001 **Sync `main` into `015-procurement-ui`** (`git merge origin/main`) so the 012/013/014 shared framework
+- [X] T001 **Sync `main` into `015-procurement-ui`** (`git merge origin/main`) so the 012/013/014 shared framework
   (`frontend/src/workspace/inputs/{ReferenceInput,ListInput,FieldInput}.tsx`, `workspace/result/idLabels.ts`, the
   `reference`/`list` `InputField` kinds + `resultRefs`, the `bodyInput`/dotted-name body building, and the **014
   detail sub-table** in `FunctionWorkspace`) is present; resolve any conflicts (keep the 015 CLAUDE.md marker);
   confirm `cd frontend && npm test && npm run build` green
-- [ ] T002 [P] Create `frontend/src/services/manifests/procurement.ts` and point the `procurement` entry in `frontend/src/services/registry.ts` at it (migrate the placeholder `suppliers` function into the module)
+- [X] T002 [P] Create `frontend/src/services/manifests/procurement.ts` and point the `procurement` entry in `frontend/src/services/registry.ts` at it (migrate the placeholder `suppliers` function into the module)
 
 ---
 
@@ -36,7 +36,7 @@ Contract: [procurement-manifest.md](./contracts/procurement-manifest.md). The sh
 
 **⚠️ Blocks the user stories — the supplier reference source is used across.**
 
-- [ ] T003 Define the shared source in `frontend/src/services/manifests/procurement.ts` — `SUPPLIERS_SOURCE` (`/api/procurement/suppliers`, value `id`, label `supplierCode — name`) and a `supplierLabels(columns)` helper for `resultRefs` (relabel `supplierId` columns) per contracts/procurement-manifest.md
+- [X] T003 Define the shared source in `frontend/src/services/manifests/procurement.ts` — `SUPPLIERS_SOURCE` (`/api/procurement/suppliers`, value `id`, label `supplierCode — name`) and a `supplierLabels(columns)` helper for `resultRefs` (relabel `supplierId` columns) per contracts/procurement-manifest.md
 
 **Checkpoint**: the manifest module + shared source exist; functions can be added per story.
 
@@ -51,9 +51,9 @@ Purchase orders lists POs (supplier resolved); Purchase order detail (by id) sho
 
 ### Frontend (all endpoints already exist — no backend change)
 
-- [ ] T004 [P] [US1] Write `frontend/tests/ProcurementManifest.test.tsx` (red): the `suppliers`, `supplier`, `supplier-items`, `supplier-history`, `purchase-orders`, and `purchase-order` functions render and run against a mocked edge; `supplier` uses the reference picker sourced from `/api/procurement/suppliers`; `purchase-order` detail renders its `lines[]` as a sub-table; `purchase-orders` resolves `supplierId` to the supplier label
-- [ ] T005 [US1] Add the **Suppliers** (`suppliers`, `supplier`, `supplier-items`, `supplier-history`) and **Purchase orders** read functions (`purchase-orders`, `purchase-order`) to `frontend/src/services/manifests/procurement.ts` per contracts/procurement-manifest.md (resultRefs for `supplierId`)
-- [ ] T006 [US1] Verify US1: `cd frontend && npm test && npm run build` green
+- [X] T004 [P] [US1] Write `frontend/tests/ProcurementManifest.test.tsx` (red): the `suppliers`, `supplier`, `supplier-items`, `supplier-history`, `purchase-orders`, and `purchase-order` functions render and run against a mocked edge; `supplier` uses the reference picker sourced from `/api/procurement/suppliers`; `purchase-order` detail renders its `lines[]` as a sub-table; `purchase-orders` resolves `supplierId` to the supplier label
+- [X] T005 [US1] Add the **Suppliers** (`suppliers`, `supplier`, `supplier-items`, `supplier-history`) and **Purchase orders** read functions (`purchase-orders`, `purchase-order`) to `frontend/src/services/manifests/procurement.ts` per contracts/procurement-manifest.md (resultRefs for `supplierId`)
+- [X] T006 [US1] Verify US1: `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: MVP — browse suppliers + POs, open a PO and see its lines + status, all through the edge.
 
