@@ -57,6 +57,32 @@ export const crmManifest: ServiceManifest = {
       inputs: [{ name: "id", label: "Customer", type: "reference", required: true, source: CUSTOMERS_SOURCE }],
       description: "Government-mandated eligibility (SENIOR / PWD) for a customer.",
     },
+    // --- Quote (US2) ---
+    {
+      id: "quote",
+      label: "Price quote",
+      icon: "Calculator",
+      method: "POST",
+      path: "/discounts/compute",
+      result: "detail",
+      inputs: [
+        { name: "customerId", label: "Customer", type: "reference", required: true, source: CUSTOMERS_SOURCE },
+        { name: "saleDate", label: "Sale date", type: "text", required: true, placeholder: "YYYY-MM-DD" },
+        {
+          name: "lineItems",
+          label: "Line items",
+          type: "list",
+          required: true,
+          minRows: 1,
+          fields: [
+            { name: "itemRef", label: "Item", type: "text" },
+            { name: "quantity", label: "Quantity", type: "number", required: true },
+            { name: "unitPrice", label: "Unit price", type: "number", required: true },
+          ],
+        },
+      ],
+      description: "Itemized cascading discount + statutory + VAT breakdown for a customer's line items.",
+    },
   ],
 };
 

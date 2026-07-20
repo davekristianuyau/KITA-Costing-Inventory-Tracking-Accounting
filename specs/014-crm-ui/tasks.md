@@ -71,9 +71,9 @@ loyalty tier; Customer entitlements shows any SENIOR/PWD eligibility.
 
 ### Frontend (compute POST already exists — no backend change)
 
-- [ ] T009 [P] [US2] Extend `frontend/tests/CrmManifest.test.tsx` (red): `quote` runs a POST to `/api/crm/discounts/compute` with `{customerId, saleDate, lineItems:[{itemRef,quantity,unitPrice}]}` and renders `baseTotal`/`finalPrice` + the `breakdown[]` as a sub-table (mock the edge)
-- [ ] T010 [US2] Add the **Quote** `quote` function to `crm.ts` (`customerId` reference→customers, `saleDate` text, `lineItems` **list** of {itemRef, quantity, unitPrice}; result `detail`)
-- [ ] T011 [US2] Verify US2: `cd frontend && npm test && npm run build` green
+- [X] T009 [P] [US2] Extend `frontend/tests/CrmManifest.test.tsx` (red): `quote` runs a POST to `/api/crm/discounts/compute` with `{customerId, saleDate, lineItems:[{itemRef,quantity,unitPrice}]}` and renders `baseTotal`/`finalPrice` + the `breakdown[]` as a sub-table (mock the edge)
+- [X] T010 [US2] Add the **Quote** `quote` function to `crm.ts` (`customerId` reference→customers, `saleDate` text, `lineItems` **list** of {itemRef, quantity, unitPrice}; result `detail`)
+- [X] T011 [US2] Verify US2: `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: the headline pricing preview works end-to-end, itemized and rendered verbatim.
 
