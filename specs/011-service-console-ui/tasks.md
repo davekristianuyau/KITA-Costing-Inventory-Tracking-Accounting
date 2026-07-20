@@ -93,15 +93,15 @@ opens; run it → loading → real result (or clear error); switching functions 
 
 ### Tests for User Story 3 ⚠️ (write first, must fail)
 
-- [ ] T015 [P] [US3] `frontend/tests/Workspace.test.tsx`: `Sidebar` lists a service's functions; selecting one routes to `/app/:service/:function`; `FunctionWorkspace` shows the run-form, a loading state on run, then a result/error (mock the edge `api`); switching functions swaps the workspace without a reload
+- [X] T015 [P] [US3] `frontend/tests/Workspace.test.tsx`: `Sidebar` lists a service's functions; selecting one routes to `/app/:service/:function`; `FunctionWorkspace` shows the run-form, a loading state on run, then a result/error (mock the edge `api`); switching functions swaps the workspace without a reload
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] `frontend/src/app/Sidebar.tsx` — left pane rendering the selected service's `functions` (from its manifest); selecting one navigates to `/app/:service/:function`; accessible list + active state
-- [ ] T017 [US3] `frontend/src/workspace/FunctionWorkspace.tsx` — render a `ServiceFunction`: a run-form from `inputs` (required-field validation) + Run; on run, call `method` `basePath+path` (substituting `{params}`) through the **009 edge** via `frontend/src/api/` (openapi-fetch, cookie); render **loading / result (table|json|detail|message) / empty / error** states
-- [ ] T018 [US3] Add a real **reference function** to one service's manifest in `frontend/src/services/registry.ts` (a safe read/health call, e.g. operations) wired end-to-end through the edge
-- [ ] T019 [US3] Wire `/app/:service/:function` to render `Sidebar` + `FunctionWorkspace` for the selected function (in `frontend/src/app/`)
-- [ ] T020 [US3] Verify US3: tests (workspace + reference function) + build green
+- [X] T016 [US3] `frontend/src/app/Sidebar.tsx` — left pane rendering the selected service's `functions` (from its manifest); selecting one navigates to `/app/:service/:function`; accessible list + active state
+- [X] T017 [US3] `frontend/src/workspace/FunctionWorkspace.tsx` — render a `ServiceFunction`: a run-form from `inputs` (required-field validation) + Run; on run, call `method` `basePath+path` (substituting `{params}`) through the **009 edge** via `frontend/src/api/` (openapi-fetch, cookie); render **loading / result (table|json|detail|message) / empty / error** states
+- [X] T018 [US3] Add a real **reference function** to one service's manifest in `frontend/src/services/registry.ts` (a safe read/health call, e.g. operations) wired end-to-end through the edge
+- [X] T019 [US3] Wire `/app/:service/:function` to render `Sidebar` + `FunctionWorkspace` for the selected function (in `frontend/src/app/`)
+- [X] T020 [US3] Verify US3: tests (workspace + reference function) + build green
 
 **Checkpoint**: the reusable per-service frame works end-to-end; per-service specs can now fill manifests.
 

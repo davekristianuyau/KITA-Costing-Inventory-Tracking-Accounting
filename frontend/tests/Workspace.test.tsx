@@ -1,0 +1,146 @@
+import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import App from "../src/App";
+import FunctionWorkspace from "../src/workspace/FunctionWorkspace";
+import { AuthProvider } from "../src/auth/AuthContext";
+import { ThemeProvider } from "../src/theme/ThemeProvider";
+import { callEdge } from "../src/api/edge";
+import type { ServiceFunction, ServiceManifest } from "../src/services/types";
+
+// The workspace runs manifest functions through a generic authenticated edge call (not the typed /auth client).
+vi.mock("../src/api/edge", () => ({ callEdge: vi.fn() }));
+const edge = callEdge as unknown as Mock;
+
+const svc: ServiceManifest = {
+  id: "demo",
+  label: "Demo",
+  icon: "Box",
+  basePath: "/api/demo",
+  functions: [],
+};
+
+function renderWorkspace(fn: ServiceFunction) {
+  return render(
+    <ThemeProvider>
+      <MemoryRouter>
+        <FunctionWorkspace service={svc} fn={fn} />
+      </MemoryRouter>
+    </ThemeProvider>,
+  );
+}
+
+function renderApp(path: string) {
+  sessionStorage.setItem("kita.client", "acme");
+  return render(
+    <ThemeProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </MemoryRouter>
+    </ThemeProvider>,
+  );
+}
+
+beforeEach(() => {
+  edge.mockReset();
+  sessionStorage.clear();
+  localStorage.clear();
+  document.documentElement.removeAttribute("data-theme");
+});
+
+describe("Sidebar (service functions)", () => {
+  it("lists the selected service's functions and links each to its route", () => {
+    renderApp("/app/operations");
+    // operations' reference function is present in the left pane
+    expect(screen.getByRole("link", { name: /items/i })).toHaveAttribute(
+      "href",
+      "/app/operations/items",
+    );
+  });
+});
+
+describe("FunctionWorkspace", () => {
+  const listFn: ServiceFunction = {
+    id: "items",
+    label: "Items",
+    method: "GET",
+    path: "/items",
+    result: "table",
+  };
+
+  it("runs a function and renders a table result with a loading state first", async () => {
+    const user = userEvent.setup();
+    let resolve!: (v: unknown) => void;
+    edge.mockReturnValue(new Promise((r) => (resolve = r)));
+
+    renderWorkspace(listFn);
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    expect(screen.getByRole("status")).toHaveTextContent(/running/i);
+
+    resolve({ ok: true, status: 200, data: [{ sku: "A-1", name: "Widget" }] });
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("A-1")).toBeInTheDocument();
+    expect(within(table).getByText("Widget")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/demo/items", undefined);
+  });
+
+  it("shows a clear error when the edge call fails", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({ ok: false, status: 502, data: null, error: "Bad gateway" });
+
+    renderWorkspace(listFn);
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/bad gateway|502|error/i);
+  });
+
+  it("blocks the call and shows inline validation when a required input is empty", async () => {
+    const user = userEvent.setup();
+    const byId: ServiceFunction = {
+      id: "item",
+      label: "Item by id",
+      method: "GET",
+      path: "/items/{id}",
+      result: "detail",
+      inputs: [{ name: "id", label: "Item ID", type: "text", required: true }],
+    };
+    renderWorkspace(byId);
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    expect(edge).not.toHaveBeenCalled();
+    expect(screen.getByText(/item id is required/i)).toBeInTheDocument();
+
+    // fill it and the path param is substituted
+    await user.type(screen.getByLabelText(/item id/i), "42");
+    edge.mockResolvedValue({ ok: true, status: 200, data: { id: 42, name: "Widget" } });
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith("GET", "/api/demo/items/42", undefined);
+  });
+
+  it("swaps content when a different function is rendered (no reload)", async () => {
+    const { rerender } = renderWorkspace(listFn);
+    expect(screen.getByRole("heading", { name: /items/i })).toBeInTheDocument();
+
+    const other: ServiceFunction = {
+      id: "boms",
+      label: "Bills of Material",
+      method: "GET",
+      path: "/boms",
+      result: "json",
+    };
+    rerender(
+      <ThemeProvider>
+        <MemoryRouter>
+          <FunctionWorkspace service={svc} fn={other} />
+        </MemoryRouter>
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole("heading", { name: /bills of material/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /^items$/i })).not.toBeInTheDocument();
+  });
+});
