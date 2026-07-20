@@ -83,3 +83,34 @@ describe("Operations manifest — US1 catalog + stock", () => {
     expect(edge).toHaveBeenCalledWith("GET", "/api/operations/items/id-1/availability", undefined);
   });
 });
+
+describe("Operations manifest — US2 movements + locations", () => {
+  it("movements: lists the ledger for a picked item", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/operations/items": items,
+      "/api/operations/movements?itemId=id-1": [
+        { id: "m1", itemId: "id-1", type: "ADJUSTMENT", quantity: 7 },
+      ],
+    });
+    renderFn("movements");
+    await user.click(await screen.findByText(/A-1 — Widget/));
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("ADJUSTMENT")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/operations/movements?itemId=id-1", undefined);
+  });
+
+  it("locations: lists the client's stock locations", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/operations/locations": [{ id: "loc-1", code: "WH1", name: "Warehouse 1" }],
+    });
+    renderFn("locations");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("WH1")).toBeInTheDocument();
+    expect(within(table).getByText("Warehouse 1")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/operations/locations", undefined);
+  });
+});

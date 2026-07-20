@@ -75,14 +75,14 @@ reserved/available (reservations); Locations lists the client's locations.
 
 ### Backend read (FR-015)
 
-- [ ] T013 [US2] Write `backend/operations-service/src/test/java/.../api/LocationReadContractTest` (MockMvc, red): `GET /locations` returns created locations (empty `[]` when none)
-- [ ] T014 [US2] Implement `GET /locations` — add `listLocations()` to `inventory/InventoryService.java` (`StockLocationRepository.findAll`) and the handler in `api/InventoryController.java` (`LocationResponse[]`)
+- [X] T013 [US2] Write `backend/operations-service/src/test/java/.../api/LocationReadContractTest` (MockMvc, red): `GET /locations` returns created locations (empty `[]` when none)
+- [X] T014 [US2] Implement `GET /locations` — add `listLocations()` to `inventory/InventoryService.java` (`StockLocationRepository.findAll`) and the handler in `api/InventoryController.java` (`LocationResponse[]`)
 
 ### Frontend
 
-- [ ] T015 [P] [US2] Extend `frontend/tests/OperationsManifest.test.tsx` (red): `movements` renders the ledger table; `locations` renders the locations table
-- [ ] T016 [US2] Add the **Inventory** `movements` (`reference→items` + optional `from`/`to`) and `locations` functions to the manifest; wire location id→label resolution (from the locations list) into result tables in `frontend/src/workspace/result/idLabels.ts`
-- [ ] T017 [US2] Verify US2: `:operations-service:build` (locations contract) + `npm test && npm run build` green
+- [X] T015 [P] [US2] Extend `frontend/tests/OperationsManifest.test.tsx` (red): `movements` renders the ledger table; `locations` renders the locations table
+- [X] T016 [US2] Add the **Inventory** `movements` (`reference→items` + optional `from`/`to`) and `locations` functions to the manifest; wire location id→label resolution (from the locations list) into result tables in `frontend/src/workspace/result/idLabels.ts`
+- [X] T017 [US2] Verify US2: `:operations-service:build` (locations contract) + `npm test && npm run build` green
 
 **Checkpoint**: stock questions are answerable — ledger, reservations (availability), and locations.
 

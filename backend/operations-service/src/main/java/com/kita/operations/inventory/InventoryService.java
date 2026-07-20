@@ -58,6 +58,10 @@ public class InventoryService {
         .orElseThrow(() -> new DomainException.NotFound("Location not found: " + id));
   }
 
+  public List<StockLocation> listLocations() {
+    return locations.findAll();
+  }
+
   /** Post a signed adjustment (converted to the item's base UoM if a unit is supplied). */
   @Transactional
   public StockMovement postAdjustment(

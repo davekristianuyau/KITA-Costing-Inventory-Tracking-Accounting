@@ -42,6 +42,13 @@ public class InventoryController {
     return new LocationResponse(loc.getId(), loc.getCode(), loc.getName());
   }
 
+  @GetMapping("/locations")
+  public List<LocationResponse> listLocations() {
+    return inventory.listLocations().stream()
+        .map(loc -> new LocationResponse(loc.getId(), loc.getCode(), loc.getName()))
+        .toList();
+  }
+
   @PostMapping("/adjustments")
   @ResponseStatus(HttpStatus.CREATED)
   public MovementResponse postAdjustment(@Valid @RequestBody AdjustmentRequest req) {

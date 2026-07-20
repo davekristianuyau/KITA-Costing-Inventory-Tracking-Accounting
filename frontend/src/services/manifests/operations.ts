@@ -3,15 +3,23 @@
 // US5 costing. Each function is rendered by the 011 FunctionWorkspace and called via the 009 edge.
 import type { ReferenceSource, ServiceManifest } from "../types";
 
-// A reference to the catalog items list — the pickers + id→label resolution both source from here.
+// References to the catalog items + locations lists — the pickers + id→label resolution source from here.
 const ITEMS_SOURCE: ReferenceSource = {
   path: "/api/operations/items",
   valueKey: "id",
   labelKeys: ["sku", "name"],
 };
+const LOCATIONS_SOURCE: ReferenceSource = {
+  path: "/api/operations/locations",
+  valueKey: "id",
+  labelKeys: ["code", "name"],
+};
 
-/** Resolve item-id columns in a result table to "SKU — name". */
-const itemLabels = (columns: string[]) => [{ columns, source: ITEMS_SOURCE }];
+/** Resolve item-id + location-id result columns to human labels. */
+const stockLabels = [
+  { columns: ["itemId"], source: ITEMS_SOURCE },
+  { columns: ["locationId"], source: LOCATIONS_SOURCE },
+];
 
 export const operationsManifest: ServiceManifest = {
   id: "operations",
@@ -48,8 +56,32 @@ export const operationsManifest: ServiceManifest = {
       path: "/items/{id}/availability",
       result: "table",
       inputs: [{ name: "id", label: "Item", type: "reference", required: true, source: ITEMS_SOURCE }],
-      resultRefs: itemLabels(["itemId"]),
+      resultRefs: stockLabels,
       description: "On-hand / reserved / available per location (the reservations view).",
+    },
+    {
+      id: "movements",
+      label: "Movement ledger",
+      icon: "ScrollText",
+      method: "GET",
+      path: "/movements?itemId={itemId}&from={from}&to={to}",
+      result: "table",
+      inputs: [
+        { name: "itemId", label: "Item", type: "reference", required: true, source: ITEMS_SOURCE },
+        { name: "from", label: "From", type: "text", placeholder: "ISO datetime (optional)" },
+        { name: "to", label: "To", type: "text", placeholder: "ISO datetime (optional)" },
+      ],
+      resultRefs: stockLabels,
+      description: "Stock movements for an item (receipts, issues, transfers, builds).",
+    },
+    {
+      id: "locations",
+      label: "Locations",
+      icon: "Warehouse",
+      method: "GET",
+      path: "/locations",
+      result: "table",
+      description: "Stock locations for this client.",
     },
   ],
 };

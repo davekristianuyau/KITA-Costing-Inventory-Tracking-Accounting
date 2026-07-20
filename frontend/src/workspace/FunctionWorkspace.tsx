@@ -22,12 +22,23 @@ function initialValues(inputs: InputField[] | undefined): Values {
   return v;
 }
 
-/** Fill {param} tokens in the path from the current input values (URL-encoded). */
+/** Fill {param} tokens in the path from the current input values (URL-encoded), dropping empty query params. */
 function buildPath(basePath: string, path: string, values: Values): string {
   const filled = path.replace(/\{(\w+)\}/g, (_m, name) =>
     encodeURIComponent(String(values[name] ?? "")),
   );
-  return basePath + filled;
+  const full = basePath + filled;
+  const q = full.indexOf("?");
+  if (q === -1) return full;
+  // Blank optional inputs leave empty query params (…&from=&to=) — strip them.
+  const kept = full
+    .slice(q + 1)
+    .split("&")
+    .filter((p) => {
+      const eq = p.indexOf("=");
+      return eq === -1 || p.slice(eq + 1) !== "";
+    });
+  return kept.length ? `${full.slice(0, q)}?${kept.join("&")}` : full.slice(0, q);
 }
 
 export default function FunctionWorkspace({
