@@ -5,25 +5,10 @@
 // and verified end-to-end (GET /api/operations/items exists and returns data); the others are placeholder
 // reference entries that the per-service specs replace with each service's full manifest.
 import type { ServiceManifest } from "./types";
+import { operationsManifest } from "./manifests/operations";
 
 export const registry: ServiceManifest[] = [
-  {
-    id: "operations",
-    label: "Operations",
-    icon: "Package",
-    basePath: "/api/operations",
-    functions: [
-      {
-        id: "items",
-        label: "Items",
-        icon: "Package",
-        method: "GET",
-        path: "/items",
-        result: "table",
-        description: "List catalog items — the 011 reference function, wired through the edge.",
-      },
-    ],
-  },
+  operationsManifest,
   {
     id: "hr",
     label: "HR & Payroll",

@@ -7,25 +7,38 @@ import { AlertCircle, Loader2, Play } from "lucide-react";
 import { callEdge, type EdgeResult } from "../api/edge";
 import type { InputField, ServiceFunction, ServiceManifest } from "../services/types";
 import Button from "../ui/Button";
-import { inputClass } from "../ui/Field";
-import { cn } from "../ui/cn";
+import FieldInput from "./inputs/FieldInput";
+import ListInput from "./inputs/ListInput";
+import { useResultLabels, type LabelResolver } from "./result/idLabels";
 
 type RunState = "idle" | "running" | "done";
 
-type Values = Record<string, string | boolean>;
+type Row = Record<string, unknown>;
+type Values = Record<string, unknown>;
 
 function initialValues(inputs: InputField[] | undefined): Values {
   const v: Values = {};
-  for (const f of inputs ?? []) v[f.name] = f.type === "boolean" ? false : "";
+  for (const f of inputs ?? []) v[f.name] = f.type === "list" ? [] : f.type === "boolean" ? false : "";
   return v;
 }
 
-/** Fill {param} tokens in the path from the current input values (URL-encoded). */
+/** Fill {param} tokens in the path from the current input values (URL-encoded), dropping empty query params. */
 function buildPath(basePath: string, path: string, values: Values): string {
   const filled = path.replace(/\{(\w+)\}/g, (_m, name) =>
     encodeURIComponent(String(values[name] ?? "")),
   );
-  return basePath + filled;
+  const full = basePath + filled;
+  const q = full.indexOf("?");
+  if (q === -1) return full;
+  // Blank optional inputs leave empty query params (…&from=&to=) — strip them.
+  const kept = full
+    .slice(q + 1)
+    .split("&")
+    .filter((p) => {
+      const eq = p.indexOf("=");
+      return eq === -1 || p.slice(eq + 1) !== "";
+    });
+  return kept.length ? `${full.slice(0, q)}?${kept.join("&")}` : full.slice(0, q);
 }
 
 export default function FunctionWorkspace({
@@ -40,6 +53,7 @@ export default function FunctionWorkspace({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [state, setState] = useState<RunState>("idle");
   const [result, setResult] = useState<EdgeResult | null>(null);
+  const resolveLabel = useResultLabels(fn.resultRefs);
 
   const hasInputs = (fn.inputs?.length ?? 0) > 0;
   const bodyInputs = useMemo(
@@ -47,14 +61,21 @@ export default function FunctionWorkspace({
     [fn],
   );
 
-  function setField(name: string, value: string | boolean) {
+  function setField(name: string, value: unknown) {
     setValues((v) => ({ ...v, [name]: value }));
   }
 
   function validate(): boolean {
     const next: Record<string, string> = {};
     for (const f of fn.inputs ?? []) {
-      if (f.required && (values[f.name] === "" || values[f.name] === undefined)) {
+      const val = values[f.name];
+      if (f.type === "list") {
+        const rows = Array.isArray(val) ? (val as Row[]) : [];
+        const needsRow = f.required || (f.minRows ?? 0) > 0;
+        if (needsRow && rows.length === 0) {
+          next[f.name] = `${f.label} needs at least one row`;
+        }
+      } else if (f.required && (val === "" || val === undefined)) {
         next[f.name] = `${f.label} is required`;
       }
     }
@@ -89,15 +110,30 @@ export default function FunctionWorkspace({
       <form onSubmit={onRun} className="flex flex-col gap-4">
         {hasInputs && (
           <div className="grid gap-4 sm:grid-cols-2">
-            {(fn.inputs ?? []).map((f) => (
-              <InputControl
-                key={f.name}
-                field={f}
-                value={values[f.name]}
-                error={errors[f.name]}
-                onChange={(val) => setField(f.name, val)}
-              />
-            ))}
+            {(fn.inputs ?? []).map((f) =>
+              f.type === "list" ? (
+                <div key={f.name} className="sm:col-span-2">
+                  <ListInput
+                    id={f.name}
+                    label={f.label}
+                    fields={f.fields ?? []}
+                    value={(values[f.name] as Row[]) ?? []}
+                    required={f.required}
+                    minRows={f.minRows}
+                    error={errors[f.name]}
+                    onChange={(rows) => setField(f.name, rows)}
+                  />
+                </div>
+              ) : (
+                <FieldInput
+                  key={f.name}
+                  field={f}
+                  value={(values[f.name] as string | boolean) ?? (f.type === "boolean" ? false : "")}
+                  error={errors[f.name]}
+                  onChange={(val) => setField(f.name, val)}
+                />
+              ),
+            )}
           </div>
         )}
         <div>
@@ -112,87 +148,8 @@ export default function FunctionWorkspace({
         </div>
       </form>
 
-      <ResultView state={state} result={result} kind={fn.result} />
+      <ResultView state={state} result={result} kind={fn.result} resolve={resolveLabel} />
     </section>
-  );
-}
-
-function InputControl({
-  field,
-  value,
-  error,
-  onChange,
-}: {
-  field: InputField;
-  value: string | boolean;
-  error?: string;
-  onChange: (v: string | boolean) => void;
-}) {
-  const id = `fn-input-${field.name}`;
-  const describedBy = error ? `${id}-error` : undefined;
-  return (
-    <div className="flex flex-col gap-1.5">
-      {field.type !== "boolean" && (
-        <label htmlFor={id} className="text-sm font-medium text-text">
-          {field.label}
-          {field.required && <span className="text-danger"> *</span>}
-        </label>
-      )}
-      {field.type === "textarea" ? (
-        <textarea
-          id={id}
-          value={value as string}
-          placeholder={field.placeholder}
-          aria-invalid={!!error}
-          aria-describedby={describedBy}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn(inputClass, "h-24 py-2")}
-        />
-      ) : field.type === "select" ? (
-        <select
-          id={id}
-          value={value as string}
-          aria-invalid={!!error}
-          aria-describedby={describedBy}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputClass}
-        >
-          <option value="">Select…</option>
-          {(field.options ?? []).map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
-      ) : field.type === "boolean" ? (
-        <label htmlFor={id} className="flex items-center gap-2 text-sm font-medium text-text">
-          <input
-            id={id}
-            type="checkbox"
-            checked={value as boolean}
-            onChange={(e) => onChange(e.target.checked)}
-            className="h-4 w-4 rounded border-border"
-          />
-          {field.label}
-        </label>
-      ) : (
-        <input
-          id={id}
-          type={field.type === "number" ? "number" : "text"}
-          value={value as string}
-          placeholder={field.placeholder}
-          aria-invalid={!!error}
-          aria-describedby={describedBy}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputClass}
-        />
-      )}
-      {error && (
-        <p id={describedBy} className="text-xs text-danger">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -200,10 +157,12 @@ function ResultView({
   state,
   result,
   kind,
+  resolve,
 }: {
   state: RunState;
   result: EdgeResult | null;
   kind: ServiceFunction["result"];
+  resolve: LabelResolver;
 }) {
   if (state === "running") {
     return (
@@ -237,9 +196,9 @@ function ResultView({
     return <p className="text-sm text-muted">No results.</p>;
   }
 
-  if (kind === "table" && Array.isArray(data)) return <ResultTable rows={data} />;
+  if (kind === "table" && Array.isArray(data)) return <ResultTable rows={data} resolve={resolve} />;
   if (kind === "detail" && data && typeof data === "object" && !Array.isArray(data)) {
-    return <DetailView obj={data as Record<string, unknown>} />;
+    return <DetailView obj={data as Record<string, unknown>} resolve={resolve} />;
   }
   if (kind === "message") {
     return <p className="text-sm text-text">{typeof data === "string" ? data : String(data)}</p>;
@@ -252,7 +211,7 @@ function ResultView({
   );
 }
 
-function ResultTable({ rows }: { rows: unknown[] }) {
+function ResultTable({ rows, resolve }: { rows: unknown[]; resolve: LabelResolver }) {
   const objs = rows.filter((r): r is Record<string, unknown> => !!r && typeof r === "object");
   if (objs.length === 0) {
     return (
@@ -279,7 +238,7 @@ function ResultTable({ rows }: { rows: unknown[] }) {
             <tr key={i} className="odd:bg-bg">
               {cols.map((c) => (
                 <td key={c} className="border-b border-border px-3 py-2 text-text">
-                  {formatCell(row[c])}
+                  {resolve(c, row[c]) ?? formatCell(row[c])}
                 </td>
               ))}
             </tr>
@@ -290,13 +249,13 @@ function ResultTable({ rows }: { rows: unknown[] }) {
   );
 }
 
-function DetailView({ obj }: { obj: Record<string, unknown> }) {
+function DetailView({ obj, resolve }: { obj: Record<string, unknown>; resolve: LabelResolver }) {
   return (
     <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[max-content_1fr]">
       {Object.entries(obj).map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="text-sm font-medium text-muted">{k}</dt>
-          <dd className="text-sm text-text">{formatCell(v)}</dd>
+          <dd className="text-sm text-text">{resolve(k, v) ?? formatCell(v)}</dd>
         </div>
       ))}
     </dl>

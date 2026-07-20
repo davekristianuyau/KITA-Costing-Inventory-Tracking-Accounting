@@ -128,14 +128,13 @@ shell commands, and other important information, read the current plan:
 Fill the 011 HR tab with the full `hr-service` **manifest** (employees/compensation, attendance, leave, payroll
 runs, payslip/register/remittance); each function = a manifest entry rendered by the 011 `FunctionWorkspace` via
 the generic edge fetch, **reusing the 012 shared inputs** (ReferenceInput/ListInput/id→label — NO new frontend
-framework). ⚠️ **Sync `main` into 013 first** (branch predates the 012 merge). Phase 0 read hr-service: every
-endpoint is **role-gated** but `CallerContext` **stub mode** (sim default) → demo user = `HR_ADMIN`, so HR works;
-a run's per-employee lines come from the existing `/register`. **Clarify → 013 ALSO adds bounded read-only
-endpoints (FR-015, mirrors 012):** `GET /payroll/runs` (+`/{id}`), `GET /leave/requests` (+`/{id}`) — thin
-`findAll`/`findById` reusing DTOs (PayrollRunResponse/LeaveRequestResponse), role-gated, each with a MockMvc
-contract test; NO existing endpoint/write logic changes. PII (statutory ids) already server-masked. Builds on 011
-+ 012 + 004 (hr-service). Remaining per-service UIs: 014-crm / 015-procurement / 016-workflow. See
-[[frontend-and-aws-pipeline-roadmap]] + [[spec-012-operations-ui-progress]].
+framework). Phase 0 read hr-service: every endpoint is **role-gated** but `CallerContext` **stub mode** (sim
+default) → demo user = `HR_ADMIN`, so HR works; a run's per-employee lines come from the existing `/register`.
+**Clarify → 013 ALSO adds bounded read-only endpoints (FR-015, mirrors 012):** `GET /payroll/runs` (+`/{id}`),
+`GET /leave/requests` (+`/{id}`) — thin `findAll`/`findById` reusing DTOs (PayrollRunResponse/LeaveRequestResponse),
+role-gated, each with a MockMvc contract test; NO existing endpoint/write logic changes. PII (statutory ids)
+already server-masked. Builds on 011 + 012 + 004 (hr-service). Remaining per-service UIs: 014-crm / 015-procurement
+/ 016-workflow. See [[frontend-and-aws-pipeline-roadmap]] + [[spec-012-operations-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -257,6 +256,16 @@ achieved. To revert an artifact to its original state, run
 [2026-07-19 21:14] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:23] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:34] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:44] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:53] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:55] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 22:00] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-20 10:12] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 10:33] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:00] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:01] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:07] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:09] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
 [2026-07-20 18:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
 [2026-07-20 19:21] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
 [2026-07-20 19:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
