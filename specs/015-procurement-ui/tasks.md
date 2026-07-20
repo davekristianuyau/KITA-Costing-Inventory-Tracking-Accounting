@@ -68,9 +68,9 @@ clear empty state when none.
 
 ### Frontend (endpoint already exists — no backend change)
 
-- [ ] T007 [P] [US2] Extend `frontend/tests/ProcurementManifest.test.tsx` (red): `reorder-suggestions` renders the suggestions table (resolving `supplierId`) and a clear empty state on `[]`
-- [ ] T008 [US2] Add the **Reorder** `reorder-suggestions` function to `procurement.ts` (result table; resolve `supplierId`)
-- [ ] T009 [US2] Verify US2: `cd frontend && npm test && npm run build` green
+- [X] T007 [P] [US2] Extend `frontend/tests/ProcurementManifest.test.tsx` (red): `reorder-suggestions` renders the suggestions table (resolving `supplierId`) and a clear empty state on `[]`
+- [X] T008 [US2] Add the **Reorder** `reorder-suggestions` function to `procurement.ts` (result table; resolve `supplierId`)
+- [X] T009 [US2] Verify US2: `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: the purchasing decision input is viewable.
 

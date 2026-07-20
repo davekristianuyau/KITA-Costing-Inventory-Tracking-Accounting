@@ -82,6 +82,17 @@ export const procurementManifest: ServiceManifest = {
       resultRefs: supplierLabels(["supplierId"]),
       description: "A PO's lines (item / ordered / received / price) + status.",
     },
+    // --- Reorder (US2) ---
+    {
+      id: "reorder-suggestions",
+      label: "Reorder suggestions",
+      icon: "TrendingDown",
+      method: "GET",
+      path: "/restock/suggestions",
+      result: "table",
+      resultRefs: supplierLabels(["supplierId"]),
+      description: "Items at/below reorder point with a suggested quantity + supplier.",
+    },
   ],
 };
 

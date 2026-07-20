@@ -104,3 +104,27 @@ describe("Procurement manifest — US1 suppliers + purchase orders", () => {
     expect(edge).toHaveBeenCalledWith("GET", "/api/procurement/purchase-orders/po1", undefined);
   });
 });
+
+describe("Procurement manifest — US2 reorder suggestions", () => {
+  it("lists suggestions and resolves the supplier column", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/procurement/suppliers": suppliers,
+      "/api/procurement/restock/suggestions": [{ id: "r1", supplierId: "s1", status: "OPEN" }],
+    });
+    renderFn("reorder-suggestions");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText(/SUP-1 — Acme Supply/)).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/procurement/restock/suggestions", undefined);
+  });
+
+  it("shows a clear empty state when there are no suggestions", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/procurement/restock/suggestions": [] });
+    renderFn("reorder-suggestions");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByText(/no results/i)).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+});
