@@ -1,12 +1,47 @@
 # frontend/
 
-KITA web frontend — **React + TypeScript + Vite**, served in production by **Nginx** (static
-assets + HTTP caching + `/api` reverse proxy to the gateway).
+KITA web frontend — **React 18 + TypeScript + Vite 5**, served in production by **Nginx** (static
+assets + HTTP caching + `/auth` and `/api` reverse proxy to the edge gateway).
 
-**Status: scaffolding only.** This directory currently holds config/skeleton files
-(`package.json`, `tsconfig.json`, `vite.config.ts`, lint/format configs, `nginx.conf`,
-`Dockerfile`). Application components, routing, and tests are added in a later feature.
+## The service console (011)
 
-- `src/` — application source (placeholder).
-- `tests/` — Vitest + React Testing Library suites (placeholder).
-- API client is generated from `../contracts/openapi.yaml` via `npm run gen:api`.
+A polished console foundation on top of the 009 auth/edge:
+
+- **Login** (`src/pages/Login.tsx`) — redesigned, branded sign-in (company/username/password) with a
+  pre-auth **theme toggle**. Auth is the 009 httpOnly cookie session; errors stay generic.
+- **Shell** (`src/app/`) — after sign-in, a top bar (brand, theme toggle, identity, sign-out) over
+  **one tab per service** (`TopTabs`); the URL is the source of truth (`/app/:service`,
+  `/app/:service/:function`).
+- **Workspace framework** (`src/workspace/FunctionWorkspace.tsx`) — a service tab shows a left pane of
+  its functions (`Sidebar`); selecting one renders a run-form from the function's `inputs`, runs it via
+  the edge, and shows **loading / result (table·json·detail·message) / empty / error**. Driven entirely
+  by a per-service **manifest** (`src/services/`) — the seam that follow-on per-service specs fill. Ships
+  with **one reference function** (Operations → Items → `GET /api/operations/items`).
+- **Theme** (`src/theme/`) — light/dark/system via CSS variables + `data-theme`, persisted to
+  `localStorage`, with a no-flash inline init in `index.html` (set before first paint).
+
+Design system: **Tailwind CSS** tokens (`src/index.css`, `tailwind.config.js`) + **Radix UI** primitives
+(`src/ui/`) + **lucide-react** icons. Full per-service UIs are **separate specs** (start with Operations).
+
+### Dynamic edge calls
+
+`/auth/*` uses the typed `openapi-fetch` client (`src/api/client.ts`, schema-checked). Manifest paths are
+dynamic (not in the schema), so the workspace uses a **generic authenticated fetch**
+(`src/api/edge.ts`, `credentials: "include"`).
+
+## Commands
+
+```bash
+npm install
+npm run dev      # Vite dev server (proxies /auth and /api to the edge, default http://localhost:8080)
+npm test         # Vitest: Login, Console shell, Workspace framework
+npm run build    # tsc --noEmit + vite build
+```
+
+The API client for `/auth` is generated from `../contracts/openapi.yaml` via `npm run gen:api`.
+
+## Running the whole console locally
+
+See [`sim/console/`](../sim/console/): `console-up.sh` brings up **floci-aws** (Docker socket → real
+compute + the **Floci UI** on `:4500`), the client's imitated AWS deploy, and the 009 backend/edge/frontend.
+Only the frontend and the Floci UI are host-exposed; **0 real cloud**.

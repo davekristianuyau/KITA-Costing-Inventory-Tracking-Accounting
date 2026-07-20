@@ -1,0 +1,52 @@
+# 011 US4 — floci-aws for the service console, brought up so it RUNS REAL COMPUTE and the Floci UI is
+# reachable. Unlike 010's deploy-only floci, this mounts the host Docker socket + runs as root, which is
+# what lets Floci spawn real containers (verified in /plan: an ECS task served nginx HTTP 200) and what the
+# Floci UI needs (the reported "could not reach the container runtime" error = missing socket).
+#
+# Host exposure: ONLY the Floci UI (:4500). floci :4566 stays private (reached over the compose network by
+# the terraform runner and the edge); the 009 frontend (:8080) is exposed by sim/docker-compose.edge.yml.
+name: kita-console-floci
+
+services:
+  floci:
+    image: floci/floci:latest
+    container_name: floci
+    user: root # required so Floci can drive the mounted Docker socket
+    environment:
+      FLOCI_HOSTNAME: floci # reachable as http://floci:4566 on the compose network
+      FLOCI_DEFAULT_REGION: us-east-1
+      FLOCI_DOCKER_FLAGS: "-u root" # spawned compute inherits root as well
+    volumes:
+      # The host Docker socket → Floci runs real compute + the UI can reach the container runtime.
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks: [floci]
+    # No host port for 4566 — emulator internals stay private (only the frontend + Floci UI are exposed).
+
+  floci-ui:
+    image: floci/floci-ui:latest
+    container_name: floci-ui
+    environment:
+      FLOCI_URL: http://floci:4566
+    ports:
+      - "4500:4500" # host-exposed for deployment inspection (contract: Floci UI is reachable)
+    depends_on: [floci]
+    networks: [floci]
+
+  # One-shot Terraform runner (invoked via `docker compose run terraform ...`), pinned to Floci — reuses the
+  # 010 aws-imitation config. NO real AWS credentials (SC-007).
+  terraform:
+    image: hashicorp/terraform:1.9
+    profiles: ["tools"]
+    working_dir: /work/sim/aws-imitation
+    volumes:
+      - ../../:/work
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: ["terraform"]
+    networks: [floci]
+
+networks:
+  floci:
+    name: kita-console-floci

@@ -77,6 +77,18 @@ jobs:
       - name: Deploy the 001 modules to Floci (apply → verify → destroy)
         run: bash sim/cloud-deploy/run-all.sh
 
+  # Full service-console environment (011): floci-aws WITH the Docker socket (real compute) + the Floci UI,
+  # the client's imitated AWS deploy, and the 009 backend/edge/frontend, then the console smoke (console
+  # reachable → login → run the reference function → Floci UI reachable → only-frontend+UI exposed → 0 real
+  # cloud). Heavy (starts an emulator + real deploy) → NON-BLOCKING; the console logic is unit-covered above.
+  console-smoke:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bring up the console and smoke-test it (self-teardown)
+        run: bash sim/console/console-smoke.sh
+
   # Blocking infra quality gates (Principle VII, FR-006). No cloud credentials needed.
   infra:
     runs-on: ubuntu-latest
