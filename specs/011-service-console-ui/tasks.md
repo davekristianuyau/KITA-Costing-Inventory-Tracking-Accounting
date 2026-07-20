@@ -48,13 +48,13 @@ toggling switches light/dark instantly; valid sign-in proceeds, invalid → clea
 
 ### Tests for User Story 1 ⚠️ (write first, must fail)
 
-- [ ] T006 [P] [US1] Rewrite `frontend/tests/Login.test.tsx` for the redesign: renders the modern layout + the 3 fields + submit + a **theme toggle**; toggling sets `data-theme`; valid credentials → redirect into the app; invalid → generic non-revealing error; no token in JS-readable storage (reuse 009 mock of `api`)
+- [X] T006 [P] [US1] Rewrite `frontend/tests/Login.test.tsx` for the redesign: renders the modern layout + the 3 fields + submit + a **theme toggle**; toggling sets `data-theme`; valid credentials → redirect into the app; invalid → generic non-revealing error; no token in JS-readable storage (reuse 009 mock of `api`)
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Redesign `frontend/src/pages/Login.tsx` with Tailwind/Radix/lucide (branded, uncluttered, current icons; company/username/password; primary sign-in; idle→submitting→error states) — **preserve** 009 auth (`useAuth().login`, generic errors, cookie session)
-- [ ] T008 [US1] Place the `ThemeToggle` on the login page (works pre-auth) and confirm the no-flash init applies on first paint
-- [ ] T009 [US1] Verify US1: `cd frontend && npm test` (Login) + `npm run build` green
+- [X] T007 [US1] Redesign `frontend/src/pages/Login.tsx` with Tailwind/Radix/lucide (branded, uncluttered, current icons; company/username/password; primary sign-in; idle→submitting→error states) — **preserve** 009 auth (`useAuth().login`, generic errors, cookie session)
+- [X] T008 [US1] Place the `ThemeToggle` on the login page (works pre-auth) and confirm the no-flash init applies on first paint
+- [X] T009 [US1] Verify US1: `cd frontend && npm test` (Login) + `npm run build` green
 
 **Checkpoint**: MVP — a polished, themeable login that authenticates via the 009 edge.
 
