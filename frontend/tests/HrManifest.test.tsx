@@ -79,3 +79,52 @@ describe("HR manifest — US1 employees + compensation", () => {
     expect(edge).toHaveBeenCalledWith("GET", "/api/hr/employees/e1/compensation", undefined);
   });
 });
+
+describe("HR manifest — US2 attendance + leave", () => {
+  it("worked-time: renders the premium breakdown for a picked employee + period", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/hr/employees": employees,
+      "/api/hr/attendance/worked-time?employeeId=e1&start=2026-08-01&end=2026-08-15": {
+        regularHours: 80,
+        overtimeHours: 4,
+        nightDiffHours: 2,
+      },
+    });
+    renderFn("worked-time");
+    await user.click(await screen.findByText(/E-001 Alice Cruz/));
+    await user.type(screen.getByLabelText(/start date/i), "2026-08-01");
+    await user.type(screen.getByLabelText(/end date/i), "2026-08-15");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByText("80")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith(
+      "GET",
+      "/api/hr/attendance/worked-time?employeeId=e1&start=2026-08-01&end=2026-08-15",
+      undefined,
+    );
+  });
+
+  it("leave-requests: lists requests and resolves the employee column", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/hr/employees": employees,
+      "/api/hr/leave/requests": [{ id: "lr1", employeeId: "e1", status: "FILED", duration: 2 }],
+    });
+    renderFn("leave-requests");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("FILED")).toBeInTheDocument();
+    expect(within(table).getByText(/E-001 Alice Cruz/)).toBeInTheDocument(); // employeeId resolved
+    expect(edge).toHaveBeenCalledWith("GET", "/api/hr/leave/requests", undefined);
+  });
+
+  it("leave-request: opens one request in detail", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/hr/leave/requests/lr1": { id: "lr1", status: "APPROVED", duration: 2 } });
+    renderFn("leave-request");
+    await user.type(screen.getByLabelText(/leave request id/i), "lr1");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByText("APPROVED")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/hr/leave/requests/lr1", undefined);
+  });
+});

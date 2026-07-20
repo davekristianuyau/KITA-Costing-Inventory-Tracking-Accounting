@@ -69,14 +69,14 @@ Leave balances lists per-type balances; Leave requests lists requests with statu
 
 ### Backend read (FR-015)
 
-- [ ] T008 [US2] Write `backend/hr-service/src/test/java/com/kita/hr/api/LeaveRequestReadContractTest` (MockMvc, red): `GET /leave/requests` lists created requests, the `employeeId`/`status` query filters narrow it, and `GET /leave/requests/{id}` returns one or **404** (stub security → HR_ADMIN)
-- [ ] T009 [US2] Implement leave-request reads — add `listRequests(employeeId, status)` + `getRequest(id)` to `leave/LeaveService.java` (reuse `LeaveRequestRepository` + `LeaveRequestResponse.from`), and `GET /leave/requests` (optional `employeeId`/`status`) + `GET /leave/requests/{id}` in `api/LeaveController.java`, role-gated (HR_ADMIN/MANAGER/PAYROLL_OFFICER/EMPLOYEE_SELF), 404 on absent
+- [X] T008 [US2] Write `backend/hr-service/src/test/java/com/kita/hr/api/LeaveRequestReadContractTest` (MockMvc, red): `GET /leave/requests` lists created requests, the `employeeId`/`status` query filters narrow it, and `GET /leave/requests/{id}` returns one or **404** (stub security → HR_ADMIN)
+- [X] T009 [US2] Implement leave-request reads — add `listRequests(employeeId, status)` + `getRequest(id)` to `leave/LeaveService.java` (reuse `LeaveRequestRepository` + `LeaveRequestResponse.from`), and `GET /leave/requests` (optional `employeeId`/`status`) + `GET /leave/requests/{id}` in `api/LeaveController.java`, role-gated (HR_ADMIN/MANAGER/PAYROLL_OFFICER/EMPLOYEE_SELF), 404 on absent
 
 ### Frontend
 
-- [ ] T010 [P] [US2] Extend `frontend/tests/HrManifest.test.tsx` (red): `worked-time` (detail), `leave-balances` (table), `leave-requests` (table), and `leave-request` (detail) render + run against a mocked edge
-- [ ] T011 [US2] Add the **Attendance** `worked-time` and **Leave** read functions (`leave-balances`, `leave-requests`, `leave-request`, `leave-types`, `deduction-rules`) to `hr.ts`; resolve `employeeId` result columns via `employeeLabels`
-- [ ] T012 [US2] Verify US2: `./gradlew :hr-service:build` (leave-request contract) + `cd frontend && npm test && npm run build` green
+- [X] T010 [P] [US2] Extend `frontend/tests/HrManifest.test.tsx` (red): `worked-time` (detail), `leave-balances` (table), `leave-requests` (table), and `leave-request` (detail) render + run against a mocked edge
+- [X] T011 [US2] Add the **Attendance** `worked-time` and **Leave** read functions (`leave-balances`, `leave-requests`, `leave-request`, `leave-types`, `deduction-rules`) to `hr.ts`; resolve `employeeId` result columns via `employeeLabels`
+- [X] T012 [US2] Verify US2: `./gradlew :hr-service:build` (leave-request contract) + `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: time + leave are viewable, including the now-listable leave requests.
 
