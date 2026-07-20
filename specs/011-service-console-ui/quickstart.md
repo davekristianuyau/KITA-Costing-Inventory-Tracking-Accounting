@@ -28,12 +28,13 @@ then a **result** (or a clear error); switching left-pane items swaps the worksp
 ## 4. Local floci-aws environment + Floci UI (US4)
 
 ```bash
-# floci-cli mounts the Docker socket by default (runs compute + starts the UI):
-floci start                       # floci-aws on :4566, Floci UI on :4500
-# (or the sim brings floci-aws up with -v /var/run/docker.sock:/var/run/docker.sock -u root)
-# deploy the client's AWS resources (feature 010):
-bash sim/cloud-deploy/deploy-check.sh aws
-open http://localhost:4500/       # Floci UI — inspect the deployment (no "container runtime" error)
+# One documented startup — floci-aws WITH the Docker socket (-v /var/run/docker.sock… -u root, so it runs
+# real compute + the UI can reach the runtime), the client's imitated AWS deploy, and the 009 stack:
+bash sim/console/console-up.sh client-a     # floci-aws :4566 (private) + Floci UI :4500 + console :8080
+open http://localhost:8080/login            # company=client-a user=alice password=demo-pass
+open http://localhost:4500/                 # Floci UI — inspect the deployment (no "container runtime" error)
+bash sim/console/console-smoke.sh client-a  # login → run reference function → UI reachable → 0 real cloud
+bash sim/console/console-down.sh            # independent teardown
 ```
 
 **Expect**: `floci-aws` is running with the client's AWS resources deployed, the **Floci UI opens (HTTP 200)**,

@@ -125,11 +125,11 @@ run the reference function; the Floci UI opens with no "container runtime" error
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T024 [P] Accessibility pass: WCAG-AA contrast in **both** themes, full keyboard nav (tabs, sidebar, forms), visible focus, and responsive layout down to **768px** (SC-005) across `frontend/src/`
-- [ ] T025 [P] Docs: update `frontend/README.md` + a note in root `README.md` describing the console (login → one-tab-per-service → workspace) and the local floci-aws startup
-- [ ] T026 [P] CI: extend the `frontend` job in `.github/workflows/ci.yml` to run the new Vitest suites + build; optionally a **non-blocking** `console-smoke` job running `sim/console-smoke.sh`
-- [ ] T027 [P] Perf: verify theme switch **<200 ms no-flash** (SC-002) and first console view **<2 s** locally (SC-006)
-- [ ] T028 Full verification: `cd frontend && npm test` + `npm run build` green; run `quickstart.md` end-to-end (login → console → reference function → Floci UI)
+- [X] T024 [P] Accessibility pass: WCAG-AA contrast in **both** themes, full keyboard nav (tabs, sidebar, forms), visible focus, and responsive layout down to **768px** (SC-005) across `frontend/src/`
+- [X] T025 [P] Docs: update `frontend/README.md` + a note in root `README.md` describing the console (login → one-tab-per-service → workspace) and the local floci-aws startup
+- [X] T026 [P] CI: extend the `frontend` job in `.github/workflows/ci.yml` to run the new Vitest suites + build; optionally a **non-blocking** `console-smoke` job running `sim/console-smoke.sh`
+- [X] T027 [P] Perf: verify theme switch **<200 ms no-flash** (SC-002) and first console view **<2 s** locally (SC-006)
+- [X] T028 Full verification: `cd frontend && npm test` + `npm run build` green; run `quickstart.md` end-to-end (login → console → reference function → Floci UI)
 
 ---
 

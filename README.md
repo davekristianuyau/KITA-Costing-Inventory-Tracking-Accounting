@@ -119,6 +119,28 @@ near-complete module (only the slow managed RDS is skipped via an additive defau
 GCP/Azure are deferred — their emulators cover only storage/secrets (see `sim/cloud-deploy/coverage/`). A fast
 fmt/validate/tflint gate stays blocking; the heavy deploy runs as a non-blocking CI job.
 
+## Service console (feature 011)
+
+A polished console foundation in [`frontend/`](frontend/): a redesigned **login**, a **one-tab-per-service**
+navigation shell, **light/dark theming** (no-flash), and a **per-service workspace framework** (service tab →
+left pane of functions → a run-form that calls the edge and renders the result), proven with one reference
+function (Operations → Items). Full per-service UIs are follow-on specs (starting with Operations); a per-service
+**function manifest** (`frontend/src/services/`) is the seam. Design system: Tailwind + Radix + lucide.
+
+[`sim/console/`](sim/console/) brings the whole thing up locally against a live **floci-aws** — started with the
+**Docker socket mounted** so it runs real compute — and the **Floci UI** (`:4500`):
+
+```bash
+bash sim/console/console-up.sh client-a      # floci-aws (socket + UI) + imitated AWS deploy + 009 backend/edge/frontend
+open http://localhost:8080/login             # company=client-a user=alice (demo-pass); then Operations → Items
+open http://localhost:4500                    # Floci UI (deployment inspection)
+bash sim/console/console-smoke.sh client-a   # login → run reference function → UI reachable → 0 real cloud
+bash sim/console/console-down.sh             # independent teardown
+```
+
+Only the frontend and the Floci UI are host-exposed; **0 real cloud**. Walkthrough:
+[`specs/011-service-console-ui/quickstart.md`](specs/011-service-console-ui/quickstart.md).
+
 ## Run a single service (development)
 
 Run one service against a local PostgreSQL (opt into a DB host port via `docker-compose.override.yml`):
