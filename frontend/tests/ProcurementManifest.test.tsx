@@ -171,3 +171,43 @@ describe("Procurement manifest — US3 supplier + PO writes", () => {
     );
   });
 });
+
+describe("Procurement manifest — US4 receiving", () => {
+  it("receive-po: submits a {lines:[...]} body to the receipts endpoint", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({
+      ok: true,
+      status: 201,
+      data: { id: "gr1", purchaseOrderId: "po1", orderStatus: "PARTIALLY_RECEIVED", lines: [] },
+    });
+    renderFn("receive-po");
+    await user.type(screen.getByLabelText(/purchase order id/i), "po1");
+    await user.click(screen.getByRole("button", { name: /add row/i }));
+    await user.type(screen.getByLabelText(/item ref/i), "WIDGET");
+    await user.type(screen.getByLabelText(/qty received/i), "3");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/procurement/purchase-orders/po1/receipts",
+      expect.objectContaining({
+        lines: [expect.objectContaining({ itemRef: "WIDGET", qtyReceived: "3" })],
+      }),
+    );
+    expect(await screen.findByText("PARTIALLY_RECEIVED")).toBeInTheDocument();
+  });
+
+  it("po-receipts: reads the receipts recorded against a PO", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/procurement/purchase-orders/po1/receipts": [
+        { id: "gr1", purchaseOrderId: "po1", orderStatus: "FULLY_RECEIVED" },
+      ],
+    });
+    renderFn("po-receipts");
+    await user.type(screen.getByLabelText(/purchase order id/i), "po1");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("FULLY_RECEIVED")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/procurement/purchase-orders/po1/receipts", undefined);
+  });
+});

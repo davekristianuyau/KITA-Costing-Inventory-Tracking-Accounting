@@ -103,9 +103,9 @@ PO receipts (by id) lists what was received; operations stock reflects it (obser
 
 ### Frontend (endpoint already exists — receiving's cross-service posting is backend-side)
 
-- [ ] T013 [P] [US4] Extend `frontend/tests/ProcurementManifest.test.tsx` (red): `receive-po` submits `{lines:[{itemRef,qtyReceived}]}` (list input) to `/api/procurement/purchase-orders/{id}/receipts` and renders the goods-receipt result; `po-receipts` (by id) renders the receipts read
-- [ ] T014 [US4] Add the **Receiving** functions (`receive-po` [id + lines list], `po-receipts` [id]) to `procurement.ts`
-- [ ] T015 [US4] Verify US4: `cd frontend && npm test && npm run build` green
+- [X] T013 [P] [US4] Extend `frontend/tests/ProcurementManifest.test.tsx` (red): `receive-po` submits `{lines:[{itemRef,qtyReceived}]}` (list input) to `/api/procurement/purchase-orders/{id}/receipts` and renders the goods-receipt result; `po-receipts` (by id) renders the receipts read
+- [X] T014 [US4] Add the **Receiving** functions (`receive-po` [id + lines list], `po-receipts` [id]) to `procurement.ts`
+- [X] T015 [US4] Verify US4: `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: receiving works end-to-end; stock effects are observable in Operations (feature 012).
 

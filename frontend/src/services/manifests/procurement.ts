@@ -238,6 +238,40 @@ export const procurementManifest: ServiceManifest = {
       result: "detail",
       inputs: [{ name: "id", label: "Suggestion id", type: "text", required: true }],
     },
+    // --- Receiving (US4) ---
+    {
+      id: "receive-po",
+      label: "Receive against PO",
+      icon: "PackageCheck",
+      method: "POST",
+      path: "/purchase-orders/{id}/receipts",
+      result: "detail",
+      inputs: [
+        { name: "id", label: "Purchase order id", type: "text", required: true },
+        {
+          name: "lines",
+          label: "Received lines",
+          type: "list",
+          required: true,
+          minRows: 1,
+          fields: [
+            { name: "itemRef", label: "Item ref", type: "text", required: true },
+            { name: "qtyReceived", label: "Qty received", type: "number", required: true },
+          ],
+        },
+      ],
+      description: "Record receiving against a PO (the backend posts the goods receipt to Operations).",
+    },
+    {
+      id: "po-receipts",
+      label: "PO receipts",
+      icon: "Boxes",
+      method: "GET",
+      path: "/purchase-orders/{id}/receipts",
+      result: "table",
+      inputs: [{ name: "id", label: "Purchase order id", type: "text", required: true }],
+      description: "Goods receipts already recorded against a PO.",
+    },
   ],
 };
 
