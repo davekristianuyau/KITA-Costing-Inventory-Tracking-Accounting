@@ -215,6 +215,10 @@ register (all employees); open the remittance summary (totals per statutory cont
 - HR endpoints are role-gated; the sim runs `hr-service` in **stub security mode**, where a caller with no role
   header is treated as `HR_ADMIN`, so the console demo session can exercise HR (real-role deployments show a
   clear 403 when a role is missing).
+- The **actor** recorded for HR write actions (creates, compensation, leave decisions) is whatever the edge
+  forwards as the caller's employee identity (`X-Kita-Employee-Id`), defaulting to `system` when the session
+  carries none — the UI does not add its own actor field except where a form explicitly offers one (e.g. a leave
+  decision's optional `decidedBy`).
 - Statutory remittance content (PH SSS/PhilHealth/Pag-IBIG/BIR) comes from the existing deduction engine/seed in
   `hr-service`; the UI displays it and does not re-implement the rules.
 - Result rendering reuses the 011 shapes (table/json/detail/message); HR-specific views (e.g. a payslip layout)
