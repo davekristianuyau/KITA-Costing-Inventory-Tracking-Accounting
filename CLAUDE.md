@@ -132,10 +132,9 @@ framework** (reference/list inputs, id→label, bodyInput/dotted-name bodies, **
 receipt `lines[]`). Phase 0 read procurement-service: **all reads + writes already exist → 015 is FRONTEND-ONLY,
 NO backend code AND NO new framework** (simplest yet, like 014). Receiving (`POST /purchase-orders/{id}/receipts`)
 posts the goods receipt to operations **in the backend** — the UI only triggers + displays; stock effects show in
-the Operations tab. Role-gated but `procurement.security.stub` default → demo session gets all roles. ⚠️ **Sync
-`main` into 015 first** (branch predates the 012–014 merges). Builds on 011 + 012 + 013 + 014 + 006
-(procurement-service) + 003 (operations). Remaining: 016-workflow. See [[frontend-and-aws-pipeline-roadmap]] +
-[[spec-014-crm-ui-progress]].
+the Operations tab. Role-gated but `procurement.security.stub` default → demo session gets all roles. Builds on
+011 + 012 + 013 + 014 + 006 (procurement-service) + 003 (operations). Remaining: 016-workflow. See
+[[frontend-and-aws-pipeline-roadmap]] + [[spec-014-crm-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -257,3 +256,16 @@ achieved. To revert an artifact to its original state, run
 [2026-07-19 21:14] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:23] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:34] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:44] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:53] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:55] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 22:00] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-20 10:12] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 10:33] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:00] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:01] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:07] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:09] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 18:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 19:21] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 19:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
