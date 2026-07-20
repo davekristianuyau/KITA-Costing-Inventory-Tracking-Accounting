@@ -124,18 +124,17 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/014-crm-ui/plan.md` (**CRM service full UI** — the third per-service UI, after 012 Operations + 013 HR).
-Fill the 011 Customers tab with the full `crm-service` **manifest** (customers, cascading discount + statutory
-rules, loyalty tiers, entitlements, **price-quote preview**); each function = a manifest entry rendered by the 011
-`FunctionWorkspace` via the generic edge fetch, **reusing the 012/013 shared inputs** (reference/list/id→label +
-bodyInput/dotted-name bodies). Phase 0 read crm-service: **all needed reads already exist → 014 is FRONTEND-ONLY,
-NO backend code** (unlike 012/013). Quote = `POST /discounts/compute` (customer + saleDate + **line items** list →
-itemized `breakdown[]` + flags/VAT, rendered verbatim). A customer's tiers = composed reads (customer `type` +
-stored `loyaltyTierId` + entitlements + discount-rules + quote breakdown); "assign tier" is rule-driven, loyalty
-via evaluate POST — no assign-tier endpoint. Role-gated but `crm.security.stub` default → demo session gets all
-roles. **One small generic framework add:** `DetailView` renders array-of-objects result fields (the quote
-`breakdown[]`) as a **sub-table**. Builds on 011 + 012 + 013 + 005 (crm-service). Remaining: 015-procurement /
-016-workflow. See [[frontend-and-aws-pipeline-roadmap]] + [[spec-013-hr-ui-progress]].
+`specs/015-procurement-ui/plan.md` (**Procurement service full UI** — the fourth per-service UI, after 012/013/014).
+Fill the 011 Procurement tab with the full `procurement-service` **manifest** (supplier master, PO lifecycle
+draft→approved→sent→received→closed, receiving, restock/reorder suggestions); each function = a manifest entry
+rendered by the 011 `FunctionWorkspace` via the generic edge fetch, **reusing the full 012/013/014 shared
+framework** (reference/list inputs, id→label, bodyInput/dotted-name bodies, **014 detail sub-table** for PO/
+receipt `lines[]`). Phase 0 read procurement-service: **all reads + writes already exist → 015 is FRONTEND-ONLY,
+NO backend code AND NO new framework** (simplest yet, like 014). Receiving (`POST /purchase-orders/{id}/receipts`)
+posts the goods receipt to operations **in the backend** — the UI only triggers + displays; stock effects show in
+the Operations tab. Role-gated but `procurement.security.stub` default → demo session gets all roles. Builds on
+011 + 012 + 013 + 014 + 006 (procurement-service) + 003 (operations). Remaining: 016-workflow. See
+[[frontend-and-aws-pipeline-roadmap]] + [[spec-014-crm-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d

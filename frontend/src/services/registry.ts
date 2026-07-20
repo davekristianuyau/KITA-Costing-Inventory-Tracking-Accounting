@@ -8,28 +8,13 @@ import type { ServiceManifest } from "./types";
 import { operationsManifest } from "./manifests/operations";
 import { hrManifest } from "./manifests/hr";
 import { crmManifest } from "./manifests/crm";
+import { procurementManifest } from "./manifests/procurement";
 
 export const registry: ServiceManifest[] = [
   operationsManifest,
   hrManifest,
   crmManifest,
-  {
-    id: "procurement",
-    label: "Procurement",
-    icon: "ShoppingCart",
-    basePath: "/api/procurement",
-    functions: [
-      {
-        id: "suppliers",
-        label: "Suppliers",
-        icon: "ShoppingCart",
-        method: "GET",
-        path: "/suppliers",
-        result: "table",
-        description: "Reference entry — the procurement spec authors the full manifest.",
-      },
-    ],
-  },
+  procurementManifest,
   {
     id: "workflow",
     label: "Workflow",

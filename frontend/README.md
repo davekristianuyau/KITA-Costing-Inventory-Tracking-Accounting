@@ -59,6 +59,15 @@ already exists) and reusing the 012/013 inputs. The quote is `POST /discounts/co
 the **detail view renders an array-of-objects field as a nested sub-table** (used by the quote's `breakdown[]`).
 CRM is role-gated; in stub mode the demo session has all roles.
 
+### Procurement UI (feature 015)
+
+`src/services/manifests/procurement.ts` declares the whole Procurement surface (supplier master, the PO lifecycle,
+receiving, and restock/reorder suggestions) — **frontend-only** (every procurement-service read/write already
+exists) and **reusing the full 012/013/014 framework with no new framework code**. PO/receipt `lines[]` render via
+the 014 detail sub-table; the supplier picker + `supplierId` id→label come from 012. **Receiving** posts the goods
+receipt to `operations-service` **in the backend** — the UI only triggers it and shows the updated status; stock
+effects appear in the Operations tab. Procurement is role-gated; in stub mode the demo session has all roles.
+
 ### Dynamic edge calls
 
 `/auth/*` uses the typed `openapi-fetch` client (`src/api/client.ts`, schema-checked). Manifest paths are
