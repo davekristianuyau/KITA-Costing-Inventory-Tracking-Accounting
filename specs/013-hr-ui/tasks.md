@@ -115,9 +115,9 @@ requests; decide → its status transitions.
 
 ### Frontend (writes already exist — no backend change)
 
-- [ ] T018 [P] [US4] Extend `frontend/tests/HrManifest.test.tsx` (red): `create-run` blocks on missing required inputs then POSTs; `ingest-dtr` submits a **list** body (array of DTR rows); `file-leave` + `decide-leave` run; `create-employee` validates + POSTs (mock the edge)
-- [ ] T019 [US4] Add the **write** functions to `hr.ts` — `create-employee`, `update-employee`, `add-compensation`, `add-loan`, `ingest-dtr` (list), `create-leave-type`, `file-leave`, `decide-leave`, `accrue-leave`, `create-deduction-rule`, `create-run`, `compute-run`, `finalize-run`, `cancel-run` — with enum selects (EmploymentType/RunType/PayTreatment/LeaveStatus) and employee/leave-type reference pickers per contracts/hr-manifest.md
-- [ ] T020 [US4] Verify US4: `cd frontend && npm test && npm run build` green; create→list round-trips (runs, leave requests) work against the mocked edge
+- [X] T018 [P] [US4] Extend `frontend/tests/HrManifest.test.tsx` (red): `create-run` blocks on missing required inputs then POSTs; `ingest-dtr` submits a **list** body (array of DTR rows); `file-leave` + `decide-leave` run; `create-employee` validates + POSTs (mock the edge)
+- [X] T019 [US4] Add the **write** functions to `hr.ts` — `create-employee`, `update-employee`, `add-compensation`, `add-loan`, `ingest-dtr` (list), `create-leave-type`, `file-leave`, `decide-leave`, `accrue-leave`, `create-deduction-rule`, `create-run`, `compute-run`, `finalize-run`, `cancel-run` — with enum selects (EmploymentType/RunType/PayTreatment/LeaveStatus) and employee/leave-type reference pickers per contracts/hr-manifest.md
+- [X] T020 [US4] Verify US4: `cd frontend && npm test && npm run build` green; create→list round-trips (runs, leave requests) work against the mocked edge
 
 **Checkpoint**: the full write surface works and is verifiable via the FR-015 reads.
 

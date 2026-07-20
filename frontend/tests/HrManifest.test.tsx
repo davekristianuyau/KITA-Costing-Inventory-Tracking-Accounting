@@ -161,3 +161,64 @@ describe("HR manifest — US3 payroll runs + register", () => {
     expect(edge).toHaveBeenCalledWith("GET", "/api/hr/payroll/runs/run1/register", undefined);
   });
 });
+
+describe("HR manifest — US4 write actions", () => {
+  it("create-employee: blocks on missing required fields then POSTs", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({ ok: true, status: 201, data: { id: "e9", employeeNo: "E-009" } });
+    renderFn("create-employee");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(screen.getByText(/employee no\. is required/i)).toBeInTheDocument();
+    expect(edge).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText(/employee no/i), "E-009");
+    await user.type(screen.getByLabelText(/first name/i), "Carol");
+    await user.type(screen.getByLabelText(/last name/i), "Diaz");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/hr/employees",
+      expect.objectContaining({ employeeNo: "E-009", firstName: "Carol", lastName: "Diaz" }),
+    );
+  });
+
+  it("create-run: submits a nested period object body", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({ ok: true, status: 201, data: { id: "run9", status: "DRAFT" } });
+    renderFn("create-run");
+    await user.type(screen.getByLabelText(/period start/i), "2026-03-01");
+    await user.type(screen.getByLabelText(/period end/i), "2026-03-31");
+    await user.type(screen.getByLabelText(/pay date/i), "2026-03-31");
+    await user.selectOptions(screen.getByLabelText(/frequency/i), "MONTHLY");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/hr/payroll/runs",
+      expect.objectContaining({
+        period: expect.objectContaining({
+          frequency: "MONTHLY",
+          startDate: "2026-03-01",
+          endDate: "2026-03-31",
+          payDate: "2026-03-31",
+        }),
+      }),
+    );
+  });
+
+  it("ingest-dtr: submits a raw array body (unwrapped list)", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/hr/employees": employees, "/api/hr/attendance": null });
+    renderFn("ingest-dtr");
+    await user.click(screen.getByRole("button", { name: /add row/i }));
+    await user.click(await screen.findByText(/E-001 Alice Cruz/));
+    await user.type(screen.getByLabelText(/work date/i), "2026-08-01");
+    await user.type(screen.getByLabelText(/time in/i), "08:00");
+    await user.type(screen.getByLabelText(/time out/i), "17:00");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/hr/attendance",
+      [expect.objectContaining({ employeeId: "e1", workDate: "2026-08-01", timeIn: "08:00" })],
+    );
+  });
+});

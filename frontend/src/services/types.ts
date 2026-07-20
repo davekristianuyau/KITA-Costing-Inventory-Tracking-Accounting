@@ -48,6 +48,9 @@ export interface ServiceFunction {
   path: string; // "/items/{id}" — {param} tokens filled from inputs
   inputs?: InputField[];
   result: ResultKind;
+  /** When set, the request body is this input's value sent directly (unwrapped) — e.g. a raw array
+   *  body such as the DTR ingest `List<DtrRequest>`. Otherwise the body is an object of the inputs. */
+  bodyInput?: string;
   /** Optional id→label resolution for result columns. */
   resultRefs?: ResultRef[];
   /** Short human description shown in the workspace header. */
