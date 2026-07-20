@@ -128,3 +128,34 @@ describe("CRM manifest — US2 price quote", () => {
     );
   });
 });
+
+describe("CRM manifest — US3 discount + loyalty rules", () => {
+  it("discount-rules: lists the tier definitions (optional asOf dropped when blank)", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/crm/discount-rules": [{ code: "VIP", value: "0.10", priority: 1 }] });
+    renderFn("discount-rules");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("VIP")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/crm/discount-rules", undefined);
+  });
+
+  it("discount-policy: shows the stacking mode", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/crm/discount-policy": { mode: "CASCADE" } });
+    renderFn("discount-policy");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByText("CASCADE")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/crm/discount-policy", undefined);
+  });
+
+  it("loyalty-tiers: lists the loyalty tier definitions", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/crm/loyalty/tiers": [{ code: "GOLD", name: "Gold", minPurchaseValue: "10000" }] });
+    renderFn("loyalty-tiers");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("GOLD")).toBeInTheDocument();
+    expect(edge).toHaveBeenCalledWith("GET", "/api/crm/loyalty/tiers", undefined);
+  });
+});

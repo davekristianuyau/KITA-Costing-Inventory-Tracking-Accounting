@@ -88,9 +88,9 @@ tiers lists the loyalty/repeat tier definitions.
 
 ### Frontend (all endpoints already exist — no backend change)
 
-- [ ] T012 [P] [US3] Extend `frontend/tests/CrmManifest.test.tsx` (red): `discount-rules` (table), `discount-policy` (detail), and `loyalty-tiers` (table) render + run against a mocked edge
-- [ ] T013 [US3] Add the **Discount rules** read functions (`discount-rules` [optional `asOf`], `discount-policy`, `loyalty-tiers`) to `crm.ts`
-- [ ] T014 [US3] Verify US3: `cd frontend && npm test && npm run build` green
+- [X] T012 [P] [US3] Extend `frontend/tests/CrmManifest.test.tsx` (red): `discount-rules` (table), `discount-policy` (detail), and `loyalty-tiers` (table) render + run against a mocked edge
+- [X] T013 [US3] Add the **Discount rules** read functions (`discount-rules` [optional `asOf`], `discount-policy`, `loyalty-tiers`) to `crm.ts`
+- [X] T014 [US3] Verify US3: `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: the pricing rules are reviewable — the input to trusting a quote.
 

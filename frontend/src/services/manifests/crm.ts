@@ -83,6 +83,35 @@ export const crmManifest: ServiceManifest = {
       ],
       description: "Itemized cascading discount + statutory + VAT breakdown for a customer's line items.",
     },
+    // --- Discount rules (US3) ---
+    {
+      id: "discount-rules",
+      label: "Discount rules",
+      icon: "Percent",
+      method: "GET",
+      path: "/discount-rules?asOf={asOf}",
+      result: "table",
+      inputs: [{ name: "asOf", label: "As of", type: "text", placeholder: "YYYY-MM-DD (optional)" }],
+      description: "The cascading discount-tier definitions effective on a date.",
+    },
+    {
+      id: "discount-policy",
+      label: "Discount policy",
+      icon: "Settings2",
+      method: "GET",
+      path: "/discount-policy",
+      result: "detail",
+      description: "The stacking mode that governs how discounts cascade.",
+    },
+    {
+      id: "loyalty-tiers",
+      label: "Loyalty tiers",
+      icon: "Award",
+      method: "GET",
+      path: "/loyalty/tiers",
+      result: "table",
+      description: "The loyalty / repeat-purchase tier definitions.",
+    },
   ],
 };
 
