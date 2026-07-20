@@ -128,3 +128,46 @@ describe("Procurement manifest — US2 reorder suggestions", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });
+
+describe("Procurement manifest — US3 supplier + PO writes", () => {
+  it("create-supplier: blocks on missing required fields then POSTs", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({ ok: true, status: 201, data: { id: "s9", supplierCode: "SUP-9" } });
+    renderFn("create-supplier");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(screen.getByText(/supplier code is required/i)).toBeInTheDocument();
+    expect(edge).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText(/supplier code/i), "SUP-9");
+    await user.type(screen.getByLabelText(/^name/i), "New Vendor");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/procurement/suppliers",
+      expect.objectContaining({ supplierCode: "SUP-9", name: "New Vendor" }),
+    );
+  });
+
+  it("create-po: submits a lines array built from the list input", async () => {
+    const user = userEvent.setup();
+    edge.mockImplementation((_m: string, url: string) =>
+      url === "/api/procurement/suppliers"
+        ? Promise.resolve({ ok: true, status: 200, data: suppliers })
+        : Promise.resolve({ ok: true, status: 201, data: { id: "po9", status: "DRAFT" } }),
+    );
+    renderFn("create-po");
+    await user.click(await screen.findByText(/SUP-1 — Acme Supply/));
+    await user.click(screen.getByRole("button", { name: /add row/i }));
+    await user.type(screen.getByLabelText(/item ref/i), "WIDGET");
+    await user.type(screen.getByLabelText(/qty ordered/i), "5");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/procurement/purchase-orders",
+      expect.objectContaining({
+        supplierId: "s1",
+        lines: [expect.objectContaining({ itemRef: "WIDGET", qtyOrdered: "5" })],
+      }),
+    );
+  });
+});

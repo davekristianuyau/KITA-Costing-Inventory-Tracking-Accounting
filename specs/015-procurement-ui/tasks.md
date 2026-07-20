@@ -85,9 +85,9 @@ lines; approve → status transitions; generate/convert/dismiss suggestions act 
 
 ### Frontend (writes already exist — no backend change)
 
-- [ ] T010 [P] [US3] Extend `frontend/tests/ProcurementManifest.test.tsx` (red): `create-supplier` blocks on missing required inputs then POSTs; `create-po` submits `{poNo?, supplierId, lines:[{itemRef,qtyOrdered,agreedPrice}]}` (list input); `approve-po` runs (mock the edge)
-- [ ] T011 [US3] Add the **write** functions to `procurement.ts` — `create-supplier`, `update-supplier` (status select), `add-supplier-item`, `create-po` (supplier ref + lines list), `approve-po`, `send-po`, `cancel-po`, `close-po`, `generate-suggestions`, `convert-suggestion`, `dismiss-suggestion` — per contracts/procurement-manifest.md
-- [ ] T012 [US3] Verify US3: `cd frontend && npm test && npm run build` green; create→list round-trip (suppliers) works against the mocked edge
+- [X] T010 [P] [US3] Extend `frontend/tests/ProcurementManifest.test.tsx` (red): `create-supplier` blocks on missing required inputs then POSTs; `create-po` submits `{poNo?, supplierId, lines:[{itemRef,qtyOrdered,agreedPrice}]}` (list input); `approve-po` runs (mock the edge)
+- [X] T011 [US3] Add the **write** functions to `procurement.ts` — `create-supplier`, `update-supplier` (status select), `add-supplier-item`, `create-po` (supplier ref + lines list), `approve-po`, `send-po`, `cancel-po`, `close-po`, `generate-suggestions`, `convert-suggestion`, `dismiss-suggestion` — per contracts/procurement-manifest.md
+- [X] T012 [US3] Verify US3: `cd frontend && npm test && npm run build` green; create→list round-trip (suppliers) works against the mocked edge
 
 **Checkpoint**: the supplier + PO write surface + suggestion actions work and are verifiable via the reads.
 
