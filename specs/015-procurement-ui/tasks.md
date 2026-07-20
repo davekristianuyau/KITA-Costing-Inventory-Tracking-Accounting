@@ -113,10 +113,10 @@ PO receipts (by id) lists what was received; operations stock reflects it (obser
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T016 [P] Accessibility/responsive pass: the reused inputs stay keyboard-navigable with visible focus, and Procurement result shapes (PO detail lines sub-table + result tables) scroll (not the page) at the 011 768px floor across `frontend/src/`
-- [ ] T017 [P] Docs: add a Procurement note to `frontend/README.md` (the CRM manifest is frontend-only; PO/receipt lines render via the 014 detail sub-table; receiving posts to operations backend-side)
-- [ ] T018 [P] Confirm CI covers the frontend stream: the 011 `frontend` job runs the new `ProcurementManifest` suite; **no backend job change** (no backend code) — adjust `.github/workflows/ci.yml` only if a gap exists
-- [ ] T019 Full verification: `cd frontend && npm test && npm run build` green; run `quickstart.md` end-to-end (browse → suggestions → create/approve PO → receive) with 0 real cloud
+- [X] T016 [P] Accessibility/responsive pass: the reused inputs stay keyboard-navigable with visible focus, and Procurement result shapes (PO detail lines sub-table + result tables) scroll (not the page) at the 011 768px floor across `frontend/src/`
+- [X] T017 [P] Docs: add a Procurement note to `frontend/README.md` (the CRM manifest is frontend-only; PO/receipt lines render via the 014 detail sub-table; receiving posts to operations backend-side)
+- [X] T018 [P] Confirm CI covers the frontend stream: the 011 `frontend` job runs the new `ProcurementManifest` suite; **no backend job change** (no backend code) — adjust `.github/workflows/ci.yml` only if a gap exists
+- [X] T019 Full verification: `cd frontend && npm test && npm run build` green; run `quickstart.md` end-to-end (browse → suggestions → create/approve PO → receive) with 0 real cloud
 
 ---
 
