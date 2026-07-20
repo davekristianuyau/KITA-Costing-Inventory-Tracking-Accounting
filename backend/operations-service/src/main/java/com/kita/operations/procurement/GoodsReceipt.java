@@ -60,4 +60,8 @@ public class GoodsReceipt {
   public List<ReceiptLine> getLines() {
     return lines;
   }
+
+  public java.time.Instant getReceivedAt() {
+    return receivedAt;
+  }
 }

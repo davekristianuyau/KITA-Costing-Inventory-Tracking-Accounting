@@ -4,6 +4,7 @@ import com.kita.hr.common.security.CallerContext;
 import com.kita.hr.common.security.Role;
 import com.kita.hr.leave.LeaveRequest;
 import com.kita.hr.leave.LeaveService;
+import com.kita.hr.leave.LeaveStatus;
 import com.kita.hr.leave.LeaveType;
 import com.kita.hr.leave.dto.AccrueLeaveRequest;
 import com.kita.hr.leave.dto.FileLeaveRequest;
@@ -69,6 +70,22 @@ public class LeaveController {
     caller.require(Role.MANAGER, Role.HR_ADMIN);
     String decidedBy = r.decidedBy() != null ? r.decidedBy() : actor();
     return LeaveRequestResponse.from(leave.decide(id, r.approved(), decidedBy));
+  }
+
+  @GetMapping("/api/hr/leave/requests")
+  public List<LeaveRequestResponse> listRequests(
+      @RequestParam(required = false) UUID employeeId,
+      @RequestParam(required = false) LeaveStatus status) {
+    caller.require(Role.HR_ADMIN, Role.MANAGER, Role.PAYROLL_OFFICER, Role.EMPLOYEE_SELF);
+    return leave.listRequests(employeeId, status).stream()
+        .map(LeaveRequestResponse::from)
+        .toList();
+  }
+
+  @GetMapping("/api/hr/leave/requests/{id}")
+  public LeaveRequestResponse getRequest(@PathVariable UUID id) {
+    caller.require(Role.HR_ADMIN, Role.MANAGER, Role.PAYROLL_OFFICER, Role.EMPLOYEE_SELF);
+    return LeaveRequestResponse.from(leave.getRequest(id));
   }
 
   @GetMapping("/api/hr/leave/balances")

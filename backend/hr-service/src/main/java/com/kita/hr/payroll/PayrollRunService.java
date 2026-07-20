@@ -135,6 +135,12 @@ public class PayrollRunService {
         .orElseThrow(() -> new NotFoundException("payroll run not found: " + runId));
   }
 
+  /** All payroll runs (FR-015). */
+  @Transactional(readOnly = true)
+  public List<PayrollRun> list() {
+    return runs.findAll();
+  }
+
   @Transactional(readOnly = true)
   public List<PayslipResponse> payslipsForRun(UUID runId) {
     get(runId);

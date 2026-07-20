@@ -134,9 +134,8 @@ itemized `breakdown[]` + flags/VAT, rendered verbatim). A customer's tiers = com
 stored `loyaltyTierId` + entitlements + discount-rules + quote breakdown); "assign tier" is rule-driven, loyalty
 via evaluate POST — no assign-tier endpoint. Role-gated but `crm.security.stub` default → demo session gets all
 roles. **One small generic framework add:** `DetailView` renders array-of-objects result fields (the quote
-`breakdown[]`) as a **sub-table**. ⚠️ **Sync `main` into 014 first** (branch predates the 012/013 merges). Builds
-on 011 + 012 + 013 + 005 (crm-service). Remaining: 015-procurement / 016-workflow. See
-[[frontend-and-aws-pipeline-roadmap]] + [[spec-013-hr-ui-progress]].
+`breakdown[]`) as a **sub-table**. Builds on 011 + 012 + 013 + 005 (crm-service). Remaining: 015-procurement /
+016-workflow. See [[frontend-and-aws-pipeline-roadmap]] + [[spec-013-hr-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -258,3 +257,16 @@ achieved. To revert an artifact to its original state, run
 [2026-07-19 21:14] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:23] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:34] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:44] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:53] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:55] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 22:00] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-20 10:12] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 10:33] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:00] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:01] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:07] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:09] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 18:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 19:21] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 19:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
