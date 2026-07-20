@@ -23,5 +23,7 @@ export default defineConfig({
     globals: true,
     setupFiles: "./tests/setup.ts",
     include: ["tests/**/*.test.{ts,tsx}"],
+    // Component tests don't need Tailwind processed — skip CSS so specs stay fast and don't require PostCSS.
+    css: false,
   },
 });

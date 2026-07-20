@@ -21,8 +21,8 @@ system = Tailwind + Radix primitives + lucide-react. Full per-service UIs are **
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Add design-system deps to `frontend/package.json` (`tailwindcss` + `postcss` + `autoprefixer`, `@radix-ui/react-tabs` + `@radix-ui/react-dropdown-menu` + `@radix-ui/react-dialog`, `lucide-react`); `npm install`; create `frontend/tailwind.config.js` + `frontend/postcss.config.js`; wire Tailwind into `frontend/src/index.css`
-- [ ] T002 [P] Define the design tokens + theme CSS variables in `frontend/src/index.css` (color/spacing/radius tokens; light + dark palettes via `:root` and `[data-theme="dark"]`, WCAG-AA contrast) and Tailwind theme mapping in `frontend/tailwind.config.js`
+- [X] T001 Add design-system deps to `frontend/package.json` (`tailwindcss` + `postcss` + `autoprefixer`, `@radix-ui/react-tabs` + `@radix-ui/react-dropdown-menu` + `@radix-ui/react-dialog`, `lucide-react`); `npm install`; create `frontend/tailwind.config.js` + `frontend/postcss.config.js`; wire Tailwind into `frontend/src/index.css`
+- [X] T002 [P] Define the design tokens + theme CSS variables in `frontend/src/index.css` (color/spacing/radius tokens; light + dark palettes via `:root` and `[data-theme="dark"]`, WCAG-AA contrast) and Tailwind theme mapping in `frontend/tailwind.config.js`
 
 ---
 
@@ -30,9 +30,9 @@ system = Tailwind + Radix primitives + lucide-react. Full per-service UIs are **
 
 **⚠️ Blocks all user stories.**
 
-- [ ] T003 Theme system in `frontend/src/theme/` — `ThemeProvider.tsx` (light/dark/system, `data-theme` on root, persist to localStorage) + `ThemeToggle.tsx` (lucide sun/moon) + a **no-flash inline init** snippet added to `frontend/index.html` that sets `data-theme` before first paint (contracts/theme.md)
-- [ ] T004 [P] Shared accessible UI primitives in `frontend/src/ui/` — `Tabs.tsx` (wrap `@radix-ui/react-tabs`), `Menu.tsx` (dropdown), `Dialog.tsx`, `Button.tsx`, `Card.tsx`, `Field.tsx`, `Icon.tsx` (lucide helper), all styled with the design tokens
-- [ ] T005 [P] Service registry + manifest types in `frontend/src/services/` — `types.ts` (`ServiceManifest`/`ServiceFunction`/`InputField`, contracts/service-manifest.md) + `registry.ts` (the client's services: id/label/icon/basePath for operations/hr/crm/procurement/workflow, each with a **reference function** entry)
+- [X] T003 Theme system in `frontend/src/theme/` — `ThemeProvider.tsx` (light/dark/system, `data-theme` on root, persist to localStorage) + `ThemeToggle.tsx` (lucide sun/moon) + a **no-flash inline init** snippet added to `frontend/index.html` that sets `data-theme` before first paint (contracts/theme.md)
+- [X] T004 [P] Shared accessible UI primitives in `frontend/src/ui/` — `Tabs.tsx` (wrap `@radix-ui/react-tabs`), `Menu.tsx` (dropdown), `Dialog.tsx`, `Button.tsx`, `Card.tsx`, `Field.tsx`, `Icon.tsx` (lucide helper), all styled with the design tokens
+- [X] T005 [P] Service registry + manifest types in `frontend/src/services/` — `types.ts` (`ServiceManifest`/`ServiceFunction`/`InputField`, contracts/service-manifest.md) + `registry.ts` (the client's services: id/label/icon/basePath for operations/hr/crm/procurement/workflow, each with a **reference function** entry)
 
 **Checkpoint**: theme works app-wide (no flash), primitives + the manifest types/registry exist.
 
