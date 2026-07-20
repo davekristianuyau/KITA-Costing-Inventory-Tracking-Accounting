@@ -52,14 +52,14 @@ hand (pick an item) shows onHand/reserved/available per location; loading/empty/
 
 ### Backend read (FR-015)
 
-- [ ] T008 [US1] Write `backend/operations-service/src/test/java/.../api/ItemReadContractTest` (MockMvc, red): `GET /items/{id}` returns the `ItemResponse` for a created item and **404** when absent
-- [ ] T009 [US1] Implement `GET /items/{id}` — add `getItem(id)` to `catalog/CatalogService.java` (`ItemRepository.findById` → existing `toResponse`) and the handler in `api/CatalogController.java` (404 on absent)
+- [X] T008 [US1] Write `backend/operations-service/src/test/java/.../api/ItemReadContractTest` (MockMvc, red): `GET /items/{id}` returns the `ItemResponse` for a created item and **404** when absent
+- [X] T009 [US1] Implement `GET /items/{id}` — add `getItem(id)` to `catalog/CatalogService.java` (`ItemRepository.findById` → existing `toResponse`) and the handler in `api/CatalogController.java` (404 on absent)
 
 ### Frontend
 
-- [ ] T010 [P] [US1] Write `frontend/tests/OperationsManifest.test.tsx` (red): the `items`, `item`, and `stock` functions render and run against a mocked edge; `stock` renders the availability table (onHand/reserved/available)
-- [ ] T011 [US1] Add the **Catalog** `items` + `item` (detail, `reference→items`) and **Inventory** `stock` (`reference→items`) functions to `frontend/src/services/manifests/operations.ts` per operations-manifest.md
-- [ ] T012 [US1] Verify US1: `./gradlew :operations-service:build` (item-detail contract) + `cd frontend && npm test && npm run build` green
+- [X] T010 [P] [US1] Write `frontend/tests/OperationsManifest.test.tsx` (red): the `items`, `item`, and `stock` functions render and run against a mocked edge; `stock` renders the availability table (onHand/reserved/available)
+- [X] T011 [US1] Add the **Catalog** `items` + `item` (detail, `reference→items`) and **Inventory** `stock` (`reference→items`) functions to `frontend/src/services/manifests/operations.ts` per operations-manifest.md
+- [X] T012 [US1] Verify US1: `./gradlew :operations-service:build` (item-detail contract) + `cd frontend && npm test && npm run build` green
 
 **Checkpoint**: MVP — browse items, open an item, see its stock, all through the edge.
 
