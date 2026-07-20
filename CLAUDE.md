@@ -124,16 +124,18 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/011-service-console-ui/plan.md` (polished frontend **console foundation**). Evolve the 009 React18/Vite5
-frontend: redesigned login + **one top tab per backend service** + light/dark theme (CSS-vars, localStorage,
-no-flash) + a **per-service workspace framework** (service tab → left pane of that service's functions →
-workspace that runs a function via the 009 edge + shows result/loading/error), proven with ONE reference
-function. Design system: **Tailwind + Radix primitives + lucide-react** icons. **FULL per-service UIs are SEPARATE
-follow-on specs** (start with Operations) — a per-service **function manifest** is the seam. Local env brings up
-`floci-aws` WITH the **Docker socket mounted + -u root** (verified in /plan: Floci then RUNS real compute — an ECS
-task served nginx HTTP 200 — NOT mocked) and the **Floci UI `floci/floci-ui`:4500** (the user's "could not reach
-container runtime" error = missing socket). Only frontend + Floci UI host-exposed; 0 real cloud. Builds on 009
-(auth/edge) + 010 (floci-aws deploy). See [[floci-emulators-reference]].
+`specs/013-hr-ui/plan.md` (**HR & Payroll service full UI** — the second per-service UI, after 012 Operations).
+Fill the 011 HR tab with the full `hr-service` **manifest** (employees/compensation, attendance, leave, payroll
+runs, payslip/register/remittance); each function = a manifest entry rendered by the 011 `FunctionWorkspace` via
+the generic edge fetch, **reusing the 012 shared inputs** (ReferenceInput/ListInput/id→label — NO new frontend
+framework). ⚠️ **Sync `main` into 013 first** (branch predates the 012 merge). Phase 0 read hr-service: every
+endpoint is **role-gated** but `CallerContext` **stub mode** (sim default) → demo user = `HR_ADMIN`, so HR works;
+a run's per-employee lines come from the existing `/register`. **Clarify → 013 ALSO adds bounded read-only
+endpoints (FR-015, mirrors 012):** `GET /payroll/runs` (+`/{id}`), `GET /leave/requests` (+`/{id}`) — thin
+`findAll`/`findById` reusing DTOs (PayrollRunResponse/LeaveRequestResponse), role-gated, each with a MockMvc
+contract test; NO existing endpoint/write logic changes. PII (statutory ids) already server-masked. Builds on 011
++ 012 + 004 (hr-service). Remaining per-service UIs: 014-crm / 015-procurement / 016-workflow. See
+[[frontend-and-aws-pipeline-roadmap]] + [[spec-012-operations-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d

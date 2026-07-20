@@ -11,7 +11,27 @@ The full per-service UI for `hr-service` (spec 004) on the 011 console foundatio
 complete HR & Payroll workspace: employee records and effective-dated compensation, time & attendance, leave,
 the payroll run lifecycle (with statutory deductions), and the payslip/register/remittance outputs. Every
 function is an entry in the HR **manifest** rendered by the 011 workspace framework and called through the 009
-edge. No backend changes — `hr-service` already provides these capabilities.
+edge. It is **mostly frontend**, with a **bounded backend addition**: `hr-service` (spec 004) exposes most
+capabilities already, but **payroll runs** and **leave requests** are currently **write-only** (create/act
+returns the object, but there is no way to list or re-fetch them). This feature **adds the missing read (GET)
+endpoints** for those two resources so the UI can list/view them — mirroring the decision made for 012. No other
+backend behavior changes.
+
+## Clarifications
+
+### Session 2026-07-20
+
+- Q: `hr-service` has no GET to list payroll runs or leave requests, yet FR-005/FR-006 require viewing them —
+  under the "no backend changes" constraint, how should 013 handle it? → A: **Add the missing read endpoints now**
+  (mirror 012's Q1=C), to keep the per-service UIs consistent and avoid the gap. 013's scope therefore includes a
+  bounded set of backend GET endpoints (see FR-015).
+- Applied from Phase-0 backend grounding (see [research.md](./research.md), not open questions): a payroll run's
+  **per-employee lines already come from the existing** `GET /api/hr/payroll/runs/{id}/register` (gross /
+  deductions / net + totals) — so 013 only adds **list + get** for runs (period + state), not a new lines
+  endpoint. `hr-service` endpoints are **role-gated** (`HR_ADMIN` / `PAYROLL_OFFICER` / `MANAGER` /
+  `EMPLOYEE_SELF`), but in the service's **stub security mode** (the sim default) a caller with no role header is
+  treated as `HR_ADMIN`, so the console's demo session can exercise HR; if run with real roles and none granted,
+  calls return a clear 403 (FR-012 error handling).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -134,8 +154,9 @@ register (all employees); open the remittance summary (totals per statutory cont
 - **FR-003**: Users MUST be able to view an employee's effective-dated compensation history.
 - **FR-004**: Users MUST be able to view an employee's worked time and premiums for a period.
 - **FR-005**: Users MUST be able to view an employee's leave balances and requests.
-- **FR-006**: Users MUST be able to list payroll runs and view a run's state and computed per-employee lines.
-- **FR-007**: Users MUST be able to view a run's register (reconciling totals).
+- **FR-006**: Users MUST be able to list payroll runs and view a run's state; the run's computed per-employee
+  lines are shown via its register (FR-007).
+- **FR-007**: Users MUST be able to view a run's register (per-employee gross/deductions/net + reconciling totals).
 - **FR-008**: Users MUST be able to create, compute, and finalize a payroll run via validated forms, with
   finalize being idempotent (a repeat call is a safe no-op).
 - **FR-009**: Users MUST be able to record a daily time record and file/approve a leave request via validated
@@ -148,7 +169,15 @@ register (all employees); open the remittance summary (totals per statutory cont
   the edge or embed credentials, and MUST NOT persist PII in the browser beyond the session cookie.
 - **FR-013**: Write actions MUST block on missing required inputs with inline validation before calling the edge,
   and MUST surface state-machine errors (wrong-state compute/finalize) clearly.
-- **FR-014**: The feature MUST NOT modify `hr-service`; it consumes existing capabilities only.
+- **FR-014**: The feature MUST NOT change any existing `hr-service` endpoint or its write/business behavior; the
+  only backend change permitted is adding the **read-only** endpoints in FR-015.
+- **FR-015**: `hr-service` MUST gain read (GET) endpoints so today's write-only resources become
+  listable/viewable: **list + get payroll runs** (period + state) and **list + get leave requests**. These
+  endpoints MUST be read-only, role-gated consistently with sibling endpoints, tenant-scoped like existing
+  endpoints, and covered by tests (unit/contract) per the constitution's TDD requirement.
+- **FR-016**: Users MUST be able to list and view payroll runs and leave requests in the UI (enabled by FR-015),
+  and the effect of each create/lifecycle action MUST be verifiable via these reads (a run also via its register;
+  a leave decision via the request's updated status).
 
 ### Key Entities *(include if feature involves data)*
 
@@ -180,8 +209,12 @@ register (all employees); open the remittance summary (totals per statutory cont
 
 ## Assumptions
 
-- `hr-service` (spec 004) exposes the read and write capabilities above via the edge under `/api/hr`; this
-  feature maps them into manifest functions and adds no endpoints.
+- `hr-service` (spec 004) exposes most read and all write capabilities above via the edge under `/api/hr`; this
+  feature maps them into manifest functions and **adds only the read endpoints in FR-015** (payroll runs +
+  leave requests) for the currently write-only resources.
+- HR endpoints are role-gated; the sim runs `hr-service` in **stub security mode**, where a caller with no role
+  header is treated as `HR_ADMIN`, so the console demo session can exercise HR (real-role deployments show a
+  clear 403 when a role is missing).
 - Statutory remittance content (PH SSS/PhilHealth/Pag-IBIG/BIR) comes from the existing deduction engine/seed in
   `hr-service`; the UI displays it and does not re-implement the rules.
 - Result rendering reuses the 011 shapes (table/json/detail/message); HR-specific views (e.g. a payslip layout)
@@ -196,6 +229,7 @@ register (all employees); open the remittance summary (totals per statutory cont
 
 ## Out of Scope
 
-- Any backend/API change to `hr-service`.
+- Backend changes to `hr-service` **beyond** the read-only endpoints in FR-015 (no change to existing endpoints
+  or write/business logic; no new write endpoints).
 - Other services' UIs — their own specs.
 - Real cloud deployment; payroll bank-file/e-filing export; analytics dashboards; role/entitlement management.
