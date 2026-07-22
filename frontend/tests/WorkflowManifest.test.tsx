@@ -110,6 +110,57 @@ describe("Workflow manifest — US1 activity log", () => {
   });
 });
 
+describe("Workflow manifest — US2 authorization rules + pending reviews", () => {
+  it("authorization: lists each role → action → kind grant", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/workflow/authorization": [
+        { action: "TAKE_SALES_ORDER", role: "SALES", kind: "MAKER" },
+        { action: "CONFIRM_SALES_PAYMENT", role: "CASHIER", kind: "CHECKER" },
+      ],
+    });
+    renderFn("authorization");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("MAKER")).toBeInTheDocument();
+    expect(within(table).getByText("CHECKER")).toBeInTheDocument();
+    expect(within(table).getByText("CASHIER")).toBeInTheDocument();
+  });
+
+  it("pending-reviews: lists what awaits a checker, with its maker and target", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/workflow/pending-reviews": [
+        {
+          pendingId: "pr-1",
+          action: "RECORD_DELIVERY_RECEIPT",
+          makerEmployeeId: "emp-whse",
+          targetRef: "po:po-1",
+          stage: null,
+          createdAt: "2026-07-22T02:12:41Z",
+        },
+      ],
+    });
+    renderFn("pending-reviews");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("emp-whse")).toBeInTheDocument();
+    expect(within(table).getByText("po:po-1")).toBeInTheDocument();
+  });
+
+  it("pending-reviews: an empty queue is an empty state, not an error", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/workflow/pending-reviews": [] });
+    renderFn("pending-reviews");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    expect(await screen.findByText(/no results/i)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
 describe("Workflow manifest — FR-013 guard", () => {
   it("lets no governed action carry an acting-employee input", () => {
     // The actor is the signed-in user; the edge sets it and strips anything the browser sends.

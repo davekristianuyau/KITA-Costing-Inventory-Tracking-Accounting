@@ -84,17 +84,17 @@ kind; "Pending reviews" lists items awaiting a checker with action, target, reco
 
 ### Tests for User Story 2 ⚠️ write first, confirm red
 
-- [ ] T013 [P] [US2] Failing test in `backend/workflow-service/src/test/java/com/kita/workflow/api/AuthorizationQueryTest.java`: one row per seeded mapping, `kind` present and distinct, deterministic ordering (action → kind → role)
-- [ ] T014 [P] [US2] Failing test in `backend/workflow-service/src/test/java/com/kita/workflow/pending/PendingReviewQueryTest.java`: a recorded-but-unconfirmed item appears with its maker and target; confirming removes it; the serialized body contains **no `payload` key**; `action` narrowing works; empty store ⇒ `[]`
-- [ ] T015 [P] [US2] Failing test in `frontend/tests/WorkflowManifest.test.tsx`: the Authorization rules and Pending reviews functions render and run their reads, showing the empty state when the response is `[]`
+- [X] T013 [P] [US2] Failing test in `backend/workflow-service/src/test/java/com/kita/workflow/api/AuthorizationQueryTest.java`: one row per seeded mapping, `kind` present and distinct, deterministic ordering (action → kind → role)
+- [X] T014 [P] [US2] Failing test in `backend/workflow-service/src/test/java/com/kita/workflow/pending/PendingReviewQueryTest.java`: a recorded-but-unconfirmed item appears with its maker and target; confirming removes it; the serialized body contains **no `payload` key**; `action` narrowing works; empty store ⇒ `[]`
+- [X] T015 [P] [US2] Failing test in `frontend/tests/WorkflowManifest.test.tsx`: the Authorization rules and Pending reviews functions render and run their reads, showing the empty state when the response is `[]`
 
 ### Implementation for User Story 2
 
-- [ ] T016 [P] [US2] Add `List<PendingReview> list()` to `backend/…/pending/PendingReviewStore.java` and implement it in `InMemoryPendingReviewStore` as a copied snapshot — no change to `put`/`get`/`remove`
-- [ ] T017 [P] [US2] Add `AuthorizationController` (`GET /api/workflow/authorization`) in `backend/…/api/`, projecting `AuthorizationMappingRepository.findAll()` through the existing `AuthorizationMapping.toRule()`; view record = `action`, `role`, `kind` (T013 green)
-- [ ] T018 [US2] Add `PendingReviewController` (`GET /api/workflow/pending-reviews?action=`) in `backend/…/api/`, oldest-first; the view record lists `pendingId`, `action`, `makerEmployeeId`, `targetRef`, `stage`, `createdAt` **explicitly** so `payload` can never leak (depends on T016; T014 green)
-- [ ] T019 [US2] Add the `authorization` (group "Authorization") and `pending-reviews` (group "Reviews") functions to `frontend/src/services/manifests/workflow.ts`; the Reviews description states the queue is transient and empties on service restart (T015 green)
-- [ ] T020 [US2] Verify frontend + backend suites green; mark tasks `[X]` and commit the slice
+- [X] T016 [P] [US2] Add `List<PendingReview> list()` to `backend/…/pending/PendingReviewStore.java` and implement it in `InMemoryPendingReviewStore` as a copied snapshot — no change to `put`/`get`/`remove`
+- [X] T017 [P] [US2] Add `AuthorizationController` (`GET /api/workflow/authorization`) in `backend/…/api/`, projecting `AuthorizationMappingRepository.findAll()` through the existing `AuthorizationMapping.toRule()`; view record = `action`, `role`, `kind` (T013 green)
+- [X] T018 [US2] Add `PendingReviewController` (`GET /api/workflow/pending-reviews?action=`) in `backend/…/api/`, oldest-first; the view record lists `pendingId`, `action`, `makerEmployeeId`, `targetRef`, `stage`, `createdAt` **explicitly** so `payload` can never leak (depends on T016; T014 green)
+- [X] T019 [US2] Add the `authorization` (group "Authorization") and `pending-reviews` (group "Reviews") functions to `frontend/src/services/manifests/workflow.ts`; the Reviews description states the queue is transient and empties on service restart (T015 green)
+- [X] T020 [US2] Verify frontend + backend suites green; mark tasks `[X]` and commit the slice
 
 **Checkpoint**: US1 + US2 both work — the whole read-only half of the tab, still with zero write risk.
 

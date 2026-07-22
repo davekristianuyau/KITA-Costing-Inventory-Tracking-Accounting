@@ -82,6 +82,33 @@ export const workflowManifest: ServiceManifest = {
       description:
         "Append-only record of every back-office attempt, newest first. All filters are optional.",
     },
+
+    // --- Authorization (US2) ---
+    {
+      id: "authorization",
+      label: "Authorization rules",
+      icon: "ShieldCheck",
+      group: "Authorization",
+      method: "GET",
+      path: "/authorization",
+      result: "table",
+      description:
+        "Who may perform, make, or check each action. Roles come from the employee record; view-only here.",
+    },
+
+    // --- Reviews (US2) ---
+    {
+      id: "pending-reviews",
+      label: "Pending reviews",
+      icon: "Inbox",
+      group: "Reviews",
+      method: "GET",
+      path: "/pending-reviews?action={action}",
+      result: "table",
+      inputs: [{ name: "action", label: "Action", type: "select", options: ACTIONS }],
+      description:
+        "Items awaiting a checker. Held in memory: a service restart empties the queue and the maker re-records — no domain effect is lost.",
+    },
   ],
 };
 
