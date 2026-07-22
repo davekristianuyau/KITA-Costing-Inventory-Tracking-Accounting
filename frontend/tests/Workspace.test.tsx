@@ -144,3 +144,128 @@ describe("FunctionWorkspace", () => {
     expect(screen.queryByRole("heading", { name: /^items$/i })).not.toBeInTheDocument();
   });
 });
+
+// Route the mocked edge by URL so both the reference/resultRef source loads and the function call resolve.
+function routeEdge(map: Record<string, unknown>) {
+  edge.mockImplementation((_method: string, url: string) =>
+    Promise.resolve({ ok: true, status: 200, data: map[url] ?? null }),
+  );
+}
+
+const items = [
+  { id: "id-1", sku: "A-1", name: "Widget" },
+  { id: "id-2", sku: "B-2", name: "Gadget" },
+];
+
+describe("Framework extensions (012): reference input + id→label", () => {
+  it("renders a reference picker sourced from a list endpoint and blocks Run when required + empty", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/operations/items": items });
+    const fn: ServiceFunction = {
+      id: "item",
+      label: "Item detail",
+      method: "GET",
+      path: "/items/{id}",
+      result: "detail",
+      inputs: [
+        {
+          name: "id",
+          label: "Item",
+          type: "reference",
+          required: true,
+          source: { path: "/api/operations/items", valueKey: "id", labelKeys: ["sku", "name"] },
+        },
+      ],
+    };
+    renderWorkspace(fn);
+
+    // options came from the source endpoint, shown by label (not raw id)
+    expect(await screen.findByText(/A-1 — Widget/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(screen.getByText(/item is required/i)).toBeInTheDocument();
+    // the function itself was not called (only the source list load happened)
+    expect(edge.mock.calls.some((c) => String(c[1]).startsWith("/api/demo/items/"))).toBe(false);
+
+    // pick an option → Run substitutes the id into the path
+    await user.click(screen.getByText(/B-2 — Gadget/));
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(edge).toHaveBeenCalledWith("GET", "/api/demo/items/id-2", undefined);
+  });
+
+  it("resolves item-id result columns to SKU — name via resultRefs", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/operations/items": items,
+      "/api/demo/movements": [{ itemId: "id-1", type: "ADJUSTMENT", quantity: 7 }],
+    });
+    const fn: ServiceFunction = {
+      id: "movements",
+      label: "Movements",
+      method: "GET",
+      path: "/movements",
+      result: "table",
+      resultRefs: [
+        {
+          columns: ["itemId"],
+          source: { path: "/api/operations/items", valueKey: "id", labelKeys: ["sku", "name"] },
+        },
+      ],
+    };
+    renderWorkspace(fn);
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText(/A-1 — Widget/)).toBeInTheDocument();
+    expect(within(table).queryByText("id-1")).not.toBeInTheDocument();
+  });
+});
+
+describe("Framework extension (014): detail sub-table for nested arrays", () => {
+  const quoteFn: ServiceFunction = {
+    id: "quote",
+    label: "Quote",
+    method: "POST",
+    path: "/quote",
+    result: "detail",
+    inputs: [],
+  };
+
+  it("renders an array-of-objects field as a nested sub-table and scalars normally", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        baseTotal: "1000",
+        finalPrice: "850",
+        breakdown: [
+          { tierCode: "VIP", origin: "TIER", amountRemoved: "100" },
+          { tierCode: "SENIOR", origin: "STATUTORY", amountRemoved: "50" },
+        ],
+        flags: ["capped", "vat-inclusive"],
+      },
+    });
+    renderWorkspace(quoteFn);
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    // scalar fields render as key/value
+    expect(await screen.findByText("850")).toBeInTheDocument();
+    // the breakdown array-of-objects renders as a sub-table with its rows
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("VIP")).toBeInTheDocument();
+    expect(within(table).getByText("SENIOR")).toBeInTheDocument();
+    expect(within(table).getByText("100")).toBeInTheDocument();
+    // the array-of-scalars flags render as a joined list (not a table row)
+    expect(screen.getByText(/capped/)).toHaveTextContent(/capped.*vat-inclusive/);
+  });
+
+  it("leaves a single-level detail object unchanged", async () => {
+    const user = userEvent.setup();
+    edge.mockResolvedValue({ ok: true, status: 200, data: { mode: "CASCADE", active: true } });
+    renderWorkspace(quoteFn);
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(await screen.findByText("CASCADE")).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+});

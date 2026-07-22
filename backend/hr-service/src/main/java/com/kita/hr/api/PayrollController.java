@@ -39,6 +39,18 @@ public class PayrollController {
     return PayrollRunResponse.from(service.create(req, actor()));
   }
 
+  @GetMapping("/api/hr/payroll/runs")
+  public List<PayrollRunResponse> listRuns() {
+    caller.require(Role.HR_ADMIN, Role.PAYROLL_OFFICER);
+    return service.list().stream().map(PayrollRunResponse::from).toList();
+  }
+
+  @GetMapping("/api/hr/payroll/runs/{id}")
+  public PayrollRunResponse getRun(@PathVariable UUID id) {
+    caller.require(Role.HR_ADMIN, Role.PAYROLL_OFFICER);
+    return PayrollRunResponse.from(service.get(id));
+  }
+
   @PostMapping("/api/hr/payroll/runs/{id}/compute")
   public ComputeResultResponse compute(@PathVariable UUID id) {
     caller.require(Role.HR_ADMIN, Role.PAYROLL_OFFICER);

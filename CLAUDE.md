@@ -124,16 +124,17 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/011-service-console-ui/plan.md` (polished frontend **console foundation**). Evolve the 009 React18/Vite5
-frontend: redesigned login + **one top tab per backend service** + light/dark theme (CSS-vars, localStorage,
-no-flash) + a **per-service workspace framework** (service tab → left pane of that service's functions →
-workspace that runs a function via the 009 edge + shows result/loading/error), proven with ONE reference
-function. Design system: **Tailwind + Radix primitives + lucide-react** icons. **FULL per-service UIs are SEPARATE
-follow-on specs** (start with Operations) — a per-service **function manifest** is the seam. Local env brings up
-`floci-aws` WITH the **Docker socket mounted + -u root** (verified in /plan: Floci then RUNS real compute — an ECS
-task served nginx HTTP 200 — NOT mocked) and the **Floci UI `floci/floci-ui`:4500** (the user's "could not reach
-container runtime" error = missing socket). Only frontend + Floci UI host-exposed; 0 real cloud. Builds on 009
-(auth/edge) + 010 (floci-aws deploy). See [[floci-emulators-reference]].
+`specs/015-procurement-ui/plan.md` (**Procurement service full UI** — the fourth per-service UI, after 012/013/014).
+Fill the 011 Procurement tab with the full `procurement-service` **manifest** (supplier master, PO lifecycle
+draft→approved→sent→received→closed, receiving, restock/reorder suggestions); each function = a manifest entry
+rendered by the 011 `FunctionWorkspace` via the generic edge fetch, **reusing the full 012/013/014 shared
+framework** (reference/list inputs, id→label, bodyInput/dotted-name bodies, **014 detail sub-table** for PO/
+receipt `lines[]`). Phase 0 read procurement-service: **all reads + writes already exist → 015 is FRONTEND-ONLY,
+NO backend code AND NO new framework** (simplest yet, like 014). Receiving (`POST /purchase-orders/{id}/receipts`)
+posts the goods receipt to operations **in the backend** — the UI only triggers + displays; stock effects show in
+the Operations tab. Role-gated but `procurement.security.stub` default → demo session gets all roles. Builds on
+011 + 012 + 013 + 014 + 006 (procurement-service) + 003 (operations). Remaining: 016-workflow. See
+[[frontend-and-aws-pipeline-roadmap]] + [[spec-014-crm-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -255,3 +256,16 @@ achieved. To revert an artifact to its original state, run
 [2026-07-19 21:14] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:23] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
 [2026-07-19 21:34] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:44] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:53] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 21:55] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-19 22:00] - Resume code: 6591e3b3-6df0-4d40-ac04-424bc6833524
+[2026-07-20 10:12] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 10:33] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:00] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:01] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:07] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 11:09] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 18:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 19:21] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 19:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a

@@ -121,6 +121,13 @@ public class SalesOrderService {
     return order;
   }
 
+  @Transactional(readOnly = true)
+  public List<SalesOrder> list() {
+    List<SalesOrder> all = orders.findAll();
+    all.forEach(o -> o.getLines().size()); // initialize lazy lines within the transaction
+    return all;
+  }
+
   private SalesOrder require(UUID orderId) {
     return orders
         .findById(orderId)

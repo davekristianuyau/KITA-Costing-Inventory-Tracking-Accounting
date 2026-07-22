@@ -63,6 +63,23 @@ public class GoodsReceiptService {
     this.party = party;
   }
 
+  @Transactional(readOnly = true)
+  public List<GoodsReceipt> list() {
+    List<GoodsReceipt> all = receipts.findAll();
+    all.forEach(r -> r.getLines().size()); // initialize lazy lines within the transaction
+    return all;
+  }
+
+  @Transactional(readOnly = true)
+  public GoodsReceipt get(UUID id) {
+    GoodsReceipt receipt =
+        receipts
+            .findById(id)
+            .orElseThrow(() -> new DomainException.NotFound("Goods receipt not found: " + id));
+    receipt.getLines().size();
+    return receipt;
+  }
+
   @Transactional
   public GoodsReceipt post(String supplierRef, UUID locationId, List<ReceiptLineSpec> lineSpecs) {
     if (!party.validateSupplier(supplierRef).isValid()) {
