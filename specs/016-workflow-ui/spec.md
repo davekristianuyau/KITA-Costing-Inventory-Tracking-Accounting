@@ -190,6 +190,12 @@ unavailable".
 - **SC-007**: An approved governed action's effect is visible in the affected service's own tab (e.g. a raised
   purchase order appears under Procurement; a confirmed receipt moves stock under Operations) — the console shows
   real work, not a simulation of it.
+  > ⛔ **Blocked by spec 018, not by this feature.** Verified 2026-07-22 against the live simulation: the
+  > back-office service's calls to the customer, supplier and inventory services send payloads those services
+  > reject (they expect different field names and require fields the caller never sends), so no governed action
+  > reaches them. Falling back to the in-memory doubles does not help either — they reject the real record ids the
+  > UI supplies. The UI half is complete and tested; this criterion is met once 018 corrects (and secures) the
+  > service-to-service contracts.
 
 ## Assumptions
 

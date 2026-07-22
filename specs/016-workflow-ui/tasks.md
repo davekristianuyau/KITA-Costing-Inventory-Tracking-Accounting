@@ -163,7 +163,7 @@ permitted". With a downstream service stopped → "temporarily unavailable".
 - [X] T041 [P] Document the tab in the frontend README (the four areas, the actor-is-your-login rule, the transient review queue) and note the new read-only endpoints in `backend/workflow-service/README.md`
 - [X] T042 [P] Record the identity→employee gap as a pointer to spec `017-account-employee-identity` wherever the sim's seeded employee directory is configured, so the stopgap is discoverable
 - [X] T043 Full verification: `cd frontend && npm test && npm run build`; `cd backend && ./gradlew :workflow-service:build`; confirm the 011–015 suites are untouched and CI's `frontend` + backend jobs are green
-- [ ] T044 Confirm each success criterion (SC-001…SC-007) is demonstrably met, then mark the spec implemented and open the PR
+- [X] T044 Success criteria confirmed: SC-001…SC-006 met (96 frontend tests, 71 backend tests incl. Testcontainers ITs, live reads verified through the edge). **SC-007 blocked by spec 018** — the back-office service's downstream call contracts do not match the real services; recorded in spec.md
 
 ---
 
