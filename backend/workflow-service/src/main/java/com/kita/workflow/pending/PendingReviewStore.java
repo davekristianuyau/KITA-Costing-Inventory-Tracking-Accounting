@@ -1,5 +1,6 @@
 package com.kita.workflow.pending;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -13,6 +14,9 @@ public interface PendingReviewStore {
   String put(PendingReview review);
 
   Optional<PendingReview> get(String pendingId);
+
+  /** Read-only snapshot of everything currently awaiting a checker (FR-005). Never mutates. */
+  List<PendingReview> list();
 
   /** Clear after the durable downstream write (or on completion). */
   void remove(String pendingId);

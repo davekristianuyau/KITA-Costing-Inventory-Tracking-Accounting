@@ -1,5 +1,6 @@
 package com.kita.workflow.pending;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -23,6 +24,11 @@ public class InMemoryPendingReviewStore implements PendingReviewStore {
   @Override
   public Optional<PendingReview> get(String pendingId) {
     return Optional.ofNullable(items.get(pendingId));
+  }
+
+  @Override
+  public List<PendingReview> list() {
+    return List.copyOf(items.values());
   }
 
   @Override

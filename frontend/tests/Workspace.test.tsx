@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import App from "../src/App";
+import Sidebar from "../src/app/Sidebar";
 import FunctionWorkspace from "../src/workspace/FunctionWorkspace";
 import { AuthProvider } from "../src/auth/AuthContext";
 import { ThemeProvider } from "../src/theme/ThemeProvider";
@@ -59,6 +60,56 @@ describe("Sidebar (service functions)", () => {
       "href",
       "/app/operations/items",
     );
+  });
+});
+
+// Framework extension (016): a manifest may group its functions; the left pane renders a heading per group.
+describe("Framework extension (016): grouped function navigation", () => {
+  function renderSidebar(functions: ServiceFunction[]) {
+    return render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Sidebar service={{ ...svc, functions }} />
+        </MemoryRouter>
+      </ThemeProvider>,
+    );
+  }
+
+  const grouped: ServiceFunction[] = [
+    { id: "activity", label: "Activity log", method: "GET", path: "/activity", result: "table", group: "Activity log" },
+    { id: "rules", label: "Authorization rules", method: "GET", path: "/authorization", result: "table", group: "Authorization" },
+    { id: "queue", label: "Pending reviews", method: "GET", path: "/pending-reviews", result: "table", group: "Reviews" },
+    { id: "take", label: "Take sales order", method: "POST", path: "/sales-orders", result: "outcome", group: "Actions" },
+    { id: "raise", label: "Raise purchase order", method: "POST", path: "/purchase-orders", result: "outcome", group: "Actions" },
+  ];
+
+  it("renders one heading per group, and every function still links to its route", () => {
+    renderSidebar(grouped);
+
+    for (const g of ["Activity log", "Authorization", "Reviews", "Actions"]) {
+      expect(screen.getByRole("group", { name: g })).toBeInTheDocument();
+    }
+    // one group for the two Actions entries, not one per function
+    expect(screen.getAllByRole("group")).toHaveLength(4);
+    expect(screen.getByRole("link", { name: /raise purchase order/i })).toHaveAttribute(
+      "href",
+      "/app/demo/raise",
+    );
+  });
+
+  it("renders group headings as non-interactive labels (not links)", () => {
+    renderSidebar(grouped);
+    // "Activity log" is both a group and a function label — the group heading must not be a second link
+    expect(screen.getAllByRole("link", { name: /^activity log$/i })).toHaveLength(1);
+  });
+
+  it("renders an ungrouped manifest exactly as before (012–015 regression guard)", () => {
+    renderSidebar([
+      { id: "items", label: "Items", method: "GET", path: "/items", result: "table" },
+      { id: "boms", label: "Bills of Material", method: "GET", path: "/boms", result: "json" },
+    ]);
+    expect(screen.queryAllByRole("group")).toHaveLength(0);
+    expect(screen.getAllByRole("link")).toHaveLength(2);
   });
 });
 
