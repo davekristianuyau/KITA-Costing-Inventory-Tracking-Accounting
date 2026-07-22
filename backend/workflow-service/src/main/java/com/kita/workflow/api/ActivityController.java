@@ -38,6 +38,7 @@ public class ActivityController {
   public List<ActivityView> list(
       @RequestParam(required = false) String actor,
       @RequestParam(required = false) BackOfficeAction action,
+      @RequestParam(required = false) ActivityOutcome outcome,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
 
@@ -52,6 +53,7 @@ public class ActivityController {
       rows = repository.findAllByOrderByAtDesc();
     }
     return rows.stream()
+        .filter(r -> outcome == null || r.getOutcome() == outcome)
         .filter(r -> from == null || !r.getAt().isBefore(from))
         .filter(r -> to == null || !r.getAt().isAfter(to))
         .map(ActivityController::toView)

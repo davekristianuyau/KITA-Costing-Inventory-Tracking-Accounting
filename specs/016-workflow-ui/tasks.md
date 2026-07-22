@@ -62,14 +62,14 @@ empty state, not an error.
 
 ### Tests for User Story 1 ⚠️ write first, confirm red
 
-- [ ] T008 [P] [US1] Failing test in `backend/workflow-service/src/test/java/com/kita/workflow/api/ActivityQueryTest.java`: filtering by each `ActivityOutcome` returns only matching rows; `outcome` composes with `action`; omitting `outcome` behaves exactly as today
-- [ ] T009 [P] [US1] Failing test in `frontend/tests/WorkflowManifest.test.tsx`: the Activity log function renders its filter inputs, runs `GET /api/workflow/activity`, and renders rows as a table (mock the edge); blank filters are absent from the requested URL
+- [X] T008 [P] [US1] Failing test in `backend/workflow-service/src/test/java/com/kita/workflow/api/ActivityQueryTest.java`: filtering by each `ActivityOutcome` returns only matching rows; `outcome` composes with `action`; omitting `outcome` behaves exactly as today
+- [X] T009 [P] [US1] Failing test in `frontend/tests/WorkflowManifest.test.tsx`: the Activity log function renders its filter inputs, runs `GET /api/workflow/activity`, and renders rows as a table (mock the edge); blank filters are absent from the requested URL
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Add the optional `outcome` query param to `ActivityController.list` in `backend/workflow-service/src/main/java/com/kita/workflow/api/ActivityController.java`, filtered the same way `from`/`to` already are — no repository change, no recorded activity (T008 green)
-- [ ] T011 [US1] Add the `activity` function (group "Activity log") to `frontend/src/services/manifests/workflow.ts` per `contracts/workflow-manifest.md`: optional `actor` text, `action` select (12 actions), `outcome` select (4 outcomes), `from`/`to` text; `result: "table"`; description states append-only + newest-first (T009 green)
-- [ ] T012 [US1] Verify: `cd frontend && npm test` and `cd backend && ./gradlew :workflow-service:test` both green; mark T008–T011 `[X]` and commit the slice
+- [X] T010 [US1] Add the optional `outcome` query param to `ActivityController.list` in `backend/workflow-service/src/main/java/com/kita/workflow/api/ActivityController.java`, filtered the same way `from`/`to` already are — no repository change, no recorded activity (T008 green)
+- [X] T011 [US1] Add the `activity` function (group "Activity log") to `frontend/src/services/manifests/workflow.ts` per `contracts/workflow-manifest.md`: optional `actor` text, `action` select (12 actions), `outcome` select (4 outcomes), `from`/`to` text; `result: "table"`; description states append-only + newest-first (T009 green)
+- [X] T012 [US1] Verify: `cd frontend && npm test` and `cd backend && ./gradlew :workflow-service:test` both green; mark T008–T011 `[X]` and commit the slice
 
 **Checkpoint**: US1 ships on its own — a working audit-trail browser with zero write risk.
 

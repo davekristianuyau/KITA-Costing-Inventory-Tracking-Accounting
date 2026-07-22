@@ -62,7 +62,27 @@ export const workflowManifest: ServiceManifest = {
   label: "Workflow",
   icon: "Workflow",
   basePath: "/api/workflow",
-  functions: [],
+  functions: [
+    // --- Activity log (US1) ---
+    {
+      id: "activity",
+      label: "Activity log",
+      icon: "ScrollText",
+      group: "Activity log",
+      method: "GET",
+      path: "/activity?actor={actor}&action={action}&outcome={outcome}&from={from}&to={to}",
+      result: "table",
+      inputs: [
+        { name: "actor", label: "Actor (employee)", type: "text", placeholder: "emp-sales" },
+        { name: "action", label: "Action", type: "select", options: ACTIONS },
+        { name: "outcome", label: "Outcome", type: "select", options: OUTCOMES },
+        { name: "from", label: "From", type: "text", placeholder: "2026-07-22T00:00:00Z" },
+        { name: "to", label: "To", type: "text", placeholder: "2026-07-22T23:59:59Z" },
+      ],
+      description:
+        "Append-only record of every back-office attempt, newest first. All filters are optional.",
+    },
+  ],
 };
 
 export { ACTIONS, CUSTOMERS_SOURCE, ITEMS_SOURCE, OUTCOMES, PENDING_RECEIPTS_SOURCE, SUPPLIERS_SOURCE, idInput };
