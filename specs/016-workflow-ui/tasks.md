@@ -149,7 +149,7 @@ permitted". With a downstream service stopped → "temporarily unavailable".
 
 - [X] T035 [US4] Add the checker functions (`confirm-sales-payment`, `release-sales-order`, `confirm-receipt`) to `frontend/src/services/manifests/workflow.ts`, with `confirm-receipt`'s `pendingReceiptId` as a reference input onto `/api/workflow/pending-reviews` (`valueKey: "pendingId"`) (T033 green)
 - [X] T036 [US4] Confirm the outcome mapping covers the checker cases end-to-end with no UI-side guard logic — the browser must never decide self-review or permission; it renders what the backend returned (T034 green)
-- [ ] T037 [US4] Walk the quickstart maker→checker sequence in the sim: `emp-whse` records a receipt → `emp-whse-mgr` confirms it → stock moves in the Operations tab, the item leaves Pending reviews, and both attempts appear in the Activity log — **BLOCKED**: no reachable Docker daemon in this dev env (TCP 2375 off), so the sim cannot be brought up. Run before merge, or rely on CI.
+- [ ] T037 [US4] Walk the quickstart maker→checker sequence in the sim — **RUN, AND IT FAILED FOR A REAL REASON.** The reads (US1/US2) pass end-to-end through the edge. The governed-action half cannot complete in EITHER adapter mode: with `http`, workflow-service's adapters send payloads the real services reject (crm wants `customerCode`+`type`, procurement wants `itemRef`/`qtyOrdered`, not `itemId`/`quantity`) → 400 → surfaced as 422; with `fake`, the real ids the UI's pickers supply are unknown to the in-memory doubles → 422 `unknown or inactive supplier`. This is a pre-existing defect in spec 007's http adapters (only ever tested against MockWebServer), exposed by T030 — NOT caused by the 016 UI. Blocks SC-007 and the live half of SC-003/SC-004. Needs its own spec.
 - [X] T038 [US4] Verify suites green; commit the slice
 
 **Checkpoint**: All four stories complete; the four-outcome taxonomy is proven distinguishable.
@@ -163,7 +163,7 @@ permitted". With a downstream service stopped → "temporarily unavailable".
 - [X] T041 [P] Document the tab in the frontend README (the four areas, the actor-is-your-login rule, the transient review queue) and note the new read-only endpoints in `backend/workflow-service/README.md`
 - [X] T042 [P] Record the identity→employee gap as a pointer to spec `017-account-employee-identity` wherever the sim's seeded employee directory is configured, so the stopgap is discoverable
 - [X] T043 Full verification: `cd frontend && npm test && npm run build`; `cd backend && ./gradlew :workflow-service:build`; confirm the 011–015 suites are untouched and CI's `frontend` + backend jobs are green
-- [X] T044 Confirm each success criterion (SC-001…SC-007) is demonstrably met, then mark the spec implemented and open the PR
+- [ ] T044 Confirm each success criterion (SC-001…SC-007) is demonstrably met, then mark the spec implemented and open the PR
 
 ---
 
