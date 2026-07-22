@@ -31,8 +31,8 @@
 
 **Purpose**: Confirm the baseline before changing anything. `main` (012–015) is already merged into this branch.
 
-- [ ] T001 Verify the frontend baseline is green: `cd frontend && npm test && npm run build` (expect the existing 011–015 suites passing)
-- [ ] T002 Verify the backend baseline is green: `cd backend && ./gradlew :workflow-service:build` (Testcontainers ITs need the Docker TCP 2375 toggle; note if they skip locally — CI runs them)
+- [X] T001 Verify the frontend baseline is green: `cd frontend && npm test && npm run build` (expect the existing 011–015 suites passing)
+- [X] T002 Verify the backend baseline is green: `cd backend && ./gradlew :workflow-service:build` (Testcontainers ITs need the Docker TCP 2375 toggle; note if they skip locally — CI runs them)
 
 ---
 
@@ -42,11 +42,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 [P] Write the failing test for grouped navigation in `frontend/tests/Workspace.test.tsx`: a manifest whose functions declare `group` renders a heading per group; a manifest with no groups renders exactly as today (012–015 regression guard)
-- [ ] T004 Add `group?: string` to `ServiceFunction` and `"outcome"` to `ResultKind` in `frontend/src/services/types.ts` (both optional/additive — existing manifests untouched)
-- [ ] T005 Render contiguous group headings in `frontend/src/app/Sidebar.tsx`, keeping the existing `NavLink` markup, active state, and `aria-label`; headings must not be focusable links (T003 green)
-- [ ] T006 Create `frontend/src/services/manifests/workflow.ts` with the manifest shell (`id`/`label`/`icon`/`basePath: "/api/workflow"`, empty `functions`) and the four `ReferenceSource` consts per `contracts/workflow-manifest.md`
-- [ ] T007 Point the `workflow` entry in `frontend/src/services/registry.ts` at `workflowManifest`, deleting the placeholder "Definitions" reference function
+- [X] T003 [P] Write the failing test for grouped navigation in `frontend/tests/Workspace.test.tsx`: a manifest whose functions declare `group` renders a heading per group; a manifest with no groups renders exactly as today (012–015 regression guard)
+- [X] T004 Add `group?: string` to `ServiceFunction` and `"outcome"` to `ResultKind` in `frontend/src/services/types.ts` (both optional/additive — existing manifests untouched)
+- [X] T005 Render contiguous group headings in `frontend/src/app/Sidebar.tsx`, keeping the existing `NavLink` markup, active state, and `aria-label`; headings must not be focusable links (T003 green)
+- [X] T006 Create `frontend/src/services/manifests/workflow.ts` with the manifest shell (`id`/`label`/`icon`/`basePath: "/api/workflow"`, empty `functions`) and the four `ReferenceSource` consts per `contracts/workflow-manifest.md`
+- [X] T007 Point the `workflow` entry in `frontend/src/services/registry.ts` at `workflowManifest`, deleting the placeholder "Definitions" reference function
 
 **Checkpoint**: The Workflow tab renders from a real (empty) manifest; grouped navigation works; nothing regressed.
 
