@@ -124,17 +124,20 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/015-procurement-ui/plan.md` (**Procurement service full UI** — the fourth per-service UI, after 012/013/014).
-Fill the 011 Procurement tab with the full `procurement-service` **manifest** (supplier master, PO lifecycle
-draft→approved→sent→received→closed, receiving, restock/reorder suggestions); each function = a manifest entry
-rendered by the 011 `FunctionWorkspace` via the generic edge fetch, **reusing the full 012/013/014 shared
-framework** (reference/list inputs, id→label, bodyInput/dotted-name bodies, **014 detail sub-table** for PO/
-receipt `lines[]`). Phase 0 read procurement-service: **all reads + writes already exist → 015 is FRONTEND-ONLY,
-NO backend code AND NO new framework** (simplest yet, like 014). Receiving (`POST /purchase-orders/{id}/receipts`)
-posts the goods receipt to operations **in the backend** — the UI only triggers + displays; stock effects show in
-the Operations tab. Role-gated but `procurement.security.stub` default → demo session gets all roles. Builds on
-011 + 012 + 013 + 014 + 006 (procurement-service) + 003 (operations). Remaining: 016-workflow. See
-[[frontend-and-aws-pipeline-roadmap]] + [[spec-014-crm-ui-progress]].
+`specs/016-workflow-ui/plan.md` (**Workflow (back-office) service full UI** — the fifth and last per-service UI).
+Fill the 011 Workflow tab with the full `workflow-service` **manifest** (~19 functions, grouped): the append-only
+activity log, authorization rules, the pending maker-checker queue, and the 12 governed actions (sales order, PO,
+receiving, build, party maintenance), reusing the 012–015 shared framework. Phase 0 (code-read) found this is
+**NOT frontend-only**: FR-004/FR-005 have **no endpoint** and FR-003's outcome filter doesn't exist → add **3
+read-only** additions to workflow-service (`GET /authorization`, `GET /pending-reviews` + `PendingReviewStore.list()`,
+`outcome` param on `/activity`) — no control/pipeline/recorder change. Two small framework extensions: optional
+`group` on `ServiceFunction` (Sidebar headings) and an **outcome-aware result view** (`result: "outcome"` +
+`callEdge` reading the `{outcome, reason}` envelope) so approved / rejected-invalid / not-permitted / unavailable
+are distinct (SC-004; self-review = 422 invalid, checked BEFORE authorization). **No actor input in the UI** — the
+edge strips inbound `X-Kita-*` and sets `X-Kita-User` from the session subject; the sim gains `emp-*` demo logins
+(switch actor = switch login) and workflow's CRM/OPERATIONS/PROCUREMENT adapters go `http` (HR stays `fake`).
+Builds on 011–015 + 007 (workflow-service). See [[frontend-and-aws-pipeline-roadmap]],
+[[workflow-service-007-progress]], [[spec-015-procurement-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
