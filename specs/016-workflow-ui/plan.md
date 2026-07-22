@@ -62,13 +62,22 @@ endpoints; 2 small framework extensions; sim env/seed changes (no new service).
 
 **Result**: PASS — one recorded spec delta, no unjustified complexity.
 
-### Spec delta (recorded, not a violation)
+### Resolved by clarification (2026-07-22)
 
-FR-012 reads "MUST NOT modify `workflow-service`". Its stated intent — "authorization, maker-checker guards, and
-recording are performed by the backend — the UI only invokes and displays" — is preserved exactly. But FR-004 and
-FR-005 cannot be satisfied without a read endpoint, and FR-003's outcome filter has no server support. This plan
-therefore adds **three read-only endpoints/params that change no behaviour**, matching the precedent set by 012
-(FR-015 reads). Tasks must not touch any workflow, pipeline, authorizer, or recorder code path.
+The earlier tension — FR-012's "MUST NOT modify `workflow-service`" vs. FR-004/FR-005 having no endpoint — is
+**settled in the spec**, not carried as a plan-level delta:
+
+- **FR-012 amended** to forbid *behavioural* change only, explicitly permitting additive **read-only** endpoints
+  and query params. Tasks must still touch no workflow, pipeline, authorizer, or recorder code path, and the reads
+  record no activity.
+- **FR-013 added**: the UI must not offer, accept, or transmit an acting-employee identity — the actor is the
+  signed-in user, whose permissions follow from their employee record (D2/D3).
+- **SC-007 added**: an approved action's effect must be visible in the affected service's own tab, which is what
+  makes the `http` adapter mode (D4) a requirement rather than a nicety.
+- **Known gap, tracked separately**: no login-account → employee-record mapping exists (`HttpHrAdapter` resolves
+  `GET /api/hr/employees/{id}` by employee UUID, while the edge sets `X-Kita-User` to the login name). The sim
+  keeps HR on its seeded directory as a stopgap; closing the gap end-to-end is its own feature (identity + edge +
+  HR), and nothing in 016 depends on how it is solved.
 
 ## Project Structure
 

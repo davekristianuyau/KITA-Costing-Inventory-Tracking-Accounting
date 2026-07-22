@@ -14,7 +14,16 @@ controls, records every action in an **append-only activity log**, and authorize
 activity/audit trail, see the authorization rules and what is awaiting review, and perform or review governed
 actions — each surfacing the service's outcome taxonomy (approved / rejected-invalid / not-permitted /
 unavailable). Every function is an entry in the Workflow **manifest** rendered by the 011 workspace framework and
-called through the 009 edge. No backend changes — `workflow-service` already provides these capabilities.
+called through the 009 edge. `workflow-service` already performs every governed action; this feature adds only the
+**read-only** projections needed to see the rules and the review queue (FR-012), and changes no behaviour.
+
+## Clarifications
+
+### Session 2026-07-22
+
+- Q: FR-012 forbids modifying `workflow-service`, but FR-004/FR-005 have no endpoint and FR-003's outcome filter does not exist. How should this resolve? → A: Amend FR-012 to forbid **behavioural** change only, explicitly permitting additive **read-only** endpoints/params.
+- Q: How is the acting employee for a governed action determined, given the edge strips inbound identity headers? → A: It is always the signed-in user — in production each employee (cashier, salesperson, stockman) has their own account, and their role follows from that login. No actor field in the UI; acting as someone else means signing in as them.
+- Q: Governed actions currently run against in-memory test fakes locally, so they change nothing real. How far should this feature go? → A: Orchestrated actions run against the **real** operations / CRM / procurement services so effects are visible in those tabs. Employee resolution keeps using the simulation's seeded directory, because no account→employee-record mapping exists yet; that gap is tracked as its own feature.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -109,12 +118,14 @@ unavailable".
 
 - The activity log is empty (fresh client) → a clear empty state.
 - A filter matches nothing → a clear empty state, not an error.
+- The review queue is empty because the service restarted → the empty state reads as "nothing awaiting review",
+  and the durable activity log still shows the earlier attempts.
 - The four outcomes — approved, rejected-invalid (incl. self-review), not-permitted, unavailable — MUST each be
   rendered distinctly so the user knows whether to retry, escalate, or wait.
 - Missing required inputs → inline validation blocks the call before the edge.
 - A read/write returns 4xx/5xx via the edge → mapped to the corresponding outcome and shown clearly.
-- The acting employee identity is required for governed actions; if it cannot be determined, the action is
-  blocked with a clear message rather than sent anonymously.
+- The signed-in account is not a known, active employee → the action is refused with a clear message naming that
+  cause (distinct from a permission refusal), never sent anonymously or under a substituted identity.
 
 ## Requirements *(mandatory)*
 
@@ -129,7 +140,9 @@ unavailable".
 - **FR-005**: Users MUST be able to view items awaiting review (pending maker-checker), with their action,
   target, recorded maker, and stage.
 - **FR-006**: Users MUST be able to perform a governed maker action via a validated form; the result and its
-  activity-log entry MUST reflect the outcome.
+  activity-log entry MUST reflect the outcome. The tab MUST cover **every** governed action the back-office service
+  exposes (sales-order lifecycle, purchase-order lifecycle, receiving, production build, customer/supplier
+  maintenance) — this is the service's full UI, not a subset.
 - **FR-007**: Users MUST be able to review a pending item as a checker via a validated action.
 - **FR-008**: The UI MUST render the four outcomes distinctly — approved, rejected-invalid (including self-review),
   not-permitted, and unavailable — with guidance implied by each (retry / escalate / wait).
@@ -137,10 +150,15 @@ unavailable".
   framework), with results in the shape best suited to the data.
 - **FR-010**: All calls MUST go through the 009 edge with the signed-in client's session; the UI MUST NOT bypass
   the edge or embed credentials.
-- **FR-011**: Write actions MUST block on missing required inputs (including the acting employee where required)
-  with inline validation before calling the edge.
-- **FR-012**: The feature MUST NOT modify `workflow-service` or the services it orchestrates; authorization,
-  maker-checker guards, and recording are performed by the backend — the UI only invokes and displays.
+- **FR-011**: Write actions MUST block on missing required inputs with inline validation before calling the edge.
+  The acting employee is never an input — it is the signed-in user (FR-013).
+- **FR-012**: The feature MUST NOT change the **behaviour** of `workflow-service` or the services it orchestrates:
+  authorization, maker-checker guards, retries, and recording stay exactly as the backend implements them — the UI
+  only invokes and displays, and MUST NOT re-implement or override any control. Additive **read-only** endpoints
+  and query parameters that project state the service already holds (needed for FR-003, FR-004, FR-005) ARE
+  permitted; they must record no activity and touch no workflow, pipeline, authorizer, or recorder code path.
+- **FR-013**: The UI MUST NOT offer, accept, or transmit an acting-employee identity; the actor is the signed-in
+  user, and their permissions follow from that account's employee record.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -149,7 +167,8 @@ unavailable".
 - **Outcome**: the result taxonomy — approved, rejected-invalid (incl. self-review), not-permitted, unavailable.
 - **Authorization Rule**: a mapping of role → action → kind (perform / maker / checker).
 - **Pending Review**: an item awaiting a checker — action, target, recorded maker, stage.
-- **Actor**: the acting employee (identity + role, resolved from HR by the backend).
+- **Actor**: the acting employee — the signed-in user's own account; roles are resolved from their HR record by the
+  backend, never asserted by the browser.
 - **Governed Action**: a back-office operation (e.g. raise sales order, confirm payment, record/approve receiving)
   run through the workflow with maker-checker controls.
 
@@ -168,16 +187,30 @@ unavailable".
 - **SC-005**: **0** service calls bypass the edge or expose credentials in the browser (session-cookie only).
 - **SC-006**: The full Workflow workspace is usable at the 011 responsive floor (down to **768px**) and fully
   keyboard-navigable.
+- **SC-007**: An approved governed action's effect is visible in the affected service's own tab (e.g. a raised
+  purchase order appears under Procurement; a confirmed receipt moves stock under Operations) — the console shows
+  real work, not a simulation of it.
 
 ## Assumptions
 
-- `workflow-service` (spec 007) exposes the activity log, authorization mappings, pending reviews, and governed
-  actions via the edge under `/api/workflow`; this feature maps them into manifest functions and adds no
-  endpoints.
-- The acting employee identity required by governed actions is carried to the backend via the edge/session (the
-  service reads it as the caller); where an action needs an explicit actor/target, the run-form supplies it.
+- `workflow-service` (spec 007) already holds the activity log, authorization mappings, pending reviews, and every
+  governed action, and exposes them via the edge under `/api/workflow`; this feature maps them into manifest
+  functions and adds only the read-only projections FR-012 permits (rules, pending queue, outcome filter).
+- Every employee has their own account, so the acting employee for a governed action **is the signed-in user**:
+  the identity is carried to the backend by the edge/session, and their roles are resolved from their employee
+  record. The UI never offers or overrides an actor — acting as someone else means signing in as them. Locally,
+  the simulation seeds one login per seeded employee (cashier, salesperson, stockman, …) so roles and the
+  maker-checker split are exercisable.
 - Authorization, maker-checker guards (self-review, distinct-role), retries, and recording are enforced by the
   backend; the UI invokes actions and renders the returned outcome — it does not re-implement any control.
+- Governed actions orchestrate the **real** sales/inventory, customer, and supplier services, so an action taken
+  here is visible in that service's own tab (test doubles are for isolated service builds, not this feature).
+- **Known gap (tracked separately)**: no mapping exists yet between a login account and an employee record, so the
+  simulation resolves the acting employee from a seeded directory keyed by the login name. Closing that gap —
+  giving each account its employee identity end-to-end — is its own feature and a prerequisite for a real
+  deployment of this tab; nothing in this spec depends on how it is solved.
+- Items awaiting review are held transiently: if the back-office service restarts, the queue empties and the maker
+  re-records. No domain effect is lost, and the activity log (which is durable) still records every attempt.
 - Result rendering reuses the 011 shapes (table/json/detail/message); a Workflow-specific activity/outcome view
   may be added where a generic shape is insufficient.
 - In the local simulation every client can reach all services (011 assumption A1).
@@ -190,7 +223,8 @@ unavailable".
 
 ## Out of Scope
 
-- Any backend/API change to `workflow-service` or the services it orchestrates.
+- Any behavioural/API change to `workflow-service` or the services it orchestrates beyond the read-only
+  projections FR-012 permits — no new or altered governed action, control, or recorded outcome.
 - A visual workflow/process designer or BPMN editing — the service is thin orchestration, not a BPM engine.
 - Other services' UIs — their own specs.
 - Real cloud deployment; analytics dashboards; role/entitlement administration (mappings are viewed, not edited,
