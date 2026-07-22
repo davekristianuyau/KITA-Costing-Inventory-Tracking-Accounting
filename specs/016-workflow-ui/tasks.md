@@ -111,21 +111,21 @@ Missing required input → blocked inline before the edge.
 
 ### Tests for User Story 3 ⚠️ write first, confirm red
 
-- [ ] T021 [P] [US3] Failing test in `frontend/tests/OutcomeView.test.tsx`: a 2xx renders approved + the detail; 422/`REJECTED_INVALID`, 403/`REJECTED_NOT_PERMITTED`, and 503/`FAILED_UNAVAILABLE` each render a **visually and textually distinct** banner carrying the backend's `reason`; an unmapped non-2xx falls back to the generic error banner
-- [ ] T022 [P] [US3] Failing test in `frontend/tests/WorkflowManifest.test.tsx`: maker/lifecycle functions render their inputs, block on missing required fields before any edge call, and POST the documented body shape
-- [ ] T023 [P] [US3] Failing guard test in `frontend/tests/WorkflowManifest.test.tsx` (FR-013): **no** function in the Workflow manifest declares an input whose name or label denotes an acting employee/actor — this test must fail if anyone ever adds one
+- [X] T021 [P] [US3] Failing test in `frontend/tests/OutcomeView.test.tsx`: a 2xx renders approved + the detail; 422/`REJECTED_INVALID`, 403/`REJECTED_NOT_PERMITTED`, and 503/`FAILED_UNAVAILABLE` each render a **visually and textually distinct** banner carrying the backend's `reason`; an unmapped non-2xx falls back to the generic error banner
+- [X] T022 [P] [US3] Failing test in `frontend/tests/WorkflowManifest.test.tsx`: maker/lifecycle functions render their inputs, block on missing required fields before any edge call, and POST the documented body shape
+- [X] T023 [P] [US3] Failing guard test in `frontend/tests/WorkflowManifest.test.tsx` (FR-013): **no** function in the Workflow manifest declares an input whose name or label denotes an acting employee/actor — this test must fail if anyone ever adds one
 
 ### Implementation for User Story 3
 
-- [ ] T024 [P] [US3] Extend failure parsing in `frontend/src/api/edge.ts` to read `reason` (and `outcome`) from the `{outcome, reason, status}` envelope, keeping `message` as the fallback so 012–015 behaviour is unchanged
-- [ ] T025 [US3] Add `frontend/src/workspace/result/OutcomeView.tsx` implementing the four-outcome mapping from `contracts/workflow-manifest.md`, reusing the existing detail renderer for the approved payload (T021 green)
-- [ ] T026 [US3] Wire `result: "outcome"` into `ResultView` in `frontend/src/workspace/FunctionWorkspace.tsx` — the failure branch must consult `OutcomeView` before the generic error banner; all other kinds unchanged
-- [ ] T027 [US3] Add the sales maker/lifecycle functions (`take-sales-order`, `cancel-sales-order`, `complete-sales-order`) to the manifest per the contract, with the customer + item reference pickers and `lines` list inputs
-- [ ] T028 [P] [US3] Add the purchasing functions (`raise-purchase-order`, `approve-purchase-order`, `send-purchase-order`, `record-receipt`) to the manifest; the PO total renders as the returned decimal string
-- [ ] T029 [P] [US3] Add the production + party functions (`build-product`, `create-customer`, `update-customer`, `create-supplier`, `update-supplier`, `set-supplied-items`) to the manifest (T022, T023 green)
-- [ ] T030 [P] [US3] Set `OPERATIONS_ADAPTER=http`, `CRM_ADAPTER=http`, `PROCUREMENT_ADAPTER=http` (with their existing base-URL env vars) for `workflow-service` in `docker-compose.yml`; leave `HR_ADAPTER` on the seeded directory — governed actions now affect the real services (SC-007)
-- [ ] T031 [US3] Seed one demo login per seeded employee (`emp-sales`, `emp-cashier`, `emp-sales-mgr`, `emp-whse`, `emp-whse-mgr`, `emp-proc`, `emp-approver`, `emp-prod`, `emp-crm`) for **both** demo clients in `backend/identity-service/src/main/java/com/kita/identity/config/DemoSeeder.java`, keeping `alice`/`bob` and the existing seed password; idempotent as today
-- [ ] T032 [US3] Verify: frontend suite green; sign in as `emp-sales` in the sim and confirm a taken sales order appears in the Operations tab (SC-007) and in the Activity log; commit the slice
+- [X] T024 [P] [US3] Extend failure parsing in `frontend/src/api/edge.ts` to read `reason` (and `outcome`) from the `{outcome, reason, status}` envelope, keeping `message` as the fallback so 012–015 behaviour is unchanged
+- [X] T025 [US3] Add `frontend/src/workspace/result/OutcomeView.tsx` implementing the four-outcome mapping from `contracts/workflow-manifest.md`, reusing the existing detail renderer for the approved payload (T021 green)
+- [X] T026 [US3] Wire `result: "outcome"` into `ResultView` in `frontend/src/workspace/FunctionWorkspace.tsx` — the failure branch must consult `OutcomeView` before the generic error banner; all other kinds unchanged
+- [X] T027 [US3] Add the sales maker/lifecycle functions (`take-sales-order`, `cancel-sales-order`, `complete-sales-order`) to the manifest per the contract, with the customer + item reference pickers and `lines` list inputs
+- [X] T028 [P] [US3] Add the purchasing functions (`raise-purchase-order`, `approve-purchase-order`, `send-purchase-order`, `record-receipt`) to the manifest; the PO total renders as the returned decimal string
+- [X] T029 [P] [US3] Add the production + party functions (`build-product`, `create-customer`, `update-customer`, `create-supplier`, `update-supplier`, `set-supplied-items`) to the manifest (T022, T023 green)
+- [X] T030 [P] [US3] Set `OPERATIONS_ADAPTER=http`, `CRM_ADAPTER=http`, `PROCUREMENT_ADAPTER=http` (with their existing base-URL env vars) for `workflow-service` in `docker-compose.yml`; leave `HR_ADAPTER` on the seeded directory — governed actions now affect the real services (SC-007)
+- [X] T031 [US3] Seed one demo login per seeded employee (`emp-sales`, `emp-cashier`, `emp-sales-mgr`, `emp-whse`, `emp-whse-mgr`, `emp-proc`, `emp-approver`, `emp-prod`, `emp-crm`) for **both** demo clients in `backend/identity-service/src/main/java/com/kita/identity/config/DemoSeeder.java`, keeping `alice`/`bob` and the existing seed password; idempotent as today
+- [X] T032 [US3] Verify: frontend suite green; sign in as `emp-sales` in the sim and confirm a taken sales order appears in the Operations tab (SC-007) and in the Activity log; commit the slice
 
 **Checkpoint**: Every maker/perform action works, outcomes are distinguishable, and effects are real.
 

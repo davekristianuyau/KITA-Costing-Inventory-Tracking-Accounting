@@ -124,6 +124,15 @@ services:
       DATABASE_URL: ${WORKFLOW_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=workflow,public}
       DATABASE_USER: ${DATABASE_USER:-kita}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+      # Orchestrate the REAL services, so a governed action taken in the console has real effects that
+      # show up in that service's own tab (016 SC-007). The in-memory adapters are a build/test seam for
+      # `:workflow-service:test` running without the rest of the stack — not a runtime mode.
+      OPERATIONS_ADAPTER: ${OPERATIONS_ADAPTER:-http}
+      CRM_ADAPTER: ${CRM_ADAPTER:-http}
+      PROCUREMENT_ADAPTER: ${PROCUREMENT_ADAPTER:-http}
+      # HR stays on the seeded directory: nothing yet maps a login account to an employee record, so the
+      # http adapter would need the login name to BE the employee UUID. Closing that gap is spec 017.
+      HR_ADAPTER: ${HR_ADAPTER:-fake}
     depends_on:
       postgres:
         condition: service_healthy

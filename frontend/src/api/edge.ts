@@ -10,6 +10,9 @@ export interface EdgeResult<T = unknown> {
   data: T | null;
   /** A human-readable message when the call did not succeed. */
   error?: string;
+  /** Back-office outcome token from the error envelope, when the service sent one (feature 016) —
+   *  e.g. REJECTED_INVALID / REJECTED_NOT_PERMITTED / FAILED_UNAVAILABLE. */
+  outcome?: string;
 }
 
 export async function callEdge<T = unknown>(
@@ -41,11 +44,14 @@ export async function callEdge<T = unknown>(
   }
 
   if (!res.ok) {
+    // Services differ: most send { message }, the back-office sends { outcome, reason, status }.
+    const body = data && typeof data === "object" ? (data as Record<string, unknown>) : undefined;
     const msg =
-      (data && typeof data === "object" && "message" in data
-        ? String((data as Record<string, unknown>).message)
-        : undefined) ?? `Request failed (${res.status}).`;
-    return { ok: false, status: res.status, data, error: msg };
+      (body && "message" in body ? String(body.message) : undefined) ??
+      (body && "reason" in body && body.reason != null ? String(body.reason) : undefined) ??
+      `Request failed (${res.status}).`;
+    const outcome = body && "outcome" in body ? String(body.outcome) : undefined;
+    return { ok: false, status: res.status, data, error: msg, outcome };
   }
   return { ok: true, status: res.status, data };
 }

@@ -161,6 +161,80 @@ describe("Workflow manifest — US2 authorization rules + pending reviews", () =
   });
 });
 
+describe("Workflow manifest — US3 governed actions (maker)", () => {
+  it("take-sales-order: blocks before the edge until the customer and a line are given", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/crm/customers": [{ id: "c1", customerCode: "CUS-1", name: "Acme" }] });
+    renderFn("take-sales-order");
+
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    expect(screen.getByText(/customer is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/lines needs at least one row/i)).toBeInTheDocument();
+    expect(edge.mock.calls.some((c) => String(c[1]).startsWith("/api/workflow/"))).toBe(false);
+  });
+
+  it("approve-purchase-order: posts to the lifecycle path with no body", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/workflow/purchase-orders/po-1/approve": { status: "APPROVED" } });
+    renderFn("approve-purchase-order");
+
+    await user.type(screen.getByLabelText(/purchase order id/i), "po-1");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    // the id is a path token, so there are no body inputs at all — no body is sent
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/workflow/purchase-orders/po-1/approve",
+      undefined,
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent(/approved/i);
+  });
+
+  it("create-customer: sends the documented body shape", async () => {
+    const user = userEvent.setup();
+    routeEdge({ "/api/workflow/customers": { customerId: "c9" } });
+    renderFn("create-customer");
+
+    await user.type(screen.getByLabelText(/name/i), "Beta Corp");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    expect(edge).toHaveBeenCalledWith("POST", "/api/workflow/customers", {
+      name: "Beta Corp",
+      active: false,
+    });
+  });
+
+  it("raise-purchase-order: renders the returned total verbatim (decimal string, never a float)", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/procurement/suppliers": [{ id: "s1", supplierCode: "SUP-1", name: "Acme Supply" }],
+      "/api/operations/items": [{ id: "i1", sku: "A-1", name: "Widget" }],
+      "/api/workflow/purchase-orders": {
+        purchaseOrderId: "po-9",
+        status: "DRAFT",
+        total: "1234.00",
+      },
+    });
+    renderFn("raise-purchase-order");
+
+    await user.click(await screen.findByText(/SUP-1 — Acme Supply/));
+    await user.click(screen.getByRole("button", { name: /add row/i }));
+    await user.click(await screen.findByText(/A-1 — Widget/));
+    await user.type(screen.getByLabelText(/quantity/i), "2");
+    await user.type(screen.getByLabelText(/unit cost/i), "617");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    // "1234.00" must survive intact — a float round-trip would show 1234
+    expect(await screen.findByText("1234.00")).toBeInTheDocument();
+  });
+
+  it("every governed action renders its result as an outcome", () => {
+    const writes = workflowManifest.functions.filter((f) => f.method !== "GET");
+    expect(writes.length).toBeGreaterThanOrEqual(12);
+    expect(writes.every((f) => f.result === "outcome")).toBe(true);
+  });
+});
+
 describe("Workflow manifest — FR-013 guard", () => {
   it("lets no governed action carry an acting-employee input", () => {
     // The actor is the signed-in user; the edge sets it and strips anything the browser sends.
