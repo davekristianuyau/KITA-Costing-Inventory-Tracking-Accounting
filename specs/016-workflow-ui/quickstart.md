@@ -28,6 +28,9 @@ Sign in as an **employee**, not `alice` — the acting employee for every govern
 
 Password: `demo-pass` (the existing `identity.seed.demo-password`).
 
+> The `emp-*` logins arrive with US3. Steps 2–3 below are read-only and work under the original `alice`
+> login, so the MVP (US1) and US2 are verifiable before any of the write work lands.
+
 ## 2. Read-first (US1)
 
 Open **Workflow** — the left pane shows grouped areas (Activity log, Authorization, Reviews, Actions …).

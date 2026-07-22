@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import FunctionWorkspace from "../src/workspace/FunctionWorkspace";
@@ -232,6 +232,87 @@ describe("Workflow manifest — US3 governed actions (maker)", () => {
     const writes = workflowManifest.functions.filter((f) => f.method !== "GET");
     expect(writes.length).toBeGreaterThanOrEqual(12);
     expect(writes.every((f) => f.result === "outcome")).toBe(true);
+  });
+});
+
+describe("Workflow manifest — US4 checker actions", () => {
+  it("confirm-receipt: picks the handle from the pending queue, not free text", async () => {
+    const user = userEvent.setup();
+    const queue = "/api/workflow/pending-reviews?action=RECORD_DELIVERY_RECEIPT";
+    routeEdge({
+      [queue]: [
+        {
+          pendingId: "pr-1",
+          action: "RECORD_DELIVERY_RECEIPT",
+          makerEmployeeId: "emp-whse",
+          targetRef: "po:po-1",
+        },
+      ],
+      "/api/workflow/receipts/pr-1/confirm": { receiptId: "r-1", poStatus: "RECEIVED" },
+    });
+    renderFn("confirm-receipt");
+
+    // the source is narrowed to receipts — a sales-order review position must never be offered here
+    expect(fn("confirm-receipt").inputs?.[0].source?.path).toContain(
+      "action=RECORD_DELIVERY_RECEIPT",
+    );
+
+    await user.click(await screen.findByText(/po:po-1/));
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    expect(edge).toHaveBeenCalledWith("POST", "/api/workflow/receipts/pr-1/confirm", undefined);
+  });
+
+  it("confirm-sales-payment: runs the checker step by order id", async () => {
+    const user = userEvent.setup();
+    routeEdge({
+      "/api/workflow/sales-orders/so-1/confirm-payment": { state: "PAYMENT_CONFIRMED" },
+    });
+    renderFn("confirm-sales-payment");
+
+    await user.type(screen.getByLabelText(/sales order id/i), "so-1");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+
+    expect(edge).toHaveBeenCalledWith(
+      "POST",
+      "/api/workflow/sales-orders/so-1/confirm-payment",
+      undefined,
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent(/approved/i);
+  });
+
+  it("SC-004: on the same checker function, self-review and not-permitted read differently", async () => {
+    const user = userEvent.setup();
+
+    edge.mockResolvedValue({
+      ok: false,
+      status: 422,
+      data: { outcome: "REJECTED_INVALID", reason: "self review not allowed" },
+      outcome: "REJECTED_INVALID",
+      error: "self review not allowed",
+    });
+    renderFn("confirm-sales-payment");
+    await user.type(screen.getByLabelText(/sales order id/i), "so-1");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const selfReview = (await screen.findByRole("alert")).textContent ?? "";
+
+    cleanup();
+    edge.mockResolvedValue({
+      ok: false,
+      status: 403,
+      data: { outcome: "REJECTED_NOT_PERMITTED", reason: "role SALES may not check" },
+      outcome: "REJECTED_NOT_PERMITTED",
+      error: "role SALES may not check",
+    });
+    renderFn("confirm-sales-payment");
+    await user.type(screen.getByLabelText(/sales order id/i), "so-1");
+    await user.click(screen.getByRole("button", { name: /^run$/i }));
+    const notPermitted = (await screen.findByRole("alert")).textContent ?? "";
+
+    expect(selfReview).not.toEqual(notPermitted);
+    expect(selfReview).toMatch(/self review not allowed/i);
+    expect(selfReview.toLowerCase()).not.toMatch(/not permitted/);
+    expect(notPermitted.toLowerCase()).not.toMatch(/invalid/);
   });
 });
 

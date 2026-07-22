@@ -24,6 +24,21 @@ never duplicates their master data (FR-017; guarded by `NoDuplicateMastersTest`)
 - **Bounded idempotent retry**: http adapters call through `RemoteCall`/`RetryingCaller` — a transient
   5xx is retried with a stable `X-Idempotency-Key`; a 409 is treated as already-applied (SC-010).
 
+## Read-only endpoints (feature 016)
+
+Three additive **projections** that back the console's Workflow tab. They record no activity and touch no
+workflow, pipeline, authorizer, or recorder path — a read that writes would silently pollute the audit
+trail, so `ActivityQueryTest`/`AuthorizationQueryTest` assert `never(save)`.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/workflow/activity?actor&action&outcome&from&to` | the append-only log; **`outcome`** is the 016 addition |
+| `GET /api/workflow/authorization` | the seeded role→action→kind grants, ordered action → kind → role |
+| `GET /api/workflow/pending-reviews?action` | what awaits a checker, oldest first |
+
+⚠️ `PendingReviewView` lists its fields explicitly so the store's captured `payload` (replayed on confirm)
+can never be serialised to a browser. Do not replace it with the `PendingReview` record itself.
+
 ## Run modes
 
 - **Isolated (default)** — every port uses its in-memory fake (`workflow.<x>.adapter=fake`). Fakes seed

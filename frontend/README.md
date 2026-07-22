@@ -68,6 +68,30 @@ the 014 detail sub-table; the supplier picker + `supplierId` id→label come fro
 receipt to `operations-service` **in the backend** — the UI only triggers it and shows the updated status; stock
 effects appear in the Operations tab. Procurement is role-gated; in stub mode the demo session has all roles.
 
+### Workflow UI (feature 016)
+
+`src/services/manifests/workflow.ts` declares the whole back-office surface in four areas — the append-only
+**activity log** (filterable by actor/action/outcome/date), the **authorization rules**, the **pending
+maker-checker queue**, and every **governed action** (sales-order and PO lifecycles, receiving, builds, party
+maintenance).
+
+Three things are specific to this tab:
+
+- **The actor is your login.** No function offers an "acting employee" field, and none ever should — the edge sets
+  the caller identity from the session and strips anything the browser sends, and roles come from the employee
+  record. Acting as someone else means signing in as them; that is also how the maker ≠ checker split is
+  demonstrated. A guard test in `tests/WorkflowManifest.test.tsx` fails if an actor input is added to any write.
+- **The four outcomes are rendered distinctly** (`result: "outcome"` → `src/workspace/result/OutcomeView.tsx`):
+  approved, rejected-invalid (**including self-review**), not permitted, and temporarily unavailable. A self-review
+  must never read as a permission refusal — they are different controls and imply different next steps. The UI
+  classifies from the HTTP status and the `{outcome, reason}` envelope; it decides nothing.
+- **The review queue is transient.** It lives in memory, so a `workflow-service` restart empties it; the maker
+  simply re-records and no domain effect is lost. The activity log is durable and still shows every attempt.
+
+Two small generic framework additions came with it: an optional `group` on a manifest function (the left pane
+renders a labelled group per contiguous run) and the `"outcome"` result kind. Both are opt-in, so 012–015 render
+exactly as before.
+
 ### Dynamic edge calls
 
 `/auth/*` uses the typed `openapi-fetch` client (`src/api/client.ts`, schema-checked). Manifest paths are

@@ -142,15 +142,15 @@ permitted". With a downstream service stopped → "temporarily unavailable".
 
 ### Tests for User Story 4 ⚠️ write first, confirm red
 
-- [ ] T033 [P] [US4] Failing test in `frontend/tests/WorkflowManifest.test.tsx`: the checker functions render and run; `confirm-receipt` sources its handle from the pending-reviews picker rather than free text
-- [ ] T034 [P] [US4] Failing test in `frontend/tests/WorkflowManifest.test.tsx` (SC-004): a 422 self-review response and a 403 not-permitted response on the **same** checker function render two distinguishable results — assert on the distinguishing text/role, not just that both are errors
+- [X] T033 [P] [US4] Failing test in `frontend/tests/WorkflowManifest.test.tsx`: the checker functions render and run; `confirm-receipt` sources its handle from the pending-reviews picker rather than free text
+- [X] T034 [P] [US4] Failing test in `frontend/tests/WorkflowManifest.test.tsx` (SC-004): a 422 self-review response and a 403 not-permitted response on the **same** checker function render two distinguishable results — assert on the distinguishing text/role, not just that both are errors
 
 ### Implementation for User Story 4
 
-- [ ] T035 [US4] Add the checker functions (`confirm-sales-payment`, `release-sales-order`, `confirm-receipt`) to `frontend/src/services/manifests/workflow.ts`, with `confirm-receipt`'s `pendingReceiptId` as a reference input onto `/api/workflow/pending-reviews` (`valueKey: "pendingId"`) (T033 green)
-- [ ] T036 [US4] Confirm the outcome mapping covers the checker cases end-to-end with no UI-side guard logic — the browser must never decide self-review or permission; it renders what the backend returned (T034 green)
-- [ ] T037 [US4] Walk the quickstart maker→checker sequence in the sim: `emp-whse` records a receipt → `emp-whse-mgr` confirms it → stock moves in the Operations tab, the item leaves Pending reviews, and both attempts appear in the Activity log
-- [ ] T038 [US4] Verify suites green; commit the slice
+- [X] T035 [US4] Add the checker functions (`confirm-sales-payment`, `release-sales-order`, `confirm-receipt`) to `frontend/src/services/manifests/workflow.ts`, with `confirm-receipt`'s `pendingReceiptId` as a reference input onto `/api/workflow/pending-reviews` (`valueKey: "pendingId"`) (T033 green)
+- [X] T036 [US4] Confirm the outcome mapping covers the checker cases end-to-end with no UI-side guard logic — the browser must never decide self-review or permission; it renders what the backend returned (T034 green)
+- [ ] T037 [US4] Walk the quickstart maker→checker sequence in the sim: `emp-whse` records a receipt → `emp-whse-mgr` confirms it → stock moves in the Operations tab, the item leaves Pending reviews, and both attempts appear in the Activity log — **BLOCKED**: no reachable Docker daemon in this dev env (TCP 2375 off), so the sim cannot be brought up. Run before merge, or rely on CI.
+- [X] T038 [US4] Verify suites green; commit the slice
 
 **Checkpoint**: All four stories complete; the four-outcome taxonomy is proven distinguishable.
 
@@ -158,11 +158,11 @@ permitted". With a downstream service stopped → "temporarily unavailable".
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T039 [P] Accessibility pass on the new surfaces: grouped sidebar headings are semantic (not fake links), outcome banners carry an appropriate live/alert role, and the whole tab is keyboard-navigable (SC-006)
-- [ ] T040 [P] Responsive check of the Workflow workspace down to 768px — wide result tables scroll inside their own container, the page body never scrolls horizontally (SC-006)
-- [ ] T041 [P] Document the tab in the frontend README (the four areas, the actor-is-your-login rule, the transient review queue) and note the new read-only endpoints in `backend/workflow-service/README.md`
-- [ ] T042 [P] Record the identity→employee gap as a pointer to spec `017-account-employee-identity` wherever the sim's seeded employee directory is configured, so the stopgap is discoverable
-- [ ] T043 Full verification: `cd frontend && npm test && npm run build`; `cd backend && ./gradlew :workflow-service:build`; confirm the 011–015 suites are untouched and CI's `frontend` + backend jobs are green
+- [X] T039 [P] Accessibility pass on the new surfaces: grouped sidebar headings are semantic (not fake links), outcome banners carry an appropriate live/alert role, and the whole tab is keyboard-navigable (SC-006)
+- [X] T040 [P] Responsive check of the Workflow workspace down to 768px — wide result tables scroll inside their own container, the page body never scrolls horizontally (SC-006)
+- [X] T041 [P] Document the tab in the frontend README (the four areas, the actor-is-your-login rule, the transient review queue) and note the new read-only endpoints in `backend/workflow-service/README.md`
+- [X] T042 [P] Record the identity→employee gap as a pointer to spec `017-account-employee-identity` wherever the sim's seeded employee directory is configured, so the stopgap is discoverable
+- [X] T043 Full verification: `cd frontend && npm test && npm run build`; `cd backend && ./gradlew :workflow-service:build`; confirm the 011–015 suites are untouched and CI's `frontend` + backend jobs are green
 - [ ] T044 Confirm each success criterion (SC-001…SC-007) is demonstrably met, then mark the spec implemented and open the PR
 
 ---

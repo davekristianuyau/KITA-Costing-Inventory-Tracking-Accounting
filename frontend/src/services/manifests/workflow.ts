@@ -137,6 +137,29 @@ export const workflowManifest: ServiceManifest = {
       description: "Draft an order and reserve stock. You are the maker — a different employee confirms payment.",
     },
     {
+      id: "confirm-sales-payment",
+      label: "Confirm payment (checker)",
+      icon: "BadgeCheck",
+      group: "Actions — sales",
+      method: "POST",
+      path: "/sales-orders/{id}/confirm-payment",
+      result: "outcome",
+      inputs: [idInput("id", "Sales order id")],
+      description:
+        "Confirm payment as the checker. You cannot check your own order — that is rejected as invalid, not as a permission refusal.",
+    },
+    {
+      id: "release-sales-order",
+      label: "Release order (checker)",
+      icon: "PackageCheck",
+      group: "Actions — sales",
+      method: "POST",
+      path: "/sales-orders/{id}/release",
+      result: "outcome",
+      inputs: [idInput("id", "Sales order id")],
+      description: "Release a paid order for fulfilment.",
+    },
+    {
       id: "complete-sales-order",
       label: "Complete order",
       icon: "CircleCheck",
@@ -230,6 +253,26 @@ export const workflowManifest: ServiceManifest = {
         },
       ],
       description: "Record what arrived. Nothing moves until a different employee confirms it.",
+    },
+    {
+      id: "confirm-receipt",
+      label: "Confirm delivery receipt (checker)",
+      icon: "PackageCheck",
+      group: "Actions — purchasing",
+      method: "POST",
+      path: "/receipts/{pendingReceiptId}/confirm",
+      result: "outcome",
+      inputs: [
+        {
+          name: "pendingReceiptId",
+          label: "Pending receipt",
+          type: "reference",
+          required: true,
+          source: PENDING_RECEIPTS_SOURCE,
+        },
+      ],
+      description:
+        "Commit a recorded receipt: stock moves and the PO advances. Must be a different employee than the maker.",
     },
 
     // --- Actions — production & parties (US3) ---
