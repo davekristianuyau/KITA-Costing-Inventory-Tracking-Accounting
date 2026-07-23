@@ -27,6 +27,20 @@ Discovered during feature 016 (workflow UI): with real services, every governed 
 boundary; with test doubles, real record identifiers are unknown. Until this feature lands, no governed action
 taken in the console has any real effect (016 SC-007).
 
+## Clarifications
+
+### Session 2026-07-23
+
+- Q: Which internal links must be encrypted + mutually authenticated? → A: Maximum security — **all**
+  internal traffic: every service-to-service HTTP hop (workflow→owning services *and* gateway→backend)
+  **and** the Postgres/Redis datastore connections. Only browser→gateway stays out of scope.
+- Q: What counts as "the real services" for the end-to-end demonstration (FR-004/SC-001)? → A: The
+  **Floci AWS-imitation** deployment — the project's production-parity emulator that stands up the exact
+  services as they would run on AWS. Passing there means it works as it would in an AWS production deploy;
+  no separate live cloud account is required.
+- Q: How must a refused caller be "recorded" (FR-008)? → A: **Persisted as a queryable record** (a
+  durable table), not only a log line — so an intrusion attempt is auditable after the fact.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Governed actions actually reach the owning services (Priority: P1) 🎯 MVP
@@ -135,14 +149,19 @@ US3, but only after encryption exists.
   deterministically by the caller, so a retry of the same action cannot create a second record.
 - **FR-003**: A rejection by a receiving service MUST be surfaced with its actual reason, distinguishable from a
   transport failure and from a permission refusal.
-- **FR-004**: Every governed back-office action MUST be demonstrated working end to end against the real services.
+- **FR-004**: Every governed back-office action MUST be demonstrated working end to end against the real
+  services — specifically the **Floci AWS-imitation deployment** (production-parity), so the demonstration
+  reflects how the action behaves in an AWS production deploy, not just an isolated unit fake.
 - **FR-005**: Automated checks MUST verify each integration against the **real** service contract, so a change on
   either side fails the build rather than surfacing at runtime.
 - **FR-006**: Test doubles used for isolated builds MUST be held to the same contract as the real services, so
   they cannot silently diverge.
-- **FR-007**: All service-to-service traffic MUST be encrypted in transit.
+- **FR-007**: **All** internal traffic MUST be encrypted in transit — every service-to-service HTTP hop
+  (workflow→owning services *and* gateway→backend services) and the Postgres/Redis datastore connections.
+  Only browser→gateway is out of scope.
 - **FR-008**: Each service MUST verify the identity of the service calling it and refuse callers it cannot
-  verify; refusals MUST be recorded.
+  verify; each refusal MUST be **persisted as a queryable record** (durable, auditable after the fact),
+  not only logged.
 - **FR-009**: Service credentials MUST be rotatable without interrupting service, and their remaining validity
   MUST be observable before expiry.
 - **FR-010**: Enabling encryption MUST NOT change any business outcome, authorization decision, or recorded
@@ -163,18 +182,23 @@ US3, but only after encryption exists.
   expiry.
 - **Derived Value**: a value the receiving service requires that the caller must produce deterministically (an
   order number, a record code, a record type) so retries stay idempotent.
+- **Refusal Record**: a durable, queryable row written when a caller is refused for an identity/transport
+  reason — who/what was refused (peer address, attempted identity), why, and when — so an intrusion attempt
+  is auditable after the fact (distinct from a business rejection).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: **100%** of governed back-office actions succeed end to end against the real services and are
-  visible in the owning service — including 016 SC-007, which this unblocks.
+- **SC-001**: **100%** of governed back-office actions succeed end to end on the **Floci AWS-imitation
+  deployment** and are visible in the owning service — including 016 SC-007, which this unblocks.
 - **SC-002**: **0** actions fail because of a caller/receiver shape mismatch.
 - **SC-003**: A field renamed on either side of any integration causes an automated check to fail, in **every**
   integration, before it can reach a running environment.
-- **SC-004**: **0** readable business data or caller identity is observable on internal traffic.
-- **SC-005**: **100%** of internal calls from an unverifiable caller are refused and recorded.
+- **SC-004**: **0** readable business data or caller identity is observable on any internal link —
+  service-to-service HTTP hops and the Postgres/Redis datastore connections alike.
+- **SC-005**: **100%** of internal calls from an unverifiable caller are refused **and appear as a
+  persisted, queryable refusal record**.
 - **SC-006**: Service credentials are rotated with **0** failed calls during the rotation.
 - **SC-007**: Enabling encryption changes **no** business outcome — the existing behaviour checks pass unchanged.
 - **SC-008**: A developer brings the whole system up locally, with encryption on, using the documented startup and
@@ -187,8 +211,11 @@ US3, but only after encryption exists.
 - Where a receiving service requires a value no human supplies (an order number, a record code), deriving it in
   the caller is acceptable; introducing it into the user interface is not.
 - The existing test doubles stay, for isolated builds; this feature binds them to the real contract.
-- Encryption applies to traffic between internal services; how the public entry point terminates traffic from
-  browsers is unchanged here.
+- Encryption applies to **all** internal traffic — service-to-service HTTP (incl. gateway→backend) and the
+  Postgres/Redis datastore connections; how the public entry point terminates traffic from browsers is
+  unchanged here.
+- "The real services" for the end-to-end demonstration means the **Floci AWS-imitation** deployment, which
+  stands up the services as they run on AWS; a separate live cloud account is not required.
 - Local development may use locally generated credentials, provided nothing secret is committed.
 
 ## Dependencies
@@ -196,7 +223,10 @@ US3, but only after encryption exists.
 - **007 back-office workflows** — owns the calls being corrected.
 - **003 / 005 / 006** — the services that own the records being written (inventory & sales, customers, suppliers).
 - **004 hr** — consulted for the acting employee's roles; the same transport rules apply.
-- **008 docker-cache-database** — the local composition these services run in.
+- **008 docker-cache-database** — the local composition these services run in (Postgres/Redis now in
+  encryption scope).
+- **009/010 Floci AWS-imitation** — the production-parity deployment the end-to-end demonstration
+  (FR-004/SC-001) runs against.
 - **016 workflow UI** — surfaces these actions; its SC-007 stays unmet until this ships.
 - **017 account-employee identity** — independent; both are prerequisites for a real deployment of the back office.
 
