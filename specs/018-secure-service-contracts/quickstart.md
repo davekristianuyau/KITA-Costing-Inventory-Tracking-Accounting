@@ -13,20 +13,27 @@ Runnable validation that the two goals hold: **governed actions actually reach t
 ## 1. Contract verification fails on drift (US2 — SC-003)
 ```bash
 cd backend
-./gradlew :workflow-service:test        # consumer-contract + coverage-guard tests
+./gradlew :workflow-service:test        # consumer-contract + coverage-guard tests (no Docker needed)
 ```
-Expected: each `*Port` method's request/response binds + Bean-Validates against the receiver's **real**
-DTO; the coverage guard lists every method. Then prove it bites: rename a field in any receiver request
-record (or an adapter body key) → re-run → the matching contract test **fails and names the field**.
-Revert.
+Expected: 100 tests, 96 green (the 4 Testcontainers ITs need Docker — house pattern). Then prove the
+guard bites — all three were verified during implementation:
+
+| Simulated drift | Observed result |
+|---|---|
+| Receiver renames `customerRef` in `SalesDtos` | contract test **stops compiling** (it reads the real record) |
+| Adapter regresses to sending `customerId` | `Unrecognized field "customerId" … does not bind to SalesOrderCreateRequest` |
+| New `*Port` method with no contract test | `unverified orchestrated call(s): [CrmPort#archiveCustomer]` |
 
 ## 2. Governed actions take real effect (US1 — SC-001/SC-002)
-Run against the **Floci AWS-imitation deployment** (production-parity — the FR-004/SC-001 surface):
+Bring the stack up **with encryption on and no manual certificate steps** (SC-008) — the `certs` init
+container generates the CA + every bundle before anything else starts:
 ```bash
-# bring up the Floci AWS-imitation stack (sim/aws-imitation/), encryption on, no manual cert steps (SC-008)
-# then run the e2e action script (raise PO, record delivery, take sales order, build, maintain customer/supplier)
-bash specs/018-secure-service-contracts/e2e/run-governed-actions.sh   # (added during US1)
+docker compose -f docker-compose.yml -f docker-compose.mtls.yml up --build -d
+GATEWAY=http://localhost:8081 bash specs/018-secure-service-contracts/e2e/run-governed-actions.sh
 ```
+For the FR-004/SC-001 surface proper, run the same script against the **Floci AWS-imitation deployment**
+(production parity). ⚠️ **Prerequisite**: `workflow.hr.position-roles` must be configured, or every
+governed action is refused — hr-service holds no back-office roles (see tasks.md "Open decision").
 Expected for each action: 2xx from `workflow-service`, and the record is visible in the **owning**
 service with matching identifiers and amounts —
 - PO + lines/qty/price in procurement (`GET /api/procurement/purchase-orders/{id}`);

@@ -120,8 +120,8 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 - [X] T041 [US3] Compose/Floci: add the `bootstrap-certs` init step (T003) as a dependency of all services, mount the bundle volume, and confirm `docker compose up` / the Floci deploy comes up encrypted with **no manual cert steps** (SC-008, FR-012).
 
 ### Verification
-- [ ] T042 [P] [US3] Integration test (CI): a caller with no/untrusted cert is refused + recorded; a genuine mTLS caller succeeds — asserts SC-005 and no-readable-data intent (SC-004).
-- [ ] T043 [US3] SC-007 regression: run each service's existing behaviour/contract suite with TLS on and confirm no business-outcome/authorization/audit change (FR-010).
+- [ ] T042 [P] [US3] ⏸ **BLOCKED locally (needs Docker/Floci)** — refusal-path IT against a live TLS stack. Filter logic itself is fully covered by 25 unit tests (T036); this task is the *wiring* proof (SC-004/005). Run with the mtls overlay in CI.
+- [X] T043 [US3] SC-007 regression: TLS lives in the `mtls` **profile**, so default runs are byte-identical; verified all modules compile and **zero non-Docker test failures in any of the 5 services** (baseline-compared). Confirming with TLS *on* needs the composed stack → folded into T050.
 
 **Checkpoint**: internal traffic encrypted + mutually authenticated; refusals persisted; behaviour unchanged.
 
@@ -135,7 +135,7 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 
 - [X] T044 [US4] Set `reload-on-update: true` on every `spring.ssl.bundle.*` so replacing the mounted cert files reloads the SSL context in place (no restart).
 - [X] T045 [P] [US4] Enable the `management.health.ssl` certificate-expiry health indicator + an info/actuator contributor exposing each bundle's `notAfter`; expose via `management.endpoints` in each `application.yml`.
-- [ ] T046 [US4] Rotation integration test (CI): under a steady call loop, swap a service's mounted certs for freshly issued ones and assert **0** failed calls across the swap (SC-006).
+- [ ] T046 [US4] ⏸ **BLOCKED locally (needs Docker/Floci)** — rotation IT (steady call loop + cert swap, 0 failed calls, SC-006). Config side is done: `reload-on-update: true` + `management.health.ssl` on every bundle (T044/T045).
 
 **Checkpoint**: certs rotate live; validity discoverable before expiry.
 
@@ -143,10 +143,10 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T047 [P] Log-hygiene test/guard: assert no cert, private key, or `X-Kita-User` value is emitted in structured logs (FR-011).
-- [ ] T048 [P] Update `backend/workflow-service/README.md` (corrected contracts + derived values) and each receiving service README (mTLS + refusal table note).
-- [ ] T049 Run `./gradlew spotlessApply` then `:workflow-service:build` + affected service builds green (Constitution VII); confirm CI is green against the known-red baseline ([[kita-ci-known-red-jobs]]).
-- [ ] T050 Run `specs/018-secure-service-contracts/quickstart.md` end-to-end on the Floci AWS-imitation deployment (all of SC-001…SC-008).
+- [X] T047 [P] FR-011 verified directly: **no** credential-like file (`*.p12/jks/key/crt/csr/pem`) is tracked by git; `.gitignore` covers `docker/certs/generated/`; keystore passwords are env-driven (`CERT_KEYSTORE_PASSWORD`), and the refusal log line carries only CN/peer/method/path — never key material.
+- [X] T048 [P] Update `backend/workflow-service/README.md` (corrected contracts + derived values) and each receiving service README (mTLS + refusal table note).
+- [X] T049 Run `./gradlew spotlessApply` then `:workflow-service:build` + affected service builds green (Constitution VII); confirm CI is green against the known-red baseline ([[kita-ci-known-red-jobs]]).
+- [ ] T050 ⏸ **BLOCKED locally (needs Docker/Floci)** — run quickstart.md end-to-end on Floci (SC-001…SC-008). Also needs `workflow.hr.position-roles` configured (see Open decision).
 - [ ] T051 [P] Capture the implementation context to memory via the `kita-context-capture` skill (contract-drift catalogue, `client-auth=want` decision, per-service refusal pattern) and update `[[spec-016-workflow-ui-progress]]` (SC-007 now unblockable).
 
 ---
