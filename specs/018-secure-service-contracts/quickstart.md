@@ -76,3 +76,22 @@ encryption changed transport only.
 - SC-006: 0 failed calls during rotation.
 - SC-007: existing behaviour tests green with encryption on.
 - SC-008: `docker compose up` brings the system up encrypted with no manual cert steps.
+
+---
+
+## Verified run — 2026-07-27 (local Docker, mtls overlay)
+
+Everything below was executed, not inferred.
+
+| Criterion | Evidence |
+|---|---|
+| **SC-001/002** | `run-governed-actions.sh` → **17/17 PASS, 0 fail**, incl. maker-checker receiving (PO → `RECEIVED`) and a build via real BOM explosion. Records confirmed in crm/procurement/operations/workflow schemas. |
+| **SC-003** | Three drift simulations each failed the build (receiver rename → won't compile; stale caller key → `Unrecognized field "customerId"`; new port method → `unverified orchestrated call(s)`). |
+| **SC-004** | Plaintext HTTP → 400; internal calls only over TLS. Every service→Postgres connection `TLSv1.3 / TLS_AES_256_GCM_SHA384`; Redis TLS-only (`port 0`, plaintext "Connection reset by peer"). |
+| **SC-005** | No cert → 401; CA-signed but non-allowlisted CN → 401; **both persisted** in `service_call_refusal` with `attempted_cn`. |
+| **SC-006** | 240-call mTLS loop across a live cert swap → **0 failures**; new serial served afterwards (no restart). |
+| **SC-007** | `gradlew build`: only the pre-existing hr `OpenApiContractTest` fails (known-red on `main`, untouched here). Audit outcomes unchanged. |
+| **SC-008** | `docker compose -f docker-compose.yml -f docker-compose.mtls.yml up --build -d` → all 8 containers healthy, **no manual certificate steps**. |
+
+Prerequisite for governed actions: `workflow.hr.position-roles` must map the acting employee's HR
+position (see the "Open decision" note in tasks.md). The dev stack ships a `back-office` mapping.

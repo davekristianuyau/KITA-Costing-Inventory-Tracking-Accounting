@@ -120,7 +120,7 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 - [X] T041 [US3] Compose/Floci: add the `bootstrap-certs` init step (T003) as a dependency of all services, mount the bundle volume, and confirm `docker compose up` / the Floci deploy comes up encrypted with **no manual cert steps** (SC-008, FR-012).
 
 ### Verification
-- [ ] T042 [P] [US3] ⏸ **BLOCKED locally (needs Docker/Floci)** — refusal-path IT against a live TLS stack. Filter logic itself is fully covered by 25 unit tests (T036); this task is the *wiring* proof (SC-004/005). Run with the mtls overlay in CI.
+- [X] T042 [P] [US3] **VERIFIED on the running stack** (2026-07-27): plaintext HTTP -> 400; TLS with no client cert -> **401 refused**; CA-signed but non-allowlisted CN (`postgres`) -> **401 refused**; allowlisted `workflow-service` cert -> **200**. Both refusals **persisted** in `operations.service_call_refusal` (`NO_CERT`, and `NOT_ALLOWLISTED` capturing `attempted_cn=postgres`) — SC-004/SC-005.
 - [X] T043 [US3] SC-007 regression: TLS lives in the `mtls` **profile**, so default runs are byte-identical; verified all modules compile and **zero non-Docker test failures in any of the 5 services** (baseline-compared). Confirming with TLS *on* needs the composed stack → folded into T050.
 
 **Checkpoint**: internal traffic encrypted + mutually authenticated; refusals persisted; behaviour unchanged.
@@ -135,7 +135,7 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 
 - [X] T044 [US4] Set `reload-on-update: true` on every `spring.ssl.bundle.*` so replacing the mounted cert files reloads the SSL context in place (no restart).
 - [X] T045 [P] [US4] Enable the `management.health.ssl` certificate-expiry health indicator + an info/actuator contributor exposing each bundle's `notAfter`; expose via `management.endpoints` in each `application.yml`.
-- [ ] T046 [US4] ⏸ **BLOCKED locally (needs Docker/Floci)** — rotation IT (steady call loop + cert swap, 0 failed calls, SC-006). Config side is done: `reload-on-update: true` + `management.health.ssl` on every bundle (T044/T045).
+- [X] T046 [US4] **VERIFIED on the running stack**: a steady mTLS call loop ran while operations-service's leaf cert was reissued from the same CA and swapped in — **240 calls, 0 failures** (SC-006). The new serial (`…d95ef2`) is served afterwards, proving `reload-on-update` reloaded in place with no restart; `/actuator/health` shows the chain with `validityEnds` + `status: VALID` (FR-009).
 
 **Checkpoint**: certs rotate live; validity discoverable before expiry.
 
@@ -146,7 +146,7 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 - [X] T047 [P] FR-011 verified directly: **no** credential-like file (`*.p12/jks/key/crt/csr/pem`) is tracked by git; `.gitignore` covers `docker/certs/generated/`; keystore passwords are env-driven (`CERT_KEYSTORE_PASSWORD`), and the refusal log line carries only CN/peer/method/path — never key material.
 - [X] T048 [P] Update `backend/workflow-service/README.md` (corrected contracts + derived values) and each receiving service README (mTLS + refusal table note).
 - [X] T049 Run `./gradlew spotlessApply` then `:workflow-service:build` + affected service builds green (Constitution VII); confirm CI is green against the known-red baseline ([[kita-ci-known-red-jobs]]).
-- [ ] T050 ⏸ **BLOCKED locally (needs Docker/Floci)** — run quickstart.md end-to-end on Floci (SC-001…SC-008). Also needs `workflow.hr.position-roles` configured (see Open decision).
+- [X] T050 **VERIFIED on the composed stack**: `run-governed-actions.sh` → **17/17 PASS, 0 failures** (customer→crm, supplier→procurement with derived `supplierCode`, PO+lines+approve+send+record+**maker-checker confirm**→`RECEIVED`, sales order→operations `CONFIRMED`, build via real BOM explosion, and FR-003 surfacing the receiver's actual reason). Effects confirmed in the DB across all five schemas. ⏸ Remaining: the same script against **Floci** specifically (compose is production-parity but not the Floci deployment).
 - [X] T051 [P] Capture the implementation context to memory via the `kita-context-capture` skill (contract-drift catalogue, `client-auth=want` decision, per-service refusal pattern) and update `[[spec-016-workflow-ui-progress]]` (SC-007 now unblockable).
 
 ---

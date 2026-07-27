@@ -4,7 +4,6 @@ import com.kita.workflow.common.TransientDownstreamException;
 import com.kita.workflow.ports.HrPort;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -93,7 +92,9 @@ public class HttpHrAdapter implements HrPort {
     if (position == null || position.isBlank()) {
       return Set.of();
     }
-    String configured = positionRoles.get(position.trim().toUpperCase(Locale.ROOT));
+    // Normalized on both sides so "Sales Clerk" matches a `sales-clerk` config key — and because a
+    // map key containing a space does not survive Spring's relaxed binding at all.
+    String configured = positionRoles.get(HrPositionRoles.normalize(position));
     if (configured == null || configured.isBlank()) {
       log.warn(
           "no workflow.hr.position-roles mapping for position '{}': the actor gets no back-office"

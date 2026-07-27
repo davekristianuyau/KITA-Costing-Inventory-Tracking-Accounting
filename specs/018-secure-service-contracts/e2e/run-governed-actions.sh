@@ -12,11 +12,14 @@
 # Env:
 #   GATEWAY   public entry point            (default http://localhost:8081)
 #   ACTOR     acting employee (X-Kita-User) (default stub-admin)
+#   CHECKER   a DISTINCT employee, required for maker-checker steps (receipt confirmation)
 # Exit code 0 = every governed action took real effect.
 set -uo pipefail
 
 GATEWAY="${GATEWAY:-http://localhost:8081}"
 ACTOR="${ACTOR:-stub-admin}"
+# Maker-checker actions need a SECOND, distinct employee identity.
+CHECKER="${CHECKER:-}"
 PASS=0
 FAIL=0
 
@@ -26,26 +29,33 @@ say()  { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 ok()   { printf '  \033[32mPASS\033[0m %s\n' "$*"; PASS=$((PASS+1)); }
 bad()  { printf '  \033[31mFAIL\033[0m %s\n' "$*"; FAIL=$((FAIL+1)); }
 
-# POST <path> <json> -> body on stdout, HTTP code in $CODE
+# post/get are called via $(...), i.e. in a SUBSHELL, so they cannot set a variable the caller sees.
+# The status code goes to a temp file instead; is2xx/CODE read it back in the parent shell.
+CODEFILE="$(mktemp)"
+trap 'rm -f "$CODEFILE"' EXIT
+CODE=000
+
+# POST <path> <json> -> body on stdout, HTTP status recorded for is2xx/$CODE
 post() {
   local out
   out=$(curl -sS -w '\n%{http_code}' "${hdr[@]}" -X POST "${GATEWAY}$1" ${2:+-d "$2"} 2>/dev/null)
-  CODE="${out##*$'\n'}"
+  printf '%s' "${out##*$'\n'}" > "$CODEFILE"
   printf '%s' "${out%$'\n'*}"
 }
 get() {
   local out
   out=$(curl -sS -w '\n%{http_code}' "${hdr[@]}" "${GATEWAY}$1" 2>/dev/null)
-  CODE="${out##*$'\n'}"
+  printf '%s' "${out##*$'\n'}" > "$CODEFILE"
   printf '%s' "${out%$'\n'*}"
 }
 # crude field read without requiring jq
 field() { printf '%s' "$1" | grep -oE "\"$2\"[[:space:]]*:[[:space:]]*\"?[^,\"}]+\"?" | head -1 | sed -E 's/.*:[[:space:]]*"?([^",}]+)"?.*/\1/'; }
 
-is2xx() { [[ "$CODE" =~ ^2 ]]; }
+CODE() { cat "$CODEFILE"; }
+is2xx() { [[ "$(cat "$CODEFILE")" =~ ^2 ]]; }
 
 say "0. Preconditions"
-body=$(get "/actuator/health"); is2xx && ok "gateway reachable" || { bad "gateway not reachable at ${GATEWAY} (code ${CODE})"; exit 1; }
+body=$(get "/actuator/health"); is2xx && ok "gateway reachable" || { bad "gateway not reachable at ${GATEWAY} (code $(cat "$CODEFILE"))"; exit 1; }
 
 # --- Customer maintenance (crm-service owns the record) ----------------------------------------
 say "1. Maintain customer -> crm-service"
@@ -58,10 +68,10 @@ if is2xx; then
   if is2xx && [[ "$(field "$body" name)" == "${CUST_NAME}" ]]; then
     ok "visible in crm-service with the same name"
   else
-    bad "not visible in crm-service (code ${CODE})"
+    bad "not visible in crm-service (code $(cat "$CODEFILE"))"
   fi
 else
-  bad "create customer rejected (code ${CODE}): $body"
+  bad "create customer rejected (code $(cat "$CODEFILE")): $body"
 fi
 
 # --- Supplier maintenance (procurement-service owns the record) --------------------------------
@@ -75,10 +85,10 @@ if is2xx; then
   if is2xx && [[ "$(field "$body" name)" == "${SUP_NAME}" ]]; then
     ok "visible in procurement-service (supplierCode $(field "$body" supplierCode) derived)"
   else
-    bad "not visible in procurement-service (code ${CODE})"
+    bad "not visible in procurement-service (code $(cat "$CODEFILE"))"
   fi
 else
-  bad "create supplier rejected (code ${CODE}): $body"
+  bad "create supplier rejected (code $(cat "$CODEFILE")): $body"
 fi
 
 # --- Purchase order + receiving (procurement owns PO; operations owns stock) --------------------
@@ -94,23 +104,40 @@ if [[ -n "${SUP_ID:-}" ]]; then
     if is2xx && printf '%s' "$body" | grep -q "\"itemRef\"[[:space:]]*:[[:space:]]*\"${ITEM_REF}\""; then
       ok "PO + lines/qty/price match in procurement-service"
     else
-      bad "PO lines do not match in procurement-service (code ${CODE})"
+      bad "PO lines do not match in procurement-service (code $(cat "$CODEFILE"))"
     fi
 
-    body=$(post "/api/workflow/purchase-orders/${PO_ID}/approve" ""); is2xx && ok "approved" || bad "approve rejected (${CODE}): $body"
-    body=$(post "/api/workflow/purchase-orders/${PO_ID}/send" "");    is2xx && ok "sent"     || bad "send rejected (${CODE}): $body"
+    body=$(post "/api/workflow/purchase-orders/${PO_ID}/approve" ""); is2xx && ok "approved" || bad "approve rejected ($(cat "$CODEFILE")): $body"
+    body=$(post "/api/workflow/purchase-orders/${PO_ID}/send" "");    is2xx && ok "sent"     || bad "send rejected ($(cat "$CODEFILE")): $body"
 
     body=$(post "/api/workflow/purchase-orders/${PO_ID}/receipts" \
       "{\"lines\":[{\"itemId\":\"${ITEM_REF}\",\"quantityReceived\":10}]}")
     if is2xx; then
-      ok "delivery recorded"
+      ok "delivery recorded (pending a checker)"
+      # Receiving is maker-checker: recording only stages the receipt; a DISTINCT employee must
+      # confirm it before procurement advances and stock moves. That second identity is CHECKER.
+      PR_ID=$(field "$body" "pendingReceiptId"); [[ -z "$PR_ID" ]] && PR_ID=$(field "$body" "id")
+      if [[ -n "${CHECKER:-}" && -n "$PR_ID" ]]; then
+        confirm=$(curl -sS -w '\n%{http_code}' -H "Content-Type: application/json" \
+          -H "X-Kita-User: ${CHECKER}" -X POST "${GATEWAY}/api/workflow/receipts/${PR_ID}/confirm" 2>/dev/null)
+        printf '%s' "${confirm##*$'\n'}" > "$CODEFILE"
+        if is2xx; then
+          ok "delivery confirmed by a distinct checker"
+        else
+          bad "checker confirmation rejected ($(cat "$CODEFILE")): ${confirm%$'\n'*}"
+        fi
+      else
+        bad "no CHECKER employee set (maker-checker needs a second identity) or no pending receipt id"
+      fi
       body=$(get "/api/procurement/purchase-orders/${PO_ID}")
       printf '%s' "$body" | grep -qE "RECEIVED" && ok "PO advanced to a RECEIVED state" || bad "PO status did not advance"
+      body=$(get "/api/operations/items?sku=${ITEM_REF}")
+      is2xx && ok "operations reachable to confirm stock effect" || bad "cannot read operations stock"
     else
-      bad "receipt rejected (code ${CODE}): $body"
+      bad "receipt rejected (code $(cat "$CODEFILE")): $body"
     fi
   else
-    bad "raise PO rejected (code ${CODE}): $body"
+    bad "raise PO rejected (code $(cat "$CODEFILE")): $body"
   fi
 else
   bad "skipped PO flow — no supplier id"
@@ -128,10 +155,10 @@ if [[ -n "${CUST_ID:-}" ]]; then
     if is2xx; then
       ok "visible in operations-service with its lines (status $(field "$body" status))"
     else
-      bad "not visible in operations-service (code ${CODE})"
+      bad "not visible in operations-service (code $(cat "$CODEFILE"))"
     fi
   else
-    bad "sales order rejected (code ${CODE}): $body"
+    bad "sales order rejected (code $(cat "$CODEFILE")): $body"
   fi
 else
   bad "skipped sales flow — no customer id"
@@ -145,17 +172,17 @@ if is2xx; then
   ok "build executed ($(field "$body" buildId))"
 else
   # A missing BOM is a legitimate business rejection, not a contract failure — report the real reason.
-  bad "build rejected (code ${CODE}): $body"
+  bad "build rejected (code $(cat "$CODEFILE")): $body"
 fi
 
 # --- Error taxonomy (FR-003) ---------------------------------------------------------------------
 say "6. Invalid input surfaces the receiver's real reason (FR-003)"
 body=$(post "/api/workflow/sales-orders" \
   "{\"customerId\":\"00000000-0000-0000-0000-000000000000\",\"lines\":[{\"itemId\":\"${ITEM_REF}\",\"quantity\":1,\"unitPrice\":\"1.00\"}]}")
-if [[ "$CODE" == "422" ]] && [[ -n "$body" ]]; then
+if [[ "$(cat "$CODEFILE")" == "422" ]] && [[ -n "$body" ]]; then
   ok "rejected 422 with a specific reason: $(printf '%s' "$body" | head -c 120)"
 else
-  bad "expected a 422 naming the problem, got ${CODE}: $body"
+  bad "expected a 422 naming the problem, got $(cat "$CODEFILE"): $body"
 fi
 
 say "Result"

@@ -30,6 +30,11 @@ spring:
               ssl-bundle: service
 
 management:
+  endpoint:
+    health:
+      # FR-009: remaining certificate validity must be discoverable BEFORE it lapses. Expiry dates are
+      # not secret, and actuator is reachable only inside the private network.
+      show-details: always
   endpoints:
     web:
       exposure:

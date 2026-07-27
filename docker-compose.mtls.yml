@@ -166,6 +166,18 @@ services:
       HR_BASE_URL: https://hr-service:8085
       CRM_BASE_URL: https://crm-service:8086
       PROCUREMENT_BASE_URL: https://procurement-service:8087
+      # hr-service holds no back-office roles of its own (see tasks.md "Open decision"), so the
+      # deployment states which HR *position* grants which back-office role. Fail-closed: a position
+      # that is not listed here grants nothing. Keys are normalized (upper-case, alphanumerics only)
+      # on both sides, so `back-office` matches the HR position "Back Office" -- a map key WITH a
+      # space would not survive Spring's relaxed binding at all.
+      SPRING_APPLICATION_JSON: >-
+        {"workflow":{"hr":{"position-roles":{
+        "back-office":"SALES,CASHIER,SALES_MANAGER,WAREHOUSE_STAFF,WAREHOUSE_MANAGER,PROCUREMENT_STAFF,PROCUREMENT_APPROVER,PRODUCTION,CRM_ADMIN",
+        "sales-clerk":"SALES",
+        "cashier":"CASHIER",
+        "warehouse-staff":"WAREHOUSE_STAFF",
+        "purchasing-officer":"PROCUREMENT_STAFF"}}}}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost:8088/actuator/health || exit 1"]
       interval: 10s
