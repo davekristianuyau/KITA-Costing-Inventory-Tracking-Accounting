@@ -1,0 +1,8 @@
+# Shell scripts must keep LF endings even on Windows checkouts: they are bind-mounted into Linux
+# containers (docker/certs, sim/, scripts/) where a CRLF terminator makes bash reject the very first
+# `set -o pipefail` line. Learned the hard way while bringing up the 018 mTLS stack.
+*.sh text eol=lf
+
+# Same reason for container/entrypoint and CI files interpreted inside Linux images.
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf

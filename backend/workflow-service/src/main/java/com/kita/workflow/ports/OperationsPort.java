@@ -1,18 +1,22 @@
 package com.kita.workflow.ports;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
- * Boundary to operations-service (FR-004, FR-006). MVP covers the sales-order lifecycle; builds (US5)
- * are added later. operations-service owns stock, reservations and costing — this port only drives it.
+ * Boundary to operations-service (FR-004, FR-006). operations-service owns stock, reservations and
+ * costing — this port only drives it. NB: operations creates a sales order <em>atomically with its
+ * lines</em> (there is no add-line endpoint), and items are identified by UUID on the wire — the http
+ * adapter resolves each {@link SalesLine#itemId()} ref (sku) to its UUID (018 FR-001/002).
  */
 public interface OperationsPort {
 
-  /** Create an empty sales order for the customer; returns the operations order id (durable anchor). */
-  String createSalesOrder(String customerId);
-
-  /** Add a line to a draft order. */
-  void addSalesOrderLine(String salesOrderId, SalesLine line);
+  /**
+   * Create the sales order for the customer with all its lines in one call (atomic); returns the
+   * operations order id (durable anchor). {@code customerRef} is the customer reference operations
+   * stores; each line's item ref is resolved to a UUID by the adapter.
+   */
+  String createSalesOrder(String customerRef, List<SalesLine> lines);
 
   /** Confirm the order, reserving stock. Throws on oversell (surfaced as 422). */
   void confirmSalesOrder(String salesOrderId);

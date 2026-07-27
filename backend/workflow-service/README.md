@@ -48,9 +48,50 @@ MockWebServer) — they run locally. Testcontainers ITs (`ActivityLogIT`) and th
 suites need Docker and run in **CI** (Linux); locally they are skipped unless Docker Desktop's *Expose
 daemon on tcp://localhost:2375* toggle is on. See `specs/007-back-office-workflows/quickstart.md`.
 
-## Dependency note (hr-service roles)
+## Consumer contracts — how drift is caught (018)
 
-Authorization needs an employee's assigned back-office role tokens from
-`GET /api/hr/employees/{id}` (`EmployeeView{id, active, roles}`). If hr-service does not yet expose the
-`roles` set, that is a small hr-service addition/seed; the **fake `HrPort` supplies roles** so
-workflow-service builds and tests in isolation regardless. Tracked in `plan.md` Dependencies.
+The outbound calls in `ports/http/` are verified against the **receivers' real DTO records** (added as
+`testImplementation` project deps), not against hand-written doubles. `src/test/java/.../contract/`:
+
+- one `*ContractTest` per call family — the body the adapter actually puts on the wire is bound to the
+  receiver's own request record and Bean-Validated (`FAIL_ON_UNKNOWN_PROPERTIES`, so a stale key fails);
+- `LifecycleCallsContractTest` pins method+path for the no-body lifecycle calls;
+- `PortCoverageGuardTest` fails the build when a `*Port` method has **no** registered contract test —
+  adding an unverified call is reported, not silently trusted;
+- `FakeContractParityTest` holds the in-memory fakes to the receivers' own constraints, so an isolated
+  build cannot pass on input the real service would reject.
+
+Drift is therefore caught three ways, all before a running environment (SC-003):
+
+| Change | What fails |
+|---|---|
+| Receiver renames/removes a field | the contract test stops compiling (it reads the real record) |
+| Caller sends a stale key | binding fails — *Unrecognized field "customerId" … does not bind to `SalesOrderCreateRequest`* |
+| New orchestrated call added | `PortCoverageGuardTest` names it as unverified |
+
+Adding a port method? Write its contract test and register it in `PortCoverageGuardTest.VERIFIED_BY`.
+
+## Dependency note (hr-service roles) — ⚠️ unresolved
+
+Authorization needs the acting employee's back-office role tokens. **hr-service does not have them**:
+`Employee` stores no roles, `EmployeeResponse` returns none, and hr's own `Role` enum
+(`HR_ADMIN`/`PAYROLL_OFFICER`/`MANAGER`/`EMPLOYEE_SELF`) governs HR's own API, not workflow roles. 007
+deferred this ("a small hr-service addition") and the fake `HrPort` hid it; 018 surfaced it, because
+against real HR every actor resolved inactive + roleless and every governed action failed.
+
+Current behaviour: `active` is derived from HR's real `status` (`ACTIVE`), and roles come from the
+explicit `workflow.hr.position-roles` map (`HrPositionRoles`) — **fail-closed**, so an unmapped position
+grants nothing. Configure it per deployment:
+
+```yaml
+workflow:
+  hr:
+    position-roles:
+      "SALES CLERK": SALES
+      "CASHIER": CASHIER
+      "WAREHOUSE STAFF": WAREHOUSE_STAFF
+      "PURCHASING OFFICER": PROCUREMENT_STAFF
+```
+
+Longer term this belongs to **spec 017** (account→employee identity) or a roles field in hr-service —
+see the "Open decision" note in `specs/018-secure-service-contracts/tasks.md`.

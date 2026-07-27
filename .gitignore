@@ -55,3 +55,12 @@ sim/aws-imitation/terraform.tfstate.backup
 sim/cloud-deploy/**/.terraform/
 sim/cloud-deploy/**/.terraform.lock.hcl
 sim/cloud-deploy/**/terraform.tfstate*
+
+# --- 018 service-to-service TLS: generated dev certs/keys are NEVER committed (FR-011) ---
+docker/certs/generated/
+*.p12
+*.jks
+*.key
+*.crt
+*.csr
+*.pem

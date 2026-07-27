@@ -1,10 +1,13 @@
 package com.kita.workflow.ports.http;
 
+import com.kita.workflow.common.ForbiddenException;
 import com.kita.workflow.common.RetryingCaller;
 import com.kita.workflow.common.TransientDownstreamException;
 import com.kita.workflow.common.ValidationException;
 import com.kita.workflow.common.security.CallerContext;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -75,7 +78,13 @@ public class RemoteCall {
         });
   }
 
-  /** Standard write result: 2xx or (idempotent) 409 → body; 5xx → retry; other 4xx → 422. */
+  /**
+   * Standard write result, with the three-way error taxonomy (FR-003): 2xx or (idempotent) 409 → body;
+   * 5xx → retry ({@link TransientDownstreamException}); receiver 403 → permission refusal
+   * ({@link ForbiddenException} → 403 NOT_PERMITTED); any other 4xx → business rejection carrying the
+   * receiver's own reason ({@link ValidationException} → 422). A transport/TLS failure surfaces as an
+   * {@link java.io.IOException}/connect error which the exchange lambda turns into a transient failure.
+   */
   public <T> T applied(ConvertibleClientHttpResponse response, Class<T> type) throws IOException {
     HttpStatusCode status = response.getStatusCode();
     if (status.is2xxSuccessful() || status.value() == 409) {
@@ -84,7 +93,33 @@ public class RemoteCall {
     if (status.is5xxServerError()) {
       throw new TransientDownstreamException("downstream " + status.value());
     }
-    throw new ValidationException("downstream rejected the request: " + status.value());
+    if (status.value() == 403) {
+      throw new ForbiddenException(
+          "downstream refused the request (permission): " + reason(response, status));
+    }
+    throw new ValidationException(reason(response, status));
+  }
+
+  /**
+   * Extract the receiver's own rejection reason from its error body (RFC-7807 {@code detail}, or a
+   * Spring error {@code message}/{@code error}) so the staff member sees the actual problem, not a
+   * generic status. Falls back to the status when the body is empty or unparseable.
+   */
+  private String reason(ConvertibleClientHttpResponse response, HttpStatusCode status) {
+    try {
+      Map<?, ?> body = response.bodyTo(Map.class);
+      if (body != null) {
+        for (String key : List.of("detail", "message", "error")) {
+          Object value = body.get(key);
+          if (value != null && !String.valueOf(value).isBlank()) {
+            return String.valueOf(value);
+          }
+        }
+      }
+    } catch (Exception ignored) {
+      // non-JSON / empty body — fall through to the status-based reason
+    }
+    return "downstream rejected the request (" + status.value() + ")";
   }
 
   private void forwardActor(HttpHeaders headers) {

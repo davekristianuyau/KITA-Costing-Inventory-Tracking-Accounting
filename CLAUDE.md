@@ -124,17 +124,25 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/015-procurement-ui/plan.md` (**Procurement service full UI** — the fourth per-service UI, after 012/013/014).
-Fill the 011 Procurement tab with the full `procurement-service` **manifest** (supplier master, PO lifecycle
-draft→approved→sent→received→closed, receiving, restock/reorder suggestions); each function = a manifest entry
-rendered by the 011 `FunctionWorkspace` via the generic edge fetch, **reusing the full 012/013/014 shared
-framework** (reference/list inputs, id→label, bodyInput/dotted-name bodies, **014 detail sub-table** for PO/
-receipt `lines[]`). Phase 0 read procurement-service: **all reads + writes already exist → 015 is FRONTEND-ONLY,
-NO backend code AND NO new framework** (simplest yet, like 014). Receiving (`POST /purchase-orders/{id}/receipts`)
-posts the goods receipt to operations **in the backend** — the UI only triggers + displays; stock effects show in
-the Operations tab. Role-gated but `procurement.security.stub` default → demo session gets all roles. Builds on
-011 + 012 + 013 + 014 + 006 (procurement-service) + 003 (operations). Remaining: 016-workflow. See
-[[frontend-and-aws-pipeline-roadmap]] + [[spec-014-crm-ui-progress]].
+`specs/018-secure-service-contracts/plan.md` (**Correct & secure service-to-service integration** — fixes
+workflow-service's drifted outbound calls and encrypts internal traffic; unblocks 016 SC-007).
+Java 17 / Spring Boot 3.5.0. Two problems, both grounded in the code (Phase 0): (1) `workflow-service`'s
+`ports/http/Http*Adapter` calls drift from the receivers' **real** DTOs (built against in-memory fakes, never
+run against real services) — e.g. sales has **no `/{id}/items`** endpoint (lines are atomic at create,
+`customerRef`, item `itemId` is a **UUID**), responses return `id` but adapters read `salesOrderId`/`customerId`/
+`purchaseOrderId`, build needs a **derived `locationId`**, PO/supplier IDs are UUIDs, supplier needs a **derived
+`supplierCode`**, `setSuppliedItems` is `POST` per item not `PUT` list; (2) all internal calls are plaintext HTTP
+on the `kita` bridge net. Approach (research.md): correct each caller + derive values no human supplies (FR-002);
+**consumer-contract tests bind against receivers' real DTO records** so drift fails the build (no Spring Cloud
+Contract); **mTLS via Spring Boot 3.5 SSL bundles** with **`client-auth=want` + an app-layer `ServiceIdentityFilter`**
+(want, not need, so a no-cert caller is *recordable*) on **every** service, in-place rotation via `reload-on-update`
++ `management.health.ssl`, cert-bootstrap init so bring-up is encrypted with **no manual cert steps** (SC-008).
+**Clarified 2026-07-23 (max security):** encryption covers **all** HTTP hops (incl. gateway→backend) **AND
+Postgres/Redis**; refusals are **persisted** (`service_call_refusal` table per receiving service — one Flyway
+migration each; US1 stays migration-free); the e2e proof runs on the **Floci AWS-imitation** deployment
+(FR-004/SC-001). Transport-only, no behaviour change (FR-010). US1 correct calls → US2 verify → US3
+mTLS+datastore TLS+refusal table (broadest) → US4 rotation. 016 is already implemented (PR #24 open) and merges
+once this lands. See [[specs-017-018-queued]] + [[workflow-service-007-progress]] + [[spec-016-workflow-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -269,3 +277,11 @@ achieved. To revert an artifact to its original state, run
 [2026-07-20 18:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
 [2026-07-20 19:21] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
 [2026-07-20 19:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-23 00:35] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-23 00:53] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-23 00:53] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-23 19:47] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-23 20:05] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-23 20:12] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-23 20:37] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-27 21:17] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1

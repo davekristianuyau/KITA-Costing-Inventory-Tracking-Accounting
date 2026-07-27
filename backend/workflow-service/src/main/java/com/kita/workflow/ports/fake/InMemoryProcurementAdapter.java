@@ -52,6 +52,19 @@ public class InMemoryProcurementAdapter implements ProcurementPort {
 
   @Override
   public String createPurchaseOrder(String supplierId, List<PoLine> lines) {
+    // Same constraints procurement-service's CreatePurchaseOrderRequest enforces (FR-006): the fake
+    // must not accept a body the real receiver would reject, or green tests mean nothing.
+    if (lines == null || lines.isEmpty()) {
+      throw new ValidationException("a purchase order needs at least one line");
+    }
+    for (PoLine line : lines) {
+      if (line.itemId() == null || line.itemId().isBlank()) {
+        throw new ValidationException("purchase-order line needs an item");
+      }
+      if (line.quantity() == null || line.quantity().signum() <= 0) {
+        throw new ValidationException("purchase-order quantity must be positive: " + line.itemId());
+      }
+    }
     String id = UUID.randomUUID().toString();
     Po po = new Po();
     for (PoLine line : lines) {
@@ -109,6 +122,10 @@ public class InMemoryProcurementAdapter implements ProcurementPort {
 
   @Override
   public String createSupplier(SupplierInput input) {
+    // The real create requires a non-blank name (and a code the caller derives from it) — FR-006.
+    if (input == null || input.name() == null || input.name().isBlank()) {
+      throw new ValidationException("supplier name is required");
+    }
     String id = "sup-" + UUID.randomUUID();
     if (input.active()) {
       activeSuppliers.add(id);

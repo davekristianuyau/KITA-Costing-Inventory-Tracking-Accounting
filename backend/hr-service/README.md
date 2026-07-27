@@ -107,3 +107,22 @@ each covered by a MockMvc contract test.
 - `GET /api/hr/payroll/runs` and `/{id}` — payroll runs (period + state); a run's per-employee lines
   remain the existing `/runs/{id}/register`.
 - `GET /api/hr/leave/requests` (optional `employeeId`/`status`) and `/{id}` — leave requests.
+
+## Internal transport security (018)
+
+This service is called by `workflow-service` and the gateway over **mutual TLS** when the `mtls` profile
+is active (`docker-compose.mtls.yml` / Floci); it is absent by default so local runs are plaintext.
+
+- `server.ssl.client-auth` is **`want`, not `need`** — deliberately. `need` drops an unverifiable caller
+  during the TLS handshake, before any application code runs, so the refusal could never be *recorded*.
+- `ServiceIdentityFilter` (in `security/`) verifies the peer certificate CN against
+  `kita.mtls.allowed-cns`, returns **401**, and persists a row in **`service_call_refusal`**
+  (`NO_CERT | UNTRUSTED_CA | EXPIRED | NOT_ALLOWLISTED`) so an intrusion attempt is auditable afterwards.
+- `/actuator/**` is exempt, otherwise container health checks (which present no client certificate) fail.
+- Certificates are generated at run time by `docker/certs/bootstrap-certs.sh`; nothing secret is
+  committed. Rotation is in-place (`reload-on-update`), with remaining validity on `/actuator/health`.
+
+```sql
+SELECT occurred_at, peer_address, attempted_cn, reason, request_path FROM service_call_refusal
+ORDER BY occurred_at DESC;
+```
