@@ -63,12 +63,12 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 - [X] T015 [US1] Rewrite `HttpOperationsAdapter.build` to send `finishedItemId` (ref→UUID) + **derived `locationId`** + `quantity`, read `id` (T014 → green); adjust `OperationsPort.build`/`BuildResult` + fake as needed.
 
 ### Procurement — PO, receiving, suppliers
-- [ ] T016 [P] [US1] Contract test `contract/ProcurementPoContractTest.java` — bind create-PO against `CreatePurchaseOrderRequest` (`supplierId(UUID)`, `lines[itemRef,qtyOrdered,agreedPrice]`, `poNo` omitted); response maps from `id`. Red.
-- [ ] T017 [US1] Rewrite `HttpProcurementAdapter.createPurchaseOrder` + `ProcurementPort.PoLine` to `itemRef/qtyOrdered/agreedPrice`, `supplierId` UUID, read `id`; update `InMemoryProcurementAdapter` + procurement workflow.
-- [ ] T018 [P] [US1] Contract test `contract/ProcurementReceiptContractTest.java` — bind receipt body against `RecordReceiptRequest` (`lines[itemRef,qtyReceived]`); response maps real receipt id/PO-status keys. Red.
-- [ ] T019 [US1] Rewrite `HttpProcurementAdapter.receive` + `ProcurementPort.ReceiptLine` to `itemRef/qtyReceived`, read the real response keys (T018 → green).
-- [ ] T020 [P] [US1] Contract test `contract/ProcurementSupplierContractTest.java` — bind create-supplier against `CreateSupplierRequest` (derived `supplierCode`, `name`, …), update against `UpdateSupplierRequest`, and supplied-items against `SupplierItemRequest` (POST per item). Red.
-- [ ] T021 [US1] Rewrite `HttpProcurementAdapter.createSupplier`/`updateSupplier`/`setSuppliedItems`: derive `supplierCode`, read `id`, and change supplied-items to **POST per item** (not PUT list); update `ProcurementPort.SupplierInput`/`SuppliedItem` + fake.
+- [X] T016 [P] [US1] Contract test `contract/ProcurementPoContractTest.java` — bind create-PO against `CreatePurchaseOrderRequest` (`supplierId(UUID)`, `lines[itemRef,qtyOrdered,agreedPrice]`, `poNo` omitted); response maps from `id`. Red.
+- [X] T017 [US1] Rewrite `HttpProcurementAdapter.createPurchaseOrder` + `ProcurementPort.PoLine` to `itemRef/qtyOrdered/agreedPrice`, `supplierId` UUID, read `id`; update `InMemoryProcurementAdapter` + procurement workflow.
+- [X] T018 [P] [US1] Contract test `contract/ProcurementReceiptContractTest.java` — bind receipt body against `RecordReceiptRequest` (`lines[itemRef,qtyReceived]`); response maps real receipt id/PO-status keys. Red.
+- [X] T019 [US1] Rewrite `HttpProcurementAdapter.receive` + `ProcurementPort.ReceiptLine` to `itemRef/qtyReceived`, read the real response keys (T018 → green).
+- [X] T020 [P] [US1] Contract test `contract/ProcurementSupplierContractTest.java` — bind create-supplier against `CreateSupplierRequest` (derived `supplierCode`, `name`, …), update against `UpdateSupplierRequest`, and supplied-items against `SupplierItemRequest` (POST per item). Red.
+- [X] T021 [US1] Rewrite `HttpProcurementAdapter.createSupplier`/`updateSupplier`/`setSuppliedItems`: derive `supplierCode`, read `id`, and change supplied-items to **POST per item** (not PUT list); update `ProcurementPort.SupplierInput`/`SuppliedItem` + fake.
 
 ### CRM + HR
 - [ ] T022 [P] [US1] Contract test `contract/CrmCustomerContractTest.java` — bind create/update customer against `crm` `CreateCustomerRequest`/`UpdateCustomerRequest`; response maps from `id`. Red.

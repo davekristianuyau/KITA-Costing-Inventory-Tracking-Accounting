@@ -65,7 +65,7 @@ class HttpProcurementAdapterTest {
   @Test
   void recoversAfterTransientAndForwardsHeaders() throws Exception {
     server.enqueue(json(503, ""));
-    server.enqueue(json(201, "{\"receiptId\":\"r1\",\"poStatus\":\"PARTIALLY_RECEIVED\"}"));
+    server.enqueue(json(201, "{\"id\":\"r1\",\"orderStatus\":\"PARTIALLY_RECEIVED\"}"));
 
     ProcurementPort.ReceiptResult result = adapter.receive("po-1", LINES);
     assertThat(result.poStatus()).isEqualTo("PARTIALLY_RECEIVED");
@@ -79,7 +79,7 @@ class HttpProcurementAdapterTest {
 
   @Test
   void treats409AsAlreadyApplied() {
-    server.enqueue(json(409, "{\"receiptId\":\"r1\",\"poStatus\":\"FULLY_RECEIVED\"}"));
+    server.enqueue(json(409, "{\"id\":\"r1\",\"orderStatus\":\"FULLY_RECEIVED\"}"));
 
     ProcurementPort.ReceiptResult result = adapter.receive("po-1", LINES);
     assertThat(result.poStatus()).isEqualTo("FULLY_RECEIVED"); // replay, not an error
@@ -88,7 +88,7 @@ class HttpProcurementAdapterTest {
   @Test
   void keepsSameIdempotencyKeyAcrossRetries() throws Exception {
     server.enqueue(json(503, ""));
-    server.enqueue(json(201, "{\"receiptId\":\"r1\",\"poStatus\":\"PARTIALLY_RECEIVED\"}"));
+    server.enqueue(json(201, "{\"id\":\"r1\",\"orderStatus\":\"PARTIALLY_RECEIVED\"}"));
 
     adapter.receive("po-1", LINES);
     String firstKey = server.takeRequest().getHeader("X-Idempotency-Key");
