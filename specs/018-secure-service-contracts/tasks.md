@@ -71,9 +71,9 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 - [X] T021 [US1] Rewrite `HttpProcurementAdapter.createSupplier`/`updateSupplier`/`setSuppliedItems`: derive `supplierCode`, read `id`, and change supplied-items to **POST per item** (not PUT list); update `ProcurementPort.SupplierInput`/`SuppliedItem` + fake.
 
 ### CRM + HR
-- [ ] T022 [P] [US1] Contract test `contract/CrmCustomerContractTest.java` — bind create/update customer against `crm` `CreateCustomerRequest`/`UpdateCustomerRequest`; response maps from `id`. Red.
-- [ ] T023 [US1] Rewrite `HttpCrmAdapter.createCustomer`/`updateCustomer` to the real request shape + read `id`; update `CrmPort.CustomerInput` + `InMemoryCrmAdapter`.
-- [ ] T024 [P] [US1] Contract test `contract/HrEmployeeContractTest.java` — bind the `HrPort.getEmployee` response mapping against `hr` `EmployeeController`'s real employee response (roles + active field names). Red → fix `HttpHrAdapter` mapping if it drifts.
+- [X] T022 [P] [US1] Contract test `contract/CrmCustomerContractTest.java` — binds create/update customer against `crm` `CreateCustomerRequest`/`UpdateCustomerRequest`; response maps from `id`.
+- [X] T023 [US1] Rewrite `HttpCrmAdapter.createCustomer`/`updateCustomer`: **derive `customerCode` + `type`** (receiver requires both, no staff member supplies them), update sends the `status` enum (not an `active` flag), read `id`.
+- [X] T024 [P] [US1] Contract test `contract/HrEmployeeContractTest.java` — drives the adapter against JSON serialised from hr's **real `EmployeeResponse`**. **Found the deepest drift**: HR has neither `active` nor `roles` (only a `status` enum, and *no back-office role data at all*), so the old `bodyTo(EmployeeView.class)` made every actor inactive+roleless ⇒ every governed action failed before reaching any owning service. Fixed: `active` ← `status==ACTIVE`; roles ← new configurable `workflow.hr.position-roles` map (`HrPositionRoles`), **fail-closed** when unmapped. ⚠️ See "Open decision" note at the end of this file.
 
 ### End-to-end proof
 - [ ] T025 [US1] Create `specs/018-secure-service-contracts/e2e/run-governed-actions.sh` — performs each governed action against the running stack and asserts the record is visible in the owning service (PO/lines/qty/price in procurement, received qty in operations stock, sales order + lines in operations); an invalid input returns the receiver's actual reason (FR-003).
@@ -195,6 +195,23 @@ Task: "HrEmployeeContractTest"         # T024
 3. US3 → all internal traffic encrypted + mutually authenticated + refusals persisted (broadest slice).
 4. US4 → certs rotate without downtime.
 5. Polish → logs scrubbed, docs, quickstart on Floci, memory captured.
+
+## ⚠️ Open decision — where do back-office roles come from? (found during T024)
+
+hr-service holds **no back-office role data**: `Employee` has no roles field, `EmployeeResponse` returns
+none, and hr's own `Role` enum (`HR_ADMIN`/`PAYROLL_OFFICER`/`MANAGER`/`EMPLOYEE_SELF`) governs HR's own
+API, not workflow roles (`SALES`, `CASHIER`, `PROCUREMENT_APPROVER`, …). But spec 007 locked "roles come
+from HR, never the header", and `ActorResolver` requires them. That contradiction is why every governed
+action failed at actor resolution against real HR — it was never exercised outside the in-memory fake.
+
+018 does **not** invent roles. It maps what HR actually has (`status` → active) and adds an explicit,
+**fail-closed** `workflow.hr.position-roles` map so a deployment states "a Sales Clerk may act as SALES".
+Unmapped ⇒ no roles ⇒ action refused (403), never silently granted.
+
+**Needs a decision before the Floci e2e (T025/T050) can pass end-to-end** — pick one:
+1. Populate `workflow.hr.position-roles` per deployment (works today; zero code change).
+2. Add role storage to hr-service (a real change to 004's data model — outside 018's "caller is corrected" scope).
+3. Source roles from **spec 017** (account→employee identity), which is queued and is arguably where this belongs.
 
 ## Notes
 - [P] = different files/modules, no incomplete-task dependency.

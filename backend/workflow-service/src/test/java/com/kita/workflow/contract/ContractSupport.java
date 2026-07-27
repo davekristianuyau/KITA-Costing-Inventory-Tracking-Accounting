@@ -63,6 +63,19 @@ public final class ContractSupport {
     return validate(bindJson(json, receiverDto), receiverDto);
   }
 
+  /**
+   * Serialise a <em>receiver</em> response record to the JSON it would actually put on the wire, for
+   * response-side contracts: the adapter is then driven against this body, so a field the receiver
+   * renames (or never had) surfaces as a failed mapping rather than a silent null.
+   */
+  public static String toJson(Object receiverResponse) {
+    try {
+      return MAPPER.writeValueAsString(receiverResponse);
+    } catch (Exception e) {
+      throw new AssertionError("cannot serialise receiver response: " + e.getMessage(), e);
+    }
+  }
+
   /** Bind, then assert the bound DTO satisfies the receiver's Bean-Validation constraints. */
   public static <T> T bindAndValidate(Object requestBody, Class<T> receiverDto) {
     return validate(bind(requestBody, receiverDto), receiverDto);

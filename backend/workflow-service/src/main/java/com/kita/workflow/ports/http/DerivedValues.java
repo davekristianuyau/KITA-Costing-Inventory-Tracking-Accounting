@@ -61,8 +61,20 @@ public final class DerivedValues {
    * create cannot make a second supplier (FR-002). Blank name is a business rejection.
    */
   public static String supplierCode(String name) {
+    return partyCode(name, "supplier", "SUP");
+  }
+
+  /**
+   * A stable customer code derived from the name, on the same deterministic rule as
+   * {@link #supplierCode} — crm-service requires {@code customerCode} but no staff member supplies it.
+   */
+  public static String customerCode(String name) {
+    return partyCode(name, "customer", "CUST");
+  }
+
+  private static String partyCode(String name, String party, String fallback) {
     if (name == null || name.isBlank()) {
-      throw new ValidationException("supplier name is required to derive a code");
+      throw new ValidationException(party + " name is required to derive a code");
     }
     String code =
         name.trim()
@@ -72,6 +84,6 @@ public final class DerivedValues {
     if (code.length() > 32) {
       code = code.substring(0, 32).replaceAll("-+$", "");
     }
-    return code.isEmpty() ? "SUP" : code;
+    return code.isEmpty() ? fallback : code;
   }
 }
