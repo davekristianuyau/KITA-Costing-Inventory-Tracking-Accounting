@@ -48,9 +48,27 @@ public final class ContractSupport {
     }
   }
 
+  /** Bind the exact JSON an adapter put on the wire to the receiver's real DTO. Throws on mismatch. */
+  public static <T> T bindJson(String json, Class<T> receiverDto) {
+    try {
+      return MAPPER.readValue(json, receiverDto);
+    } catch (Exception e) {
+      throw new AssertionError(
+          "wire body does not bind to " + receiverDto.getSimpleName() + ": " + e.getMessage(), e);
+    }
+  }
+
+  /** Bind the wire JSON to the receiver DTO and assert it satisfies the receiver's constraints. */
+  public static <T> T bindJsonAndValidate(String json, Class<T> receiverDto) {
+    return validate(bindJson(json, receiverDto), receiverDto);
+  }
+
   /** Bind, then assert the bound DTO satisfies the receiver's Bean-Validation constraints. */
   public static <T> T bindAndValidate(Object requestBody, Class<T> receiverDto) {
-    T dto = bind(requestBody, receiverDto);
+    return validate(bind(requestBody, receiverDto), receiverDto);
+  }
+
+  private static <T> T validate(T dto, Class<T> receiverDto) {
     Set<ConstraintViolation<T>> violations = VALIDATOR.validate(dto);
     assertThat(violations)
         .withFailMessage(

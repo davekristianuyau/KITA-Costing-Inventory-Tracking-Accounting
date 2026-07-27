@@ -40,15 +40,12 @@ public class InMemoryOperationsAdapter implements OperationsPort {
       new ConcurrentHashMap<>();
 
   @Override
-  public String createSalesOrder(String customerId) {
+  public String createSalesOrder(String customerRef, List<SalesLine> lines) {
     String id = UUID.randomUUID().toString();
-    orders.put(id, new Order());
+    Order order = new Order();
+    order.lines.addAll(lines);
+    orders.put(id, order);
     return id;
-  }
-
-  @Override
-  public void addSalesOrderLine(String salesOrderId, SalesLine line) {
-    order(salesOrderId).lines.add(line);
   }
 
   @Override

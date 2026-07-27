@@ -49,18 +49,18 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 **Independent Test**: perform each governed action end-to-end on the Floci AWS-imitation deployment; the record appears (or changes) in the owning service with the same figures.
 
 ### Derived values (shared across US1 calls)
-- [ ] T008 [US1] Create `backend/workflow-service/src/main/java/com/kita/workflow/ports/http/DerivedValues.java`: item ref→UUID (via operations `GET /items`), default/primary `locationId` (via operations `GET /locations`), and deterministic `supplierCode` (slug of name) — all deterministic so retries stay idempotent (FR-002).
-- [ ] T009 [P] [US1] Unit test `DerivedValuesTest` asserting determinism (same input → same `supplierCode`) and the lookup/mapping behaviour with a MockWebServer stub.
+- [X] T008 [US1] Create `backend/workflow-service/src/main/java/com/kita/workflow/ports/http/DerivedValues.java`: item ref→UUID (via operations `GET /items`), default/primary `locationId` (via operations `GET /locations`), and deterministic `supplierCode` (slug of name) — all deterministic so retries stay idempotent (FR-002).
+- [X] T009 [P] [US1] Unit test `DerivedValuesTest` asserting determinism (same input → same `supplierCode`) and the lookup/mapping behaviour with a MockWebServer stub.
 
 ### Operations — sales order (structural drift: no `/items` endpoint)
-- [ ] T010 [P] [US1] Contract test `contract/OperationsSalesContractTest.java` — build the create-sales-order body and bind+validate it against `operations` `SalesDtos.SalesOrderCreateRequest` (`customerRef`, `lines[itemId(UUID),quantity,uom,unitPrice]`); assert the response maps from `id`. Write **red**.
-- [ ] T011 [US1] Change `OperationsPort` in `backend/workflow-service/.../ports/OperationsPort.java`: `createSalesOrder(customerRef, List<SalesLine>)` atomic-with-lines, **remove** `addSalesOrderLine`, `SalesLine.itemId` resolved to UUID; update javadoc.
-- [ ] T012 [US1] Rewrite `HttpOperationsAdapter.createSalesOrder` (`.../ports/http/HttpOperationsAdapter.java`) to POST `{customerRef, lines[]}` once, resolve item refs→UUID via `DerivedValues`, read `id` from the response (T010 → green).
-- [ ] T013 [US1] Update `InMemoryOperationsAdapter` (`.../ports/fake/`) and `SalesOrderWorkflow` (+ any caller of the removed `addSalesOrderLine`) to the new create-with-lines port; fix compilation + existing sales unit tests.
+- [X] T010 [P] [US1] Contract test `contract/OperationsSalesContractTest.java` — build the create-sales-order body and bind+validate it against `operations` `SalesDtos.SalesOrderCreateRequest` (`customerRef`, `lines[itemId(UUID),quantity,uom,unitPrice]`); assert the response maps from `id`. Write **red**.
+- [X] T011 [US1] Change `OperationsPort` in `backend/workflow-service/.../ports/OperationsPort.java`: `createSalesOrder(customerRef, List<SalesLine>)` atomic-with-lines, **remove** `addSalesOrderLine`, `SalesLine.itemId` resolved to UUID; update javadoc.
+- [X] T012 [US1] Rewrite `HttpOperationsAdapter.createSalesOrder` (`.../ports/http/HttpOperationsAdapter.java`) to POST `{customerRef, lines[]}` once, resolve item refs→UUID via `DerivedValues`, read `id` from the response (T010 → green).
+- [X] T013 [US1] Update `InMemoryOperationsAdapter` (`.../ports/fake/`) and `SalesOrderWorkflow` (+ any caller of the removed `addSalesOrderLine`) to the new create-with-lines port; fix compilation + existing sales unit tests.
 
 ### Operations — build (derived locationId)
-- [ ] T014 [P] [US1] Contract test `contract/OperationsBuildContractTest.java` — bind the build body against `operations` `BuildDtos.BuildRequest` (`finishedItemId(UUID), locationId(UUID), quantity`); response maps from `id`. Red.
-- [ ] T015 [US1] Rewrite `HttpOperationsAdapter.build` to send `finishedItemId` (ref→UUID) + **derived `locationId`** + `quantity`, read `id` (T014 → green); adjust `OperationsPort.build`/`BuildResult` + fake as needed.
+- [X] T014 [P] [US1] Contract test `contract/OperationsBuildContractTest.java` — bind the build body against `operations` `BuildDtos.BuildRequest` (`finishedItemId(UUID), locationId(UUID), quantity`); response maps from `id`. Red.
+- [X] T015 [US1] Rewrite `HttpOperationsAdapter.build` to send `finishedItemId` (ref→UUID) + **derived `locationId`** + `quantity`, read `id` (T014 → green); adjust `OperationsPort.build`/`BuildResult` + fake as needed.
 
 ### Procurement — PO, receiving, suppliers
 - [ ] T016 [P] [US1] Contract test `contract/ProcurementPoContractTest.java` — bind create-PO against `CreatePurchaseOrderRequest` (`supplierId(UUID)`, `lines[itemRef,qtyOrdered,agreedPrice]`, `poNo` omitted); response maps from `id`. Red.
