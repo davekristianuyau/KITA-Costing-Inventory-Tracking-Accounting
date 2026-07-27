@@ -147,7 +147,7 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 - [X] T048 [P] Update `backend/workflow-service/README.md` (corrected contracts + derived values) and each receiving service README (mTLS + refusal table note).
 - [X] T049 Run `./gradlew spotlessApply` then `:workflow-service:build` + affected service builds green (Constitution VII); confirm CI is green against the known-red baseline ([[kita-ci-known-red-jobs]]).
 - [ ] T050 ⏸ **BLOCKED locally (needs Docker/Floci)** — run quickstart.md end-to-end on Floci (SC-001…SC-008). Also needs `workflow.hr.position-roles` configured (see Open decision).
-- [ ] T051 [P] Capture the implementation context to memory via the `kita-context-capture` skill (contract-drift catalogue, `client-auth=want` decision, per-service refusal pattern) and update `[[spec-016-workflow-ui-progress]]` (SC-007 now unblockable).
+- [X] T051 [P] Capture the implementation context to memory via the `kita-context-capture` skill (contract-drift catalogue, `client-auth=want` decision, per-service refusal pattern) and update `[[spec-016-workflow-ui-progress]]` (SC-007 now unblockable).
 
 ---
 
