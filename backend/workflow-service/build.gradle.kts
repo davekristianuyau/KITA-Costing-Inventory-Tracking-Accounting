@@ -3,6 +3,23 @@ plugins {
     id("io.spring.dependency-management")
 }
 
+// 018 US2 — the consumer-contract tests bind against the receivers' REAL DTO records, which means the
+// receiver projects must be on a test classpath. They are kept in their OWN source set on purpose:
+// putting them on the main `test` classpath drags in each receiver's whole jar, including its
+// db/migration/*.sql (Flyway then sees several "version 1" migrations and every @SpringBootTest fails)
+// and its application.yml. `contractTest` boots no Spring context, so that pollution is harmless there.
+sourceSets {
+    create("contractTest") {
+        compileClasspath += sourceSets.main.get().output
+        runtimeClasspath += sourceSets.main.get().output
+    }
+}
+
+val contractTestImplementation: Configuration by configurations.getting {
+    extendsFrom(configurations.implementation.get())
+}
+configurations["contractTestRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -19,13 +36,27 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 
-    // 018 US2 — consumer-contract tests bind against the receivers' REAL request/response DTO records,
-    // so a field renamed on either side fails the build (SC-003). Test scope only; no runtime coupling.
-    testImplementation(project(":operations-service"))
-    testImplementation(project(":procurement-service"))
-    testImplementation(project(":crm-service"))
-    testImplementation(project(":hr-service"))
+    // Receiver DTOs — contract source set only, so a field renamed on either side fails the build
+    // (SC-003) without their migrations/config leaking into the Spring-context tests.
+    contractTestImplementation("org.springframework.boot:spring-boot-starter-test")
+    contractTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    contractTestImplementation(project(":operations-service"))
+    contractTestImplementation(project(":procurement-service"))
+    contractTestImplementation(project(":crm-service"))
+    contractTestImplementation(project(":hr-service"))
 }
+
+val contractTest by tasks.registering(Test::class) {
+    description = "Consumer-contract tests bound to the receivers' real DTOs (018 US2)."
+    group = "verification"
+    testClassesDirs = sourceSets["contractTest"].output.classesDirs
+    classpath = sourceSets["contractTest"].runtimeClasspath
+    useJUnitPlatform()
+    shouldRunAfter(tasks.test)
+}
+
+// Drift must gate the build, not just a manual run.
+tasks.check { dependsOn(contractTest) }
 
 tasks.test {
     environment("TESTCONTAINERS_RYUK_DISABLED", "true")
