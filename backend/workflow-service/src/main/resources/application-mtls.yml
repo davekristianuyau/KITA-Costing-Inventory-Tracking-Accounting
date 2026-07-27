@@ -1,0 +1,46 @@
+# 018 US3 — mutual TLS for internal traffic. Activated with SPRING_PROFILES_ACTIVE=mtls (the composed
+# and Floci stacks); absent by default so local runs and unit tests are untouched.
+#
+# client-auth is `want`, NOT `need`, deliberately: `need` rejects an unverifiable caller during the TLS
+# handshake, before any application code runs, so the refusal could never be RECORDED. With `want` the
+# request reaches ServiceIdentityFilter, which verifies the peer CN, persists a service_call_refusal
+# row and returns 401. Same outcome for a genuine peer; auditable for everyone else (FR-008).
+server:
+  ssl:
+    enabled: true
+    bundle: service
+    client-auth: want
+
+spring:
+  ssl:
+    bundle:
+      jks:
+        service:
+          # In-place rotation: replacing the mounted files reloads the SSL context, no restart (FR-009).
+          reload-on-update: true
+          key:
+            alias: workflow-service
+          keystore:
+            location: ${SSL_KEYSTORE:file:/certs/workflow-service.p12}
+            password: ${SSL_KEYSTORE_PASSWORD:changeit}
+            type: PKCS12
+          truststore:
+            location: ${SSL_TRUSTSTORE:file:/certs/truststore.p12}
+            password: ${SSL_TRUSTSTORE_PASSWORD:changeit}
+            type: PKCS12
+
+kita:
+  mtls:
+    enabled: true
+    # Only these service identities may call this service; anything else is refused + recorded.
+    allowed-cns: ${MTLS_ALLOWED_CNS:workflow-service,gateway}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  # Remaining certificate validity is discoverable before it lapses (FR-009, US4).
+  health:
+    ssl:
+      enabled: true

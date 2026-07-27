@@ -51,4 +51,16 @@ for ds in "${DATASTORES[@]}"; do issue_cert "$ds"; done
 keytool -importcert -noprompt -alias kita-dev-ca -file "$OUT/ca.crt" \
   -keystore "$OUT/truststore.p12" -storetype PKCS12 -storepass "$PASS" >/dev/null 2>&1 || true
 
+# Postgres and Redis refuse to start if their private key is group/world-readable, and Postgres
+# additionally requires the key to be owned by the account it runs as (uid 70 on the alpine images,
+# 999 on the debian ones — override with POSTGRES_UID if you switch base image).
+PG_UID="${POSTGRES_UID:-70}"
+REDIS_UID="${REDIS_UID:-999}"
+chmod 0600 "$OUT/postgres.key" "$OUT/redis.key"
+chown "$PG_UID:$PG_UID" "$OUT/postgres.key" "$OUT/postgres.crt" 2>/dev/null || \
+  echo "[bootstrap-certs] warn: could not chown postgres key (need root in the init container)"
+chown "$REDIS_UID:$REDIS_UID" "$OUT/redis.key" "$OUT/redis.crt" 2>/dev/null || true
+# The CA must stay readable by every service that validates a peer.
+chmod 0644 "$OUT/ca.crt"
+
 echo "[bootstrap-certs] done — bundles + truststore in $OUT (gitignored)."

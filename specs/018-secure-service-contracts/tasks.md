@@ -113,11 +113,11 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 - [X] T036 [P] [US3] Unit test `ServiceIdentityFilterTest` (in one service, shared pattern): refuses NO_CERT / UNTRUSTED_CA / EXPIRED / NOT_ALLOWLISTED, persists the row with the right reason, and lets an allowlisted peer through.
 
 ### TLS wiring
-- [ ] T037 [US3] Add `server.ssl.bundle` + `server.ssl.client-auth=want` + `spring.ssl.bundle.pem/jks.<svc>` (mounted cert paths) to every service `application.yml` (`operations`, `hr`, `crm`, `procurement`, `workflow`) and the gateway.
-- [ ] T038 [US3] Build the `RestClient.Builder` in `workflow-service` (and the gateway's outbound client) from the SSL bundle so calls present the service identity + trust the CA; point base-urls at `https://`.
-- [ ] T039 [P] [US3] Postgres TLS: enable server TLS on the Postgres container (dev-CA cert) and set every service's JDBC URL to `sslmode=require` (local) / `verify-full` w/ CA (production-parity) — `docker-compose.yml` + `sim/aws-imitation/` + each `application.yml`.
-- [ ] T040 [P] [US3] Redis TLS: enable Redis TLS (`--tls-port` + server cert) and Lettuce SSL in `operations-service` (the only Redis client).
-- [ ] T041 [US3] Compose/Floci: add the `bootstrap-certs` init step (T003) as a dependency of all services, mount the bundle volume, and confirm `docker compose up` / the Floci deploy comes up encrypted with **no manual cert steps** (SC-008, FR-012).
+- [X] T037 [US3] Add `server.ssl.bundle` + `server.ssl.client-auth=want` + `spring.ssl.bundle.pem/jks.<svc>` (mounted cert paths) to every service `application.yml` (`operations`, `hr`, `crm`, `procurement`, `workflow`) and the gateway.
+- [X] T038 [US3] Build the `RestClient.Builder` in `workflow-service` (and the gateway's outbound client) from the SSL bundle so calls present the service identity + trust the CA; point base-urls at `https://`.
+- [X] T039 [P] [US3] Postgres TLS: enable server TLS on the Postgres container (dev-CA cert) and set every service's JDBC URL to `sslmode=require` (local) / `verify-full` w/ CA (production-parity) — `docker-compose.yml` + `sim/aws-imitation/` + each `application.yml`.
+- [X] T040 [P] [US3] Redis TLS: enable Redis TLS (`--tls-port` + server cert) and Lettuce SSL in `operations-service` (the only Redis client).
+- [X] T041 [US3] Compose/Floci: add the `bootstrap-certs` init step (T003) as a dependency of all services, mount the bundle volume, and confirm `docker compose up` / the Floci deploy comes up encrypted with **no manual cert steps** (SC-008, FR-012).
 
 ### Verification
 - [ ] T042 [P] [US3] Integration test (CI): a caller with no/untrusted cert is refused + recorded; a genuine mTLS caller succeeds — asserts SC-005 and no-readable-data intent (SC-004).
@@ -133,8 +133,8 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 
 **Independent Test**: rotate a service's certs under a steady call loop → 0 failed calls; inspect remaining validity before it lapses.
 
-- [ ] T044 [US4] Set `reload-on-update: true` on every `spring.ssl.bundle.*` so replacing the mounted cert files reloads the SSL context in place (no restart).
-- [ ] T045 [P] [US4] Enable the `management.health.ssl` certificate-expiry health indicator + an info/actuator contributor exposing each bundle's `notAfter`; expose via `management.endpoints` in each `application.yml`.
+- [X] T044 [US4] Set `reload-on-update: true` on every `spring.ssl.bundle.*` so replacing the mounted cert files reloads the SSL context in place (no restart).
+- [X] T045 [P] [US4] Enable the `management.health.ssl` certificate-expiry health indicator + an info/actuator contributor exposing each bundle's `notAfter`; expose via `management.endpoints` in each `application.yml`.
 - [ ] T046 [US4] Rotation integration test (CI): under a steady call loop, swap a service's mounted certs for freshly issued ones and assert **0** failed calls across the swap (SC-006).
 
 **Checkpoint**: certs rotate live; validity discoverable before expiry.

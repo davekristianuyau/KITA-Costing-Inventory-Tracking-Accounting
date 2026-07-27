@@ -1,0 +1,42 @@
+# 018 US3 — the gateway's OUTBOUND leg to the backend services runs over mutual TLS.
+# Activated with SPRING_PROFILES_ACTIVE=mtls (the composed and Floci stacks).
+#
+# Deliberately outbound-only. The gateway is the public entry point: browsers talk to it, and how it
+# terminates browser traffic is explicitly out of scope for this feature. So there is NO `server.ssl`
+# and NO `client-auth` here — a browser has no client certificate. The gateway acts purely as a
+# verified *client* to the backends, which is the hop that carries business data (FR-007).
+spring:
+  ssl:
+    bundle:
+      jks:
+        service:
+          # In-place rotation: replacing the mounted files reloads the SSL context, no restart (FR-009).
+          reload-on-update: true
+          key:
+            alias: gateway
+          keystore:
+            location: ${SSL_KEYSTORE:file:/certs/gateway.p12}
+            password: ${SSL_KEYSTORE_PASSWORD:changeit}
+            type: PKCS12
+          truststore:
+            location: ${SSL_TRUSTSTORE:file:/certs/truststore.p12}
+            password: ${SSL_TRUSTSTORE_PASSWORD:changeit}
+            type: PKCS12
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            ssl:
+              # Presents the gateway's identity and trusts the dev CA. (The pre-4.2
+              # `spring.cloud.gateway.httpclient.ssl` namespace is deprecated in favour of this one.)
+              ssl-bundle: service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    ssl:
+      enabled: true
