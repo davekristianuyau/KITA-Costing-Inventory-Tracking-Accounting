@@ -47,9 +47,10 @@ issue_cert() {
 for svc in "${SERVICES[@]}"; do issue_cert "$svc"; done
 for ds in "${DATASTORES[@]}"; do issue_cert "$ds"; done
 
-# Shared PKCS12 truststore holding the CA (services trust peers signed by it).
-keytool -importcert -noprompt -alias kita-dev-ca -file "$OUT/ca.crt" \
-  -keystore "$OUT/truststore.p12" -storetype PKCS12 -storepass "$PASS" >/dev/null 2>&1 || true
+# Shared PKCS12 truststore holding just the CA (services trust peers signed by it). Built with openssl
+# rather than keytool so this script needs no JRE in the init container.
+openssl pkcs12 -export -nokeys -in "$OUT/ca.crt" -caname kita-dev-ca \
+  -passout "pass:$PASS" -out "$OUT/truststore.p12"
 
 # Postgres and Redis refuse to start if their private key is group/world-readable, and Postgres
 # additionally requires the key to be owned by the account it runs as (uid 70 on the alpine images,

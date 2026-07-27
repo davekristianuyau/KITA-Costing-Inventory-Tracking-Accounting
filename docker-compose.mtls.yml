@@ -13,11 +13,12 @@
 services:
   # --- cert bootstrap (runs to completion, then everything else starts) --------------------------
   certs:
-    image: alpine/openssl:latest
+    image: alpine:3.20
+    # The script needs real bash (arrays + process substitution); alpine's default sh is busybox ash,
+    # which rejects `set -o pipefail`. No JRE needed — the truststore is built with openssl, not keytool.
     entrypoint: ["/bin/sh", "-c"]
-    # openssl + keytool: the alpine/openssl image has openssl; keytool comes from the JRE package.
     command: >
-      "apk add --no-cache openjdk17-jre-headless bash >/dev/null 2>&1 &&
+      "apk add --no-cache bash openssl &&
        bash /bootstrap/bootstrap-certs.sh /certs"
     environment:
       CERT_KEYSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
@@ -84,10 +85,9 @@ services:
         condition: service_completed_successfully
     environment:
       SPRING_PROFILES_ACTIVE: mtls
-      SSL_KEYSTORE: file:/certs/operations-service.p12
-      SSL_TRUSTSTORE: file:/certs/truststore.p12
-      SSL_KEYSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
-      SSL_TRUSTSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
+      SSL_CERT: /certs/operations-service.crt
+      SSL_KEY: /certs/operations-service.key
+      SSL_CA: /certs/ca.crt
       MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-workflow-service,gateway}
       DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=operations,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
     volumes:
@@ -104,10 +104,9 @@ services:
     <<: *mtls-service
     environment:
       SPRING_PROFILES_ACTIVE: mtls
-      SSL_KEYSTORE: file:/certs/hr-service.p12
-      SSL_TRUSTSTORE: file:/certs/truststore.p12
-      SSL_KEYSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
-      SSL_TRUSTSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
+      SSL_CERT: /certs/hr-service.crt
+      SSL_KEY: /certs/hr-service.key
+      SSL_CA: /certs/ca.crt
       MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-workflow-service,gateway}
       DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=hr,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
     healthcheck:
@@ -121,10 +120,9 @@ services:
     <<: *mtls-service
     environment:
       SPRING_PROFILES_ACTIVE: mtls
-      SSL_KEYSTORE: file:/certs/crm-service.p12
-      SSL_TRUSTSTORE: file:/certs/truststore.p12
-      SSL_KEYSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
-      SSL_TRUSTSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
+      SSL_CERT: /certs/crm-service.crt
+      SSL_KEY: /certs/crm-service.key
+      SSL_CA: /certs/ca.crt
       MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-workflow-service,gateway}
       DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=crm,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
     healthcheck:
@@ -138,10 +136,9 @@ services:
     <<: *mtls-service
     environment:
       SPRING_PROFILES_ACTIVE: mtls
-      SSL_KEYSTORE: file:/certs/procurement-service.p12
-      SSL_TRUSTSTORE: file:/certs/truststore.p12
-      SSL_KEYSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
-      SSL_TRUSTSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
+      SSL_CERT: /certs/procurement-service.crt
+      SSL_KEY: /certs/procurement-service.key
+      SSL_CA: /certs/ca.crt
       MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-workflow-service,gateway}
       DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=procurement,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
     healthcheck:
@@ -155,10 +152,9 @@ services:
     <<: *mtls-service
     environment:
       SPRING_PROFILES_ACTIVE: mtls
-      SSL_KEYSTORE: file:/certs/workflow-service.p12
-      SSL_TRUSTSTORE: file:/certs/truststore.p12
-      SSL_KEYSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
-      SSL_TRUSTSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
+      SSL_CERT: /certs/workflow-service.crt
+      SSL_KEY: /certs/workflow-service.key
+      SSL_CA: /certs/ca.crt
       MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-gateway}   # only the gateway calls the orchestrator
       DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=workflow,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
       # the orchestrated calls now go over https to the real services
@@ -185,10 +181,9 @@ services:
         condition: service_completed_successfully
     environment:
       SPRING_PROFILES_ACTIVE: mtls
-      SSL_KEYSTORE: file:/certs/gateway.p12
-      SSL_TRUSTSTORE: file:/certs/truststore.p12
-      SSL_KEYSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
-      SSL_TRUSTSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
+      SSL_CERT: /certs/gateway.crt
+      SSL_KEY: /certs/gateway.key
+      SSL_CA: /certs/ca.crt
       OPERATIONS_SERVICE_URL: https://operations-service:8083
       HR_SERVICE_URL: https://hr-service:8085
       CRM_SERVICE_URL: https://crm-service:8086

@@ -1,4 +1,4 @@
-# 018 US3 — mutual TLS for internal traffic. Activated with SPRING_PROFILES_ACTIVE=mtls (the composed
+# 018 US3 -- mutual TLS for internal traffic. Activated with SPRING_PROFILES_ACTIVE=mtls (the composed
 # and Floci stacks); absent by default so local runs and unit tests are untouched.
 #
 # client-auth is `want`, NOT `need`, deliberately: `need` rejects an unverifiable caller during the TLS
@@ -14,20 +14,18 @@ server:
 spring:
   ssl:
     bundle:
-      jks:
+      # PEM, not JKS: the bootstrap emits plain .crt/.key files, and an openssl-built PKCS12 truststore
+      # is not readable by Java as a trusted-certificate entry ("trustAnchors parameter must be
+      # non-empty"). PEM bundles take the files directly -- no keystore, no password.
+      pem:
         service:
           # In-place rotation: replacing the mounted files reloads the SSL context, no restart (FR-009).
           reload-on-update: true
-          key:
-            alias: crm-service
           keystore:
-            location: ${SSL_KEYSTORE:file:/certs/crm-service.p12}
-            password: ${SSL_KEYSTORE_PASSWORD:changeit}
-            type: PKCS12
+            certificate: ${SSL_CERT:/certs/crm-service.crt}
+            private-key: ${SSL_KEY:/certs/crm-service.key}
           truststore:
-            location: ${SSL_TRUSTSTORE:file:/certs/truststore.p12}
-            password: ${SSL_TRUSTSTORE_PASSWORD:changeit}
-            type: PKCS12
+            certificate: ${SSL_CA:/certs/ca.crt}
 
 kita:
   mtls:
