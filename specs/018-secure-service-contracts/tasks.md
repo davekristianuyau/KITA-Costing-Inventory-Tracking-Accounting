@@ -88,11 +88,11 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 
 **Independent Test**: rename a field on either side → the matching automated check fails and names the mismatch; add an unverified call → the guard reports it.
 
-- [ ] T026 [US2] Generalise `ContractSupport` (T004) into the reusable bind-and-validate assertion used by all `contract/*ContractTest` classes (single ObjectMapper, receiver DTO binding, Bean-Validation) and de-duplicate the per-call tests onto it.
-- [ ] T027 [US2] Add `contract/PortCoverageGuardTest.java` — reflectively enumerate every method on `OperationsPort`/`ProcurementPort`/`CrmPort`/`HrPort` and assert each has a registered contract test; an added-but-unverified call **fails the build** (FR-005 scenario 3).
-- [ ] T028 [P] [US2] Add `contract/FakeContractParityTest.java` — assert each `InMemory*Adapter` accepts/produces the same shapes as the real contract (FR-006), so a fake cannot silently diverge.
-- [ ] T029 [US2] Wire `:workflow-service:test` (contract package incl. the coverage guard) into `.github/workflows/ci.yml` so drift/unverified-call failures gate merges (SC-003, Constitution VII).
-- [ ] T030 [P] [US2] Add a "drift bites" note to `backend/workflow-service/README.md` documenting how the contract tests catch a renamed/missing/re-typed field on either side.
+- [X] T026 [US2] Generalise `ContractSupport` (T004) into the reusable bind-and-validate assertion used by all `contract/*ContractTest` classes (single ObjectMapper, receiver DTO binding, Bean-Validation) and de-duplicate the per-call tests onto it.
+- [X] T027 [US2] Add `contract/PortCoverageGuardTest.java` — reflectively enumerate every method on `OperationsPort`/`ProcurementPort`/`CrmPort`/`HrPort` and assert each has a registered contract test; an added-but-unverified call **fails the build** (FR-005 scenario 3).
+- [X] T028 [P] [US2] Add `contract/FakeContractParityTest.java` — assert each `InMemory*Adapter` accepts/produces the same shapes as the real contract (FR-006), so a fake cannot silently diverge.
+- [X] T029 [US2] CI gate verified: `.github/workflows/ci.yml` already runs `:workflow-service:build` (→ `check` → `test`), so the contract package + coverage guard gate merges. No change needed (SC-003, Constitution VII).
+- [X] T030 [P] [US2] Add a "drift bites" note to `backend/workflow-service/README.md` documenting how the contract tests catch a renamed/missing/re-typed field on either side.
 
 **Checkpoint**: the verification gap that caused the drift is closed; SC-003 measurable.
 

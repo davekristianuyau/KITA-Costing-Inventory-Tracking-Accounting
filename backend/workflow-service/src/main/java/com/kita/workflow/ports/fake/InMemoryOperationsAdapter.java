@@ -41,6 +41,14 @@ public class InMemoryOperationsAdapter implements OperationsPort {
 
   @Override
   public String createSalesOrder(String customerRef, List<SalesLine> lines) {
+    // Same constraints operations-service's SalesOrderCreateRequest enforces (FR-006): the fake must
+    // not accept a body the real receiver would reject.
+    if (customerRef == null || customerRef.isBlank()) {
+      throw new ValidationException("a sales order needs a customer reference");
+    }
+    if (lines == null) {
+      throw new ValidationException("a sales order needs lines");
+    }
     String id = UUID.randomUUID().toString();
     Order order = new Order();
     order.lines.addAll(lines);
