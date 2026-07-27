@@ -18,6 +18,13 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+
+    // 018 US2 — consumer-contract tests bind against the receivers' REAL request/response DTO records,
+    // so a field renamed on either side fails the build (SC-003). Test scope only; no runtime coupling.
+    testImplementation(project(":operations-service"))
+    testImplementation(project(":procurement-service"))
+    testImplementation(project(":crm-service"))
+    testImplementation(project(":hr-service"))
 }
 
 tasks.test {

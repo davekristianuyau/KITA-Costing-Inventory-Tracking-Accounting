@@ -21,10 +21,10 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Add `testImplementation` project deps in `backend/workflow-service/build.gradle.kts` on the receiver DTO modules (`:operations-service`, `:procurement-service`, `:crm-service`, `:hr-service`) so contract tests can bind against the real request/response records.
-- [ ] T002 [P] Add `spring-boot-starter-security` to each receiving service's `build.gradle.kts` (`operations`, `hr`, `crm`, `procurement`, `workflow`) for the X.509 `ServiceIdentityFilter` (US3).
-- [ ] T003 [P] Create the dev-CA cert-bootstrap script `docker/certs/bootstrap-certs.sh` (generates CA + per-service PKCS12 bundles with SAN=service name + Postgres/Redis server certs into a shared volume) and add `docker/certs/*.p12`, `*.pem`, `*.key` to `.gitignore` (FR-011).
-- [ ] T004 [P] Create the contract-test source package `backend/workflow-service/src/test/java/com/kita/workflow/contract/` with a `ContractSupport` helper (serialises an adapter body via the app `ObjectMapper`, binds it to a receiver DTO record, runs a Jakarta `Validator`).
+- [X] T001 Add `testImplementation` project deps in `backend/workflow-service/build.gradle.kts` on the receiver DTO modules (`:operations-service`, `:procurement-service`, `:crm-service`, `:hr-service`) so contract tests can bind against the real request/response records.
+- [ ] T002 [P] [→US3] Add `spring-boot-starter-security` to each receiving service's `build.gradle.kts` (`operations`, `hr`, `crm`, `procurement`, `workflow`) for the X.509 `ServiceIdentityFilter`. **Deferred to US3**: the dep must land with its `permitAll`/filter config (T031–T037) or Spring Security's default auto-config locks down every endpoint (incl. health) and breaks the running services.
+- [X] T003 [P] Create the dev-CA cert-bootstrap script `docker/certs/bootstrap-certs.sh` (generates CA + per-service PKCS12 bundles with SAN=service name + Postgres/Redis server certs into a shared volume) and add `docker/certs/*.p12`, `*.pem`, `*.key` to `.gitignore` (FR-011).
+- [X] T004 [P] Create the contract-test source package `backend/workflow-service/src/test/java/com/kita/workflow/contract/` with a `ContractSupport` helper (serialises an adapter body via the app `ObjectMapper`, binds it to a receiver DTO record, runs a Jakarta `Validator`).
 
 **Checkpoint**: build tooling + cert scaffolding + contract-test harness skeleton ready.
 
@@ -34,9 +34,9 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 
 **⚠️ CRITICAL**: shared plumbing every story leans on. No user-story work starts until these are done.
 
-- [ ] T005 Rewrite the error path in `backend/workflow-service/src/main/java/com/kita/workflow/ports/http/RemoteCall.java` to **parse and surface the receiver's real error reason** (its `ProblemDetail`/message body) on a business 4xx, keep 5xx/TLS/timeout → `TransientDownstreamException` (503), and map a receiver 403 → not-permitted — three distinct outcomes (FR-003). Used by every corrected call (US1) and the TLS taxonomy (US3).
-- [ ] T006 [P] Add a unit test `backend/workflow-service/src/test/java/com/kita/workflow/ports/http/RemoteCallTest.java` proving the taxonomy: business 4xx surfaces the receiver reason; 5xx → transient; 403 → not-permitted (write red against current behaviour, then T005 makes it green).
-- [ ] T007 Add the composed/Floci run profile plumbing: set `workflow.{operations,hr,crm,procurement}.adapter=http` + `https://` base-urls in the deploy env (`docker-compose.yml` env + `sim/aws-imitation/`), so the real adapters are active for the end-to-end proof (kept off for pure unit tests).
+- [X] T005 Rewrite the error path in `backend/workflow-service/src/main/java/com/kita/workflow/ports/http/RemoteCall.java` to **parse and surface the receiver's real error reason** (its `ProblemDetail`/message body) on a business 4xx, keep 5xx/TLS/timeout → `TransientDownstreamException` (503), and map a receiver 403 → not-permitted (`ForbiddenException`) — three distinct outcomes (FR-003). Used by every corrected call (US1) and the TLS taxonomy (US3).
+- [X] T006 [P] Add a unit test `backend/workflow-service/src/test/java/com/kita/workflow/ports/http/RemoteCallTest.java` proving the taxonomy: business 4xx surfaces the receiver reason; 5xx → transient→unavailable; 403 → not-permitted. **5 tests green** (MockWebServer, no Docker).
+- [X] T007 Add the composed/Floci run profile plumbing: set `{OPERATIONS,HR,CRM,PROCUREMENT}_ADAPTER=http` in `docker-compose.yml` workflow-service env so the real adapters are active for the end-to-end proof (kept off for pure unit tests). base-urls flip to `https://` in US3 (T038) once mTLS is wired.
 
 **Checkpoint**: error taxonomy + real-adapter wiring in place — US1/US2 can proceed.
 

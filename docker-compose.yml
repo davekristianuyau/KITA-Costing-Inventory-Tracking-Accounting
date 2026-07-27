@@ -124,6 +124,12 @@ services:
       DATABASE_URL: ${WORKFLOW_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=workflow,public}
       DATABASE_USER: ${DATABASE_USER:-kita}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+      # 018 — orchestration hits the REAL services in the composed/Floci stack (fakes are dev-default).
+      # base-urls default to http://<svc>:<port>; US3 flips them to https:// once mTLS is wired.
+      OPERATIONS_ADAPTER: ${OPERATIONS_ADAPTER:-http}
+      HR_ADAPTER: ${HR_ADAPTER:-http}
+      CRM_ADAPTER: ${CRM_ADAPTER:-http}
+      PROCUREMENT_ADAPTER: ${PROCUREMENT_ADAPTER:-http}
     depends_on:
       postgres:
         condition: service_healthy
