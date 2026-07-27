@@ -76,7 +76,7 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 - [X] T024 [P] [US1] Contract test `contract/HrEmployeeContractTest.java` — drives the adapter against JSON serialised from hr's **real `EmployeeResponse`**. **Found the deepest drift**: HR has neither `active` nor `roles` (only a `status` enum, and *no back-office role data at all*), so the old `bodyTo(EmployeeView.class)` made every actor inactive+roleless ⇒ every governed action failed before reaching any owning service. Fixed: `active` ← `status==ACTIVE`; roles ← new configurable `workflow.hr.position-roles` map (`HrPositionRoles`), **fail-closed** when unmapped. ⚠️ See "Open decision" note at the end of this file.
 
 ### End-to-end proof
-- [ ] T025 [US1] Create `specs/018-secure-service-contracts/e2e/run-governed-actions.sh` — performs each governed action against the running stack and asserts the record is visible in the owning service (PO/lines/qty/price in procurement, received qty in operations stock, sales order + lines in operations); an invalid input returns the receiver's actual reason (FR-003).
+- [X] T025 [US1] Create `specs/018-secure-service-contracts/e2e/run-governed-actions.sh` — performs each governed action against the running stack and asserts the record is visible in the owning service (PO/lines/qty/price in procurement, received qty in operations stock, sales order + lines in operations); an invalid input returns the receiver's actual reason (FR-003).
 
 **Checkpoint**: every governed action works against the real receivers; per-call contract tests green (SC-001/SC-002; unblocks 016 SC-007 once transport lands).
 
