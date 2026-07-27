@@ -22,7 +22,7 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 ## Phase 1: Setup (Shared Infrastructure)
 
 - [X] T001 Add `testImplementation` project deps in `backend/workflow-service/build.gradle.kts` on the receiver DTO modules (`:operations-service`, `:procurement-service`, `:crm-service`, `:hr-service`) so contract tests can bind against the real request/response records.
-- [ ] T002 [P] [→US3] Add `spring-boot-starter-security` to each receiving service's `build.gradle.kts` (`operations`, `hr`, `crm`, `procurement`, `workflow`) for the X.509 `ServiceIdentityFilter`. **Deferred to US3**: the dep must land with its `permitAll`/filter config (T031–T037) or Spring Security's default auto-config locks down every endpoint (incl. health) and breaks the running services.
+- [X] T002 [P] [→US3] **Not needed after all** — the filter uses `OncePerRequestFilter` (spring-web) and reads the X.509 cert straight off the servlet request, so no `spring-boot-starter-security` dependency (and no auto-config lockdown risk) at all. Original text: Add `spring-boot-starter-security` to each receiving service's `build.gradle.kts` (`operations`, `hr`, `crm`, `procurement`, `workflow`) for the X.509 `ServiceIdentityFilter`. **Deferred to US3**: the dep must land with its `permitAll`/filter config (T031–T037) or Spring Security's default auto-config locks down every endpoint (incl. health) and breaks the running services.
 - [X] T003 [P] Create the dev-CA cert-bootstrap script `docker/certs/bootstrap-certs.sh` (generates CA + per-service PKCS12 bundles with SAN=service name + Postgres/Redis server certs into a shared volume) and add `docker/certs/*.p12`, `*.pem`, `*.key` to `.gitignore` (FR-011).
 - [X] T004 [P] Create the contract-test source package `backend/workflow-service/src/test/java/com/kita/workflow/contract/` with a `ContractSupport` helper (serialises an adapter body via the app `ObjectMapper`, binds it to a receiver DTO record, runs a Jakarta `Validator`).
 
@@ -105,12 +105,12 @@ persisted refusals — broadest) → US4 (P3, rotation). MVP = US1 (+US2 guard).
 **Independent Test**: observe internal traffic → no readable business data; present no/untrusted/expired/non-allowlisted identity → refused **and** a `service_call_refusal` row appears; genuine peer behaves unchanged.
 
 ### Shared identity + refusal (repeated per receiving service — same pattern, different module)
-- [ ] T031 [P] [US3] operations-service: add `ServiceIdentityFilter` (`backend/operations-service/.../security/`) verifying the peer X.509 cert vs the service allowlist, refusing (401/403) + persisting a refusal; `ServiceCallRefusal` entity + repository; Flyway `V*__service_call_refusal.sql` in `operations` schema.
-- [ ] T032 [P] [US3] hr-service: same `ServiceIdentityFilter` + `ServiceCallRefusal` entity/repo + Flyway migration in `hr` schema.
-- [ ] T033 [P] [US3] crm-service: same filter + entity/repo + Flyway migration in `crm` schema.
-- [ ] T034 [P] [US3] procurement-service: same filter + entity/repo + Flyway migration in `procurement` schema.
-- [ ] T035 [P] [US3] workflow-service: same filter + entity/repo + Flyway migration in `workflow` schema (it receives calls from the gateway).
-- [ ] T036 [P] [US3] Unit test `ServiceIdentityFilterTest` (in one service, shared pattern): refuses NO_CERT / UNTRUSTED_CA / EXPIRED / NOT_ALLOWLISTED, persists the row with the right reason, and lets an allowlisted peer through.
+- [X] T031 [P] [US3] operations-service: add `ServiceIdentityFilter` (`backend/operations-service/.../security/`) verifying the peer X.509 cert vs the service allowlist, refusing (401/403) + persisting a refusal; `ServiceCallRefusal` entity + repository; Flyway `V*__service_call_refusal.sql` in `operations` schema.
+- [X] T032 [P] [US3] hr-service: same `ServiceIdentityFilter` + `ServiceCallRefusal` entity/repo + Flyway migration in `hr` schema.
+- [X] T033 [P] [US3] crm-service: same filter + entity/repo + Flyway migration in `crm` schema.
+- [X] T034 [P] [US3] procurement-service: same filter + entity/repo + Flyway migration in `procurement` schema.
+- [X] T035 [P] [US3] workflow-service: same filter + entity/repo + Flyway migration in `workflow` schema (it receives calls from the gateway).
+- [X] T036 [P] [US3] Unit test `ServiceIdentityFilterTest` (in one service, shared pattern): refuses NO_CERT / UNTRUSTED_CA / EXPIRED / NOT_ALLOWLISTED, persists the row with the right reason, and lets an allowlisted peer through.
 
 ### TLS wiring
 - [ ] T037 [US3] Add `server.ssl.bundle` + `server.ssl.client-auth=want` + `spring.ssl.bundle.pem/jks.<svc>` (mounted cert paths) to every service `application.yml` (`operations`, `hr`, `crm`, `procurement`, `workflow`) and the gateway.
