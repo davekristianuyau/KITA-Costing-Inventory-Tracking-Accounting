@@ -47,11 +47,9 @@ public class SalesOrderWorkflow {
     if (request.lines() == null || request.lines().isEmpty()) {
       throw new ValidationException("a sales order needs at least one line");
     }
-    String salesOrderId = operations.createSalesOrder(request.customerId());
+    // operations creates the order atomically with its lines (no add-line endpoint, 018 FR-001).
+    String salesOrderId = operations.createSalesOrder(request.customerId(), request.lines());
     try {
-      for (OperationsPort.SalesLine line : request.lines()) {
-        operations.addSalesOrderLine(salesOrderId, line);
-      }
       operations.confirmSalesOrder(salesOrderId); // reserves; throws on oversell
     } catch (RuntimeException e) {
       operations.cancelSalesOrder(salesOrderId); // compensation — no dangling draft

@@ -10,6 +10,7 @@ import Button from "../ui/Button";
 import FieldInput from "./inputs/FieldInput";
 import ListInput from "./inputs/ListInput";
 import { useResultLabels, type LabelResolver } from "./result/idLabels";
+import OutcomeBanner, { classifyOutcome } from "./result/OutcomeView";
 
 type RunState = "idle" | "running" | "done";
 
@@ -192,6 +193,26 @@ function ResultView({
     );
   }
   if (state !== "done" || !result) return null;
+
+  // Governed actions report the back-office taxonomy; classify before the generic error banner so a
+  // 422 self-review never reads as a 403 refusal (feature 016, SC-004).
+  if (kind === "outcome") {
+    const outcome = classifyOutcome(result);
+    if (outcome) {
+      const data = result.data;
+      const detail =
+        outcome === "approved" && data && typeof data === "object" && !Array.isArray(data) ? (
+          <DetailView obj={data as Record<string, unknown>} resolve={resolve} />
+        ) : null;
+      return (
+        <div className="flex flex-col gap-4">
+          <OutcomeBanner outcome={outcome} reason={result.ok ? undefined : result.error} />
+          {detail}
+        </div>
+      );
+    }
+    // not a back-office outcome (e.g. a 502 at the edge) — fall through to the generic handling
+  }
 
   if (!result.ok) {
     return (

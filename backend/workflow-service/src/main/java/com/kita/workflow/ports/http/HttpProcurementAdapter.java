@@ -2,6 +2,8 @@ package com.kita.workflow.ports.http;
 
 import com.kita.workflow.common.TransientDownstreamException;
 import com.kita.workflow.ports.ProcurementPort;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,8 +14,11 @@ import org.springframework.web.client.RestClient;
 
 /**
  * Real {@link ProcurementPort}: an HTTP client to procurement-service. Selected by
- * {@code workflow.procurement.adapter=http}. All calls go through {@link RemoteCall}; the idempotent
- * {@code receive} relies on RemoteCall treating a 409 as already-applied (retry-safe, SC-010).
+ * {@code workflow.procurement.adapter=http}. All calls go through {@link RemoteCall}. Corrected to the
+ * receiver's real contract (018): PO/receipt lines use {@code itemRef/qtyOrdered/agreedPrice} and
+ * {@code itemRef/qtyReceived}; a supplier's {@code supplierCode} is <em>derived</em> from its name;
+ * supplied items are {@code POST}ed one per item (not a {@code PUT} list); responses are read from
+ * {@code id} (not {@code purchaseOrderId}/{@code supplierId}/{@code receiptId}).
  */
 @Component
 @ConditionalOnProperty(name = "workflow.procurement.adapter", havingValue = "http")
@@ -47,14 +52,25 @@ public class HttpProcurementAdapter implements ProcurementPort {
 
   @Override
   public String createPurchaseOrder(String supplierId, List<PoLine> lines) {
+    List<Map<String, Object>> lineBodies = new ArrayList<>();
+    for (PoLine line : lines) {
+      Map<String, Object> l = new HashMap<>();
+      l.put("itemRef", line.itemId());
+      l.put("qtyOrdered", line.quantity());
+      if (line.unitCost() != null) {
+        l.put("agreedPrice", line.unitCost()); // optional — receiver falls back to catalog price
+      }
+      lineBodies.add(l);
+    }
+    // poNo omitted (receiver generates it); origin defaults to MANUAL.
     Map<?, ?> body =
         remote.write(
             client,
             HttpMethod.POST,
             "/api/procurement/purchase-orders",
-            Map.of("supplierId", supplierId, "lines", lines),
+            Map.of("supplierId", supplierId, "lines", lineBodies),
             response -> remote.applied(response, Map.class));
-    return String.valueOf(body.get("purchaseOrderId"));
+    return String.valueOf(body.get("id"));
   }
 
   @Override
@@ -69,37 +85,53 @@ public class HttpProcurementAdapter implements ProcurementPort {
 
   @Override
   public ReceiptResult receive(String purchaseOrderId, List<ReceiptLine> lines) {
+    List<Map<String, Object>> lineBodies = new ArrayList<>();
+    for (ReceiptLine line : lines) {
+      lineBodies.add(Map.of("itemRef", line.itemId(), "qtyReceived", line.quantityReceived()));
+    }
     Map<?, ?> body =
         remote.write(
             client,
             HttpMethod.POST,
             "/api/procurement/purchase-orders/" + purchaseOrderId + "/receipts",
-            Map.of("lines", lines),
+            Map.of("lines", lineBodies),
             response -> remote.applied(response, Map.class));
     return new ReceiptResult(
-        String.valueOf(body.get("receiptId")), String.valueOf(body.get("poStatus")));
+        String.valueOf(body.get("id")), String.valueOf(body.get("orderStatus")));
   }
 
   @Override
   public String createSupplier(SupplierInput input) {
-    Map<?, ?> body =
+    Map<String, Object> body = new HashMap<>();
+    body.put("supplierCode", DerivedValues.supplierCode(input.name())); // derived — no human supplies it
+    body.put("name", input.name());
+    Map<?, ?> resp =
         remote.write(
             client,
             HttpMethod.POST,
             "/api/procurement/suppliers",
-            input,
+            body,
             response -> remote.applied(response, Map.class));
-    return String.valueOf(body.get("supplierId"));
+    return String.valueOf(resp.get("id"));
   }
 
   @Override
   public void updateSupplier(String supplierId, SupplierInput input) {
-    write(HttpMethod.PATCH, "/api/procurement/suppliers/" + supplierId, input);
+    write(
+        HttpMethod.PATCH,
+        "/api/procurement/suppliers/" + supplierId,
+        Map.of("name", input.name()));
   }
 
   @Override
   public void setSuppliedItems(String supplierId, List<SuppliedItem> items) {
-    write(HttpMethod.PUT, "/api/procurement/suppliers/" + supplierId + "/items", Map.of("items", items));
+    // Real API is POST one SupplierItemRequest per item (upsert), not a single PUT list.
+    for (SuppliedItem item : items) {
+      write(
+          HttpMethod.POST,
+          "/api/procurement/suppliers/" + supplierId + "/items",
+          Map.of("itemRef", item.itemId(), "supplierPrice", item.unitCost()));
+    }
   }
 
   private void write(HttpMethod method, String uri, Object body) {
