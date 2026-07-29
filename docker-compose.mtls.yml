@@ -1,0 +1,208 @@
+# 018 US3 — encrypted internal traffic overlay (FR-007/008/012, SC-004/005/008).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.mtls.yml up --build -d
+#
+# Brings the whole stack up with encryption ON and NO manual certificate steps (SC-008): the `certs`
+# init container generates the dev CA, one bundle per service and server certs for Postgres/Redis into
+# a shared volume before anything else starts. Nothing secret is committed (FR-011) — the volume is
+# generated at run time and docker/certs/generated is gitignored.
+#
+# Kept as an overlay rather than folded into docker-compose.yml so the plaintext stack stays runnable
+# for anyone debugging without certificates.
+
+services:
+  # --- cert bootstrap (runs to completion, then everything else starts) --------------------------
+  certs:
+    image: alpine:3.20
+    # The script needs real bash (arrays + process substitution); alpine's default sh is busybox ash,
+    # which rejects `set -o pipefail`. No JRE needed — the truststore is built with openssl, not keytool.
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "apk add --no-cache bash openssl &&
+       bash /bootstrap/bootstrap-certs.sh /certs"
+    environment:
+      CERT_KEYSTORE_PASSWORD: ${CERT_KEYSTORE_PASSWORD:-changeit}
+      POSTGRES_UID: ${POSTGRES_UID:-70}      # postgres:16-alpine runs as uid 70
+      REDIS_UID: ${REDIS_UID:-999}
+    volumes:
+      - ./docker/certs:/bootstrap:ro
+      - kita-certs:/certs
+    networks: [kita]
+
+  # --- datastores now terminate TLS too (max-security clarification) ----------------------------
+  postgres:
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/certs/postgres.crt
+      - -c
+      - ssl_key_file=/certs/postgres.key
+      - -c
+      - ssl_ca_file=/certs/ca.crt
+    volumes:
+      - kita-pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+      - kita-certs:/certs:ro
+
+  redis:
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --port
+      - "0"                       # plaintext port off entirely
+      - --tls-port
+      - "6379"
+      - --tls-cert-file
+      - /certs/redis.crt
+      - --tls-key-file
+      - /certs/redis.key
+      - --tls-ca-cert-file
+      - /certs/ca.crt
+      - --tls-auth-clients
+      - "no"                      # clients authenticate to Redis by password, not by certificate
+    volumes:
+      - kita-redisdata:/data
+      - kita-certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "--tls", "--cacert", "/certs/ca.crt", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- backend services: server TLS + client identity + TLS to Postgres/Redis --------------------
+  operations-service: &mtls-service
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: mtls
+      SSL_CERT: /certs/operations-service.crt
+      SSL_KEY: /certs/operations-service.key
+      SSL_CA: /certs/ca.crt
+      MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-workflow-service,gateway}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=operations,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
+    volumes:
+      - kita-certs:/certs:ro
+    healthcheck:
+      # the service now speaks https; --no-check-certificate because the CA is private to this stack
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost:8083/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  hr-service:
+    <<: *mtls-service
+    environment:
+      SPRING_PROFILES_ACTIVE: mtls
+      SSL_CERT: /certs/hr-service.crt
+      SSL_KEY: /certs/hr-service.key
+      SSL_CA: /certs/ca.crt
+      MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-workflow-service,gateway}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=hr,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost:8085/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  crm-service:
+    <<: *mtls-service
+    environment:
+      SPRING_PROFILES_ACTIVE: mtls
+      SSL_CERT: /certs/crm-service.crt
+      SSL_KEY: /certs/crm-service.key
+      SSL_CA: /certs/ca.crt
+      MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-workflow-service,gateway}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=crm,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost:8086/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  procurement-service:
+    <<: *mtls-service
+    environment:
+      SPRING_PROFILES_ACTIVE: mtls
+      SSL_CERT: /certs/procurement-service.crt
+      SSL_KEY: /certs/procurement-service.key
+      SSL_CA: /certs/ca.crt
+      MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-workflow-service,gateway}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=procurement,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost:8087/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  workflow-service:
+    <<: *mtls-service
+    environment:
+      SPRING_PROFILES_ACTIVE: mtls
+      SSL_CERT: /certs/workflow-service.crt
+      SSL_KEY: /certs/workflow-service.key
+      SSL_CA: /certs/ca.crt
+      MTLS_ALLOWED_CNS: ${MTLS_ALLOWED_CNS:-gateway}   # only the gateway calls the orchestrator
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kita?currentSchema=workflow,public&ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
+      # the orchestrated calls now go over https to the real services
+      OPERATIONS_ADAPTER: http
+      HR_ADAPTER: http
+      CRM_ADAPTER: http
+      PROCUREMENT_ADAPTER: http
+      OPERATIONS_BASE_URL: https://operations-service:8083
+      HR_BASE_URL: https://hr-service:8085
+      CRM_BASE_URL: https://crm-service:8086
+      PROCUREMENT_BASE_URL: https://procurement-service:8087
+      # hr-service holds no back-office roles of its own (see tasks.md "Open decision"), so the
+      # deployment states which HR *position* grants which back-office role. Fail-closed: a position
+      # that is not listed here grants nothing. Keys are normalized (upper-case, alphanumerics only)
+      # on both sides, so `back-office` matches the HR position "Back Office" -- a map key WITH a
+      # space would not survive Spring's relaxed binding at all.
+      SPRING_APPLICATION_JSON: >-
+        {"workflow":{"hr":{"position-roles":{
+        "back-office":"SALES,CASHIER,SALES_MANAGER,WAREHOUSE_STAFF,WAREHOUSE_MANAGER,PROCUREMENT_STAFF,PROCUREMENT_APPROVER,PRODUCTION,CRM_ADMIN",
+        "sales-clerk":"SALES",
+        "cashier":"CASHIER",
+        "warehouse-staff":"WAREHOUSE_STAFF",
+        "purchasing-officer":"PROCUREMENT_STAFF"}}}}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost:8088/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  # Public entry point: browser-facing TLS is unchanged (out of scope) — only its OUTBOUND leg to the
+  # backends becomes mutually authenticated, so no server.ssl / client-auth here.
+  gateway:
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: mtls
+      SSL_CERT: /certs/gateway.crt
+      SSL_KEY: /certs/gateway.key
+      SSL_CA: /certs/ca.crt
+      OPERATIONS_SERVICE_URL: https://operations-service:8083
+      HR_SERVICE_URL: https://hr-service:8085
+      CRM_SERVICE_URL: https://crm-service:8086
+      PROCUREMENT_SERVICE_URL: https://procurement-service:8087
+      WORKFLOW_SERVICE_URL: https://workflow-service:8088
+    volumes:
+      - kita-certs:/certs:ro
+
+volumes:
+  kita-certs:

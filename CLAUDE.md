@@ -138,6 +138,9 @@ edge strips inbound `X-Kita-*` and sets `X-Kita-User` from the session subject; 
 (switch actor = switch login) and workflow's CRM/OPERATIONS/PROCUREMENT adapters go `http` (HR stays `fake`).
 Builds on 011–015 + 007 (workflow-service). See [[frontend-and-aws-pipeline-roadmap]],
 [[workflow-service-007-progress]], [[spec-015-procurement-ui-progress]].
+**018 has since merged (PR #25)** — workflow's outbound calls are corrected and all internal traffic is
+mTLS-encrypted, so 016's SC-007 (a governed action's effect visible in the owning service's tab) is now
+achievable. HR stays on the seeded directory until **017** maps a login account to an employee record.
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -284,5 +287,12 @@ achieved. To revert an artifact to its original state, run
 [2026-07-23 00:06] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
 [2026-07-23 00:13] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
 [2026-07-23 00:17] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-23 00:35] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-23 00:53] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-23 19:47] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-23 20:05] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-23 20:12] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-23 20:37] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-27 21:17] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-28 00:00] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-28 00:10] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1

@@ -132,6 +132,9 @@ services:
       PROCUREMENT_ADAPTER: ${PROCUREMENT_ADAPTER:-http}
       # HR stays on the seeded directory: nothing yet maps a login account to an employee record, so the
       # http adapter would need the login name to BE the employee UUID. Closing that gap is spec 017.
+      # (018 wired the real HR adapter and a workflow.hr.position-roles map — see
+      # docker-compose.mtls.yml — but that path needs the ACTOR to be an employee UUID, which the
+      # console cannot supply yet. So the console keeps `fake` until 017 lands.)
       HR_ADAPTER: ${HR_ADAPTER:-fake}
     depends_on:
       postgres:

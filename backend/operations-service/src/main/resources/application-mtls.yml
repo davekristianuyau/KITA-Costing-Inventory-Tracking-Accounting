@@ -1,0 +1,57 @@
+# 018 US3 -- mutual TLS for internal traffic. Activated with SPRING_PROFILES_ACTIVE=mtls (the composed
+# and Floci stacks); absent by default so local runs and unit tests are untouched.
+#
+# client-auth is `want`, NOT `need`, deliberately: `need` rejects an unverifiable caller during the TLS
+# handshake, before any application code runs, so the refusal could never be RECORDED. With `want` the
+# request reaches ServiceIdentityFilter, which verifies the peer CN, persists a service_call_refusal
+# row and returns 401. Same outcome for a genuine peer; auditable for everyone else (FR-008).
+server:
+  ssl:
+    enabled: true
+    bundle: service
+    client-auth: want
+
+spring:
+  ssl:
+    bundle:
+      # PEM, not JKS: the bootstrap emits plain .crt/.key files, and an openssl-built PKCS12 truststore
+      # is not readable by Java as a trusted-certificate entry ("trustAnchors parameter must be
+      # non-empty"). PEM bundles take the files directly -- no keystore, no password.
+      pem:
+        service:
+          # In-place rotation: replacing the mounted files reloads the SSL context, no restart (FR-009).
+          reload-on-update: true
+          keystore:
+            certificate: ${SSL_CERT:/certs/operations-service.crt}
+            private-key: ${SSL_KEY:/certs/operations-service.key}
+          truststore:
+            certificate: ${SSL_CA:/certs/ca.crt}
+  # Datastore traffic is encrypted too (FR-007, max-security clarification).
+  data:
+    redis:
+      ssl:
+        enabled: true
+        # Must reuse the bundle: `enabled` alone makes Lettuce fall back to the JVM default truststore,
+        # which does not contain the dev CA ("PKIX path building failed").
+        bundle: service
+
+kita:
+  mtls:
+    enabled: true
+    # Only these service identities may call this service; anything else is refused + recorded.
+    allowed-cns: ${MTLS_ALLOWED_CNS:workflow-service,gateway}
+
+management:
+  endpoint:
+    health:
+      # FR-009: remaining certificate validity must be discoverable BEFORE it lapses. Expiry dates are
+      # not secret, and actuator is reachable only inside the private network.
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  # Remaining certificate validity is discoverable before it lapses (FR-009, US4).
+  health:
+    ssl:
+      enabled: true
