@@ -21,6 +21,29 @@ joiners, leavers, and role changes take effect through normal personnel administ
 It is a prerequisite for deploying the back-office (Workflow) capabilities for real. It is independent of the
 Workflow UI work and is implemented after it.
 
+## Clarifications
+
+### Session 2026-07-29
+
+- Q: Which side of the relationship holds the link — the account or the employee record? → A: **The personnel
+  record holds it** (the employee carries its account). The login/session platform is then unchanged: the
+  account identity it already asserts is enough to resolve the employee (FR-003 needs no new work).
+- Q: The personnel system holds **no** back-office roles today — how is FR-004 closed? → A: **Add role storage
+  to the personnel system**, so it really is the source of roles. Roles must never be asserted by the caller or
+  carried as authority in the session, revocation must take effect on the next action, and holding roles in
+  deployment configuration would break SC-001/SC-006.
+- Q: Account names can be renamed or reissued after deactivation, which would hand a new hire the previous
+  person's identity. How is that closed? → A: Key the link on the **account name**, and make account names
+  **permanent and never reissued**.
+- Q: Who may grant back-office roles? → A: An **OWNER** role — the highest-position administrator, able to do
+  anything, including administering links and granting roles.
+- Q: Other capabilities authorize their own operations from the roles carried in a session, which are empty
+  today, so they fall back to a permissive development mode. Does 017 fix that too? → A: **Yes** — session
+  roles are populated from the personnel record everywhere, and the permissive fallback is retired.
+- Q: Does OWNER satisfy **both** halves of a maker-checker control alone (raise a PO and approve it)? →
+  A: **Yes** — OWNER may self-approve. *(Noted trade-off: this removes segregation of duties on the
+  controls it protects, so an owner-self-approved action MUST be recorded distinguishably — see FR-020.)*
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A signed-in user acts as their own employee (Priority: P1) 🎯 MVP
@@ -68,6 +91,14 @@ unlink → they can no longer perform governed actions, and the reason given say
    the same employee (or a second employee to the same account), **Then** the attempt is refused with a clear
    reason.
 4. **Given** any link or unlink, **When** it is made, **Then** who made it and when is recorded.
+5. **Given** an administrator holding the OWNER role, **When** they administer a link or grant/revoke an
+   employee's back-office roles, **Then** it is permitted and recorded against them by name; **When** a
+   non-administrator attempts the same, **Then** it is refused (FR-010, FR-015, FR-017).
+6. **Given** an employee's roles are granted or revoked, **When** the change is made, **Then** it takes effect
+   on that person's next action, with no re-provisioning or redeployment (FR-014, SC-006).
+7. **Given** an OWNER performs an action that normally requires a separate checker, **When** they act as both
+   maker and checker, **Then** it is permitted, and the activity record identifies it as a single-person
+   approval so a reviewer can find it later (FR-020, SC-010).
 
 ---
 
@@ -112,6 +143,11 @@ still hold; confirm no environment resolves employees from seeded login names.
    they are told the check is temporarily unavailable and may retry — access is never silently granted.
 3. **Given** a role token exists in the personnel record that the back office does not recognize, **When**
    authorization runs, **Then** it grants nothing and does not error.
+4. **Given** the permissive development fallback has been retired, **When** any capability that authorizes with
+   session roles handles a request, **Then** the roles it uses come from the personnel record — no caller is
+   treated as fully privileged merely for presenting none (FR-018, SC-008).
+5. **Given** a deployment where the fallback is being retired, **When** it is switched off, **Then** at least
+   one account already resolves to an employee holding OWNER, so administration remains possible (FR-019).
 
 ### Edge Cases
 
@@ -127,6 +163,12 @@ still hold; confirm no environment resolves employees from seeded login names.
   one-to-one rule with a clear reason; reassignment is an explicit unlink-then-link.
 - Existing simulation logins that were resolving through the seeded directory → must be migrated to real links so
   no environment silently loses access when the stand-in is removed.
+- An account is deactivated and someone tries to reuse its username for a new hire → refused; usernames are
+  never reissued (FR-016), so the new person can never inherit the old link.
+- The permissive development fallback is retired before any account resolves to an OWNER → the deployment would
+  be unadministerable; the OWNER link must exist first (FR-019).
+- An OWNER acts as both maker and checker of one action → permitted (FR-020), but the activity record must show
+  it was single-person, so a reviewer can see the control was not exercised.
 
 ## Requirements *(mandatory)*
 
@@ -155,11 +197,31 @@ still hold; confirm no environment resolves employees from seeded login names.
   the simulation's existing logins migrated to real links so the demonstrable behaviour is the real behaviour.
 - **FR-013**: The feature MUST NOT change what any role is allowed to do — the authorization rules themselves are
   out of scope; only *whose* roles are being checked changes.
+- **FR-014**: The personnel system MUST store each employee's assigned back-office roles, and MUST be the only
+  place they are held. Role tokens are stored as opaque values: an unrecognized token MUST be accepted and simply
+  grant nothing (never error).
+- **FR-015**: Every role grant or revocation MUST record who performed it and when, like any link change.
+- **FR-016**: Account usernames MUST be immutable and MUST NOT be reissued after an account is deactivated, so a
+  link can never silently transfer one person's identity and roles to another.
+- **FR-017**: An **OWNER** role MUST exist as the highest-position administrator: it holds every permission,
+  including administering account links and granting roles.
+- **FR-018**: The roles carried in a session MUST be populated from the personnel record for **all** services
+  that authorize with them — not only the back office. The permissive development fallback (a caller with no
+  roles being treated as fully privileged) MUST be retired from every deployed path.
+- **FR-019**: Retiring that fallback MUST NOT lock out administration: at least one account MUST resolve to an
+  employee holding OWNER before the fallback is removed, or the deployment is unadministerable.
+- **FR-020**: An OWNER MAY satisfy both sides of a maker-checker control (act as maker and checker of the same
+  action). Because this removes the two-person control, such an action MUST be recorded distinguishably in the
+  activity record, so single-person approvals are visible when the log is reviewed.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Account**: a login identity (the thing a person signs in with). Gains an optional link to one Employee.
 - **Employee**: the personnel record — the source of truth for a person's identity, employment status, and roles.
+- **Role Assignment**: a back-office role token held by an employee, with the administrator and timestamp that
+  granted or revoked it. Stored in the personnel system (FR-014); tokens are opaque.
+- **Owner**: the highest-position administrative role — holds every permission, administers links and role
+  grants, and may act as both maker and checker of the same action (FR-017, FR-020).
 - **Account–Employee Link**: the one-to-one association between them, with the administrator and timestamp that
   created or removed it.
 - **Session Identity**: what the signed-in user's session carries to backend services so the acting employee can be
@@ -184,7 +246,13 @@ still hold; confirm no environment resolves employees from seeded login names.
   with no re-login required beyond normal session rules.
 - **SC-007**: The existing back-office behaviours (authorization outcomes, maker-checker controls, recorded
   activity) continue to pass their existing checks unchanged — this feature changes *who* is resolved, not *what*
-  the rules are.
+  the rules are. (The one deliberate exception is FR-020: an OWNER may be both maker and checker.)
+- **SC-008**: **0** deployed services grant privileges from the permissive development fallback — every service
+  that authorizes with session roles reads them from the personnel record (FR-018).
+- **SC-009**: **100%** of role grants and revocations are attributable to a named administrator with a timestamp;
+  **0** silent privilege changes.
+- **SC-010**: An action where one person was both maker and checker is identifiable in the activity record — a
+  reviewer can list every single-person approval (FR-020).
 
 ## Assumptions
 
@@ -197,8 +265,12 @@ still hold; confirm no environment resolves employees from seeded login names.
 - Signing in does not require a linked employee — the link gates governed back-office actions, not authentication.
 - The authorization rules (which role may perform, make, or check which action) already exist and are unchanged
   here.
-- Employee status and roles are already maintained in the personnel system; this feature does not introduce a new
-  place to edit them.
+- Employee **status** is already maintained in the personnel system. **Roles are not** — verified in the code
+  on 2026-07-29: the personnel record stores no back-office roles at all. This feature therefore *adds* role
+  storage to the personnel system, so that it becomes the single place they are held and edited. It still does
+  not introduce a *second* place to edit them.
+- Usernames are permanent identifiers: they are never renamed, and a deactivated account's username is never
+  reissued to another person. The account↔employee link depends on this.
 
 ## Dependencies
 
@@ -211,6 +283,9 @@ still hold; confirm no environment resolves employees from seeded login names.
 
 - Changing what any role is permitted to do, or editing the authorization rules themselves.
 - Self-service account registration, password/credential management, or single sign-on integration.
-- Employee record management (hiring, separation, role assignment) — that stays in the personnel system.
+- Employee record management (hiring, separation) — that stays in the personnel system. **Note**: role
+  assignment also belongs to the personnel system, but the storage and administration for it do not exist yet,
+  so creating them **is in scope here** (FR-014/FR-015). What stays out of scope is any wider personnel
+  management beyond that.
 - Multi-employee or delegated/"act on behalf of" identities — one account, one employee.
 - Any user interface beyond what administering the link requires.
