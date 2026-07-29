@@ -14,5 +14,10 @@ public enum Role {
   PROCUREMENT_STAFF,
   PROCUREMENT_APPROVER,
   PRODUCTION,
-  CRM_ADMIN
+  CRM_ADMIN,
+  /**
+   * The highest-position administrator (017 FR-017). Held in the personnel record like any other
+   * token, but read by every service as implying all of that service's roles.
+   */
+  OWNER
 }

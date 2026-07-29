@@ -59,4 +59,49 @@ class ActionAuthorizerTest {
                     AuthorizationKind.CHECKER))
         .isInstanceOf(ForbiddenException.class);
   }
+
+  // --- 017 FR-017: OWNER is the highest-position administrator -------------------------------------
+  // NOTE: workflow does NOT decide roles in CallerContext (it does not read roles at all) — the
+  // decision is here, against authorization_mapping rows, where OWNER never appears. Putting the
+  // OWNER branch anywhere else would leave an owner refused EVERY governed action.
+
+  @Test
+  void ownerPermitsEveryActionAndKindEvenThoughItIsInNoMappingRow() {
+    ActionAuthorizer authorizer =
+        new ActionAuthorizer(
+            java.util.List.of(
+                new AuthorizationRule(
+                    BackOfficeAction.TAKE_SALES_ORDER, Role.SALES, AuthorizationKind.MAKER)));
+
+    for (BackOfficeAction action : BackOfficeAction.values()) {
+      for (AuthorizationKind kind : AuthorizationKind.values()) {
+        assertThat(authorizer.permits(java.util.Set.of(Role.OWNER), action, kind))
+            .as("OWNER must permit %s (%s)", action, kind)
+            .isTrue();
+      }
+    }
+  }
+
+  @Test
+  void ownerAlongsideOtherRolesStillPermitsEverything() {
+    ActionAuthorizer authorizer = new ActionAuthorizer(java.util.List.of());
+    assertThat(
+            authorizer.permits(
+                java.util.Set.of(Role.SALES, Role.OWNER),
+                BackOfficeAction.APPROVE_PURCHASE_ORDER,
+                AuthorizationKind.CHECKER))
+        .isTrue();
+  }
+
+  @Test
+  void withoutOwnerAnUnmappedActionIsStillRefused() {
+    ActionAuthorizer authorizer = new ActionAuthorizer(java.util.List.of());
+    assertThat(
+            authorizer.permits(
+                java.util.Set.of(Role.SALES),
+                BackOfficeAction.APPROVE_PURCHASE_ORDER,
+                AuthorizationKind.CHECKER))
+        .as("OWNER must be the only blanket grant")
+        .isFalse();
+  }
 }

@@ -22,8 +22,8 @@ must ship sooner.
 
 ## Phase 1: Setup (Shared vocabulary)
 
-- [ ] T001 [P] Add the `OWNER` token to every role vocabulary that authorizes: `backend/hr-service/src/main/java/com/kita/hr/common/security/Role.java`, `backend/crm-service/.../crm/common/security/Role.java`, `backend/procurement-service/.../procurement/common/security/Role.java`, `backend/workflow-service/.../workflow/common/security/Role.java`.
-- [ ] T002 [P] Add a canonical role-token fixture (the one flat vocabulary from `contracts/hr-identity-api.md`, incl. `OWNER`) shared by hr tests and `backend/workflow-service/src/contractTest/java/com/kita/workflow/contract/`, so the four services cannot drift on spelling.
+- [X] T001 [P] Add the `OWNER` token to every role vocabulary that authorizes: `backend/hr-service/src/main/java/com/kita/hr/common/security/Role.java`, `backend/crm-service/.../crm/common/security/Role.java`, `backend/procurement-service/.../procurement/common/security/Role.java`, `backend/workflow-service/.../workflow/common/security/Role.java`.
+- [X] T002 [P] Add a canonical role-token fixture (the one flat vocabulary from `contracts/hr-identity-api.md`, incl. `OWNER`) shared by hr tests and `backend/workflow-service/src/contractTest/java/com/kita/workflow/contract/`, so the four services cannot drift on spelling.
 
 **Checkpoint**: every service agrees on the token set; nothing behavioural has changed yet.
 
@@ -33,14 +33,14 @@ must ship sooner.
 
 **⚠️ CRITICAL**: the storage and the DTO change every story depends on. No user-story work starts first.
 
-- [ ] T003 Create `backend/hr-service/src/main/resources/db/migration/V11__account_link_and_roles.sql`: `employee.account_username` (TEXT, **UNIQUE**, nullable), `employee_role` (id, employee_id FK ON DELETE CASCADE, role TEXT, assigned_at, assigned_by, **UNIQUE(employee_id, role)**), `identity_change` (id, employee_id, action `LINKED|UNLINKED|ROLE_GRANTED|ROLE_REVOKED`, account_username nullable, **role nullable**, changed_by, changed_at — append-only). The role actions are what give FR-015/SC-009 somewhere to write; the earlier draft had none.
-- [ ] T004 [P] Create `EmployeeRole` entity + top-level `EmployeeRoleRepository` in `backend/hr-service/src/main/java/com/kita/hr/employee/` (`@UuidGenerator`, role stored as an **opaque** String — never an hr enum).
-- [ ] T005 [P] Create `IdentityChange` entity + `IdentityChangeRepository` in `backend/hr-service/src/main/java/com/kita/hr/employee/` (append-only audit for link *and* role changes).
-- [ ] T006 Add `accountUsername` to `backend/hr-service/src/main/java/com/kita/hr/employee/Employee.java` with its accessor.
-- [ ] T007 Add `accountUsername` + `roles` to `backend/hr-service/src/main/java/com/kita/hr/employee/EmployeeResponse.java`. **This deliberately turns `:workflow-service:contractTest` red** (018's drift guard) until T017 — that is the signal working, not a break.
-- [ ] T008 [P] **Test first (Constitution II)** — `OWNER` grants everything, and only `OWNER`: `OwnerRoleTest` under `backend/{hr,crm,procurement}-service/src/test/java/.../common/security/` plus `backend/workflow-service/src/test/java/com/kita/workflow/authorization/ActionAuthorizerTest.java`. This is the feature's largest privilege-escalation surface; it must not ship untested.
-- [ ] T009 In `CallerContext.roles()` for **hr / crm / procurement** (`backend/{hr,crm,procurement}-service/src/main/java/.../common/security/CallerContext.java`), make **`OWNER` imply every role that service knows**. Leave the `stub` fallback untouched here — it is flipped in US4, so the stack keeps working mid-feature.
-- [ ] T010 In `backend/workflow-service/src/main/java/com/kita/workflow/authorization/ActionAuthorizer.java`, short-circuit `permits(...)` to **true when the held roles contain `OWNER`**. ⚠️ **Not** workflow's `CallerContext` — it does not read roles at all (its own javadoc says so); decisions come from `authorization_mapping`, where `OWNER` never appears. Without this an `OWNER` is refused **every** governed action (research Decision 9).
+- [X] T003 Create `backend/hr-service/src/main/resources/db/migration/V11__account_link_and_roles.sql`: `employee.account_username` (TEXT, **UNIQUE**, nullable), `employee_role` (id, employee_id FK ON DELETE CASCADE, role TEXT, assigned_at, assigned_by, **UNIQUE(employee_id, role)**), `identity_change` (id, employee_id, action `LINKED|UNLINKED|ROLE_GRANTED|ROLE_REVOKED`, account_username nullable, **role nullable**, changed_by, changed_at — append-only). The role actions are what give FR-015/SC-009 somewhere to write; the earlier draft had none.
+- [X] T004 [P] Create `EmployeeRole` entity + top-level `EmployeeRoleRepository` in `backend/hr-service/src/main/java/com/kita/hr/employee/` (`@UuidGenerator`, role stored as an **opaque** String — never an hr enum).
+- [X] T005 [P] Create `IdentityChange` entity + `IdentityChangeRepository` in `backend/hr-service/src/main/java/com/kita/hr/employee/` (append-only audit for link *and* role changes).
+- [X] T006 Add `accountUsername` to `backend/hr-service/src/main/java/com/kita/hr/employee/Employee.java` with its accessor.
+- [X] T007 Add `accountUsername` + `roles` to `backend/hr-service/src/main/java/com/kita/hr/employee/EmployeeResponse.java`. **This deliberately turns `:workflow-service:contractTest` red** (018's drift guard) until T017 — that is the signal working, not a break.
+- [X] T008 [P] **Test first (Constitution II)** — `OWNER` grants everything, and only `OWNER`: `OwnerRoleTest` under `backend/{hr,crm,procurement}-service/src/test/java/.../common/security/` plus `backend/workflow-service/src/test/java/com/kita/workflow/authorization/ActionAuthorizerTest.java`. This is the feature's largest privilege-escalation surface; it must not ship untested.
+- [X] T009 In `CallerContext.roles()` for **hr / crm / procurement** (`backend/{hr,crm,procurement}-service/src/main/java/.../common/security/CallerContext.java`), make **`OWNER` imply every role that service knows**. Leave the `stub` fallback untouched here — it is flipped in US4, so the stack keeps working mid-feature.
+- [X] T010 In `backend/workflow-service/src/main/java/com/kita/workflow/authorization/ActionAuthorizer.java`, short-circuit `permits(...)` to **true when the held roles contain `OWNER`**. ⚠️ **Not** workflow's `CallerContext` — it does not read roles at all (its own javadoc says so); decisions come from `authorization_mapping`, where `OWNER` never appears. Without this an `OWNER` is refused **every** governed action (research Decision 9).
 
 **Checkpoint**: schema + entities + DTO in place; `OWNER` grants everything; contractTest is red by design.
 
