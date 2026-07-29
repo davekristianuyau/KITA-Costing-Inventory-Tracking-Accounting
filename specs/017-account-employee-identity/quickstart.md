@@ -52,7 +52,7 @@ Each is recorded in `back_office_activity` (FR-006). Confirm no two collapse int
 ## 6. Administration + audit (US2 — FR-008/009/010)
 Link, list (`GET /api/hr/account-links`), unlink. Linking a second account to the same employee (or a
 second employee to the same account) → **409** naming the conflict. Every change appears in
-`account_link_change` with the acting administrator. A non-`HR_ADMIN` caller is refused (FR-010).
+`identity_change` with the acting administrator. A non-`OWNER` caller is refused (FR-010/FR-017).
 
 ## 6b. OWNER: privileges, and the accepted maker-checker trade-off (US2 — FR-017/FR-020, SC-010)
 

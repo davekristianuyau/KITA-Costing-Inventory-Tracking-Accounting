@@ -47,7 +47,7 @@ reissue a deactivated account's name (FR-016). Without that rule a rename or reu
 employee's identity and roles to another person.
 
 - **Request**: `{ "accountUsername": "alice" }`
-- **201/200** → linked; recorded in `account_link_change` with the acting administrator (FR-009).
+- **201/200** → linked; recorded in `identity_change` with the acting administrator (FR-009).
 - **409** → the one-to-one rule is violated: that account is already linked to another employee, or this
   employee already has a different account. Reason names which (FR-002, US2 scenario 3).
 - Re-linking is an explicit **unlink then link**, never a silent overwrite.

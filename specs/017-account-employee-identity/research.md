@@ -184,6 +184,25 @@ approval, payment confirmation, delivery receipt). The user accepted it on 2026-
 businesses. The mitigation is visibility, not prevention: the activity log must make single-person
 approvals easy to list, and the quickstart includes that query.
 
+## Decision 9 — where the `OWNER` branch lives differs by service (found by `/speckit-analyze`, 2026-07-29)
+
+**Decision**: `OWNER`-implies-all is implemented in **`CallerContext.roles()` for hr / crm / procurement**,
+but in **`ActionAuthorizer.permits(...)` for workflow-service**.
+
+**Rationale**: workflow does not authorize the way the other three do. Its `CallerContext` says so in its
+own javadoc — *"roles are NOT read here — they are resolved from the HR record"* — and the decision is
+`ActionAuthorizer.permits(heldRoles, action, kind)`, matching held roles against `authorization_mapping`
+rows. **`OWNER` will never appear in that table** (it is seeded per action/role/kind in `V2`), so a branch
+placed only in workflow's `CallerContext` would leave an `OWNER` **refused every governed back-office
+action** — silently breaking FR-017, US2 scenarios 5 and 7, and making FR-020 unreachable because
+`authorize()` fails before the self-review guard is even consulted.
+
+**Why it was nearly missed**: coverage analysis showed the requirement *had* a task. The task existed and
+pointed at the wrong component — a class of defect only caught by checking what the named component
+actually does. **Alternative rejected**: seeding `OWNER` into `authorization_mapping` for every
+action/kind — it would work, but bloats the table, has to be re-seeded whenever an action is added, and
+buries a security-critical rule in data instead of stating it once in code.
+
 ## Cross-cutting notes
 
 - **No change to authorization rules** (FR-013): `authorization_mapping` and the maker-checker controls

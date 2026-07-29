@@ -10,8 +10,9 @@ Nothing connects a login account to an employee record: `edge-gateway` sets `X-K
 `DemoSeeder` names logins after the in-memory fake's employee ids (`emp-sales`…). This feature makes the
 personnel record the real source of identity: **hr-service** gains the account link *and* the back-office
 roles it never had, workflow resolves the acting employee by account username, and both stand-ins are
-retired. `identity-service`, `TokenService` and `edge-gateway` are **unchanged** — the edge already strips
-inbound `X-Kita-*` and asserts the identity, so FR-003 holds as-is. See [research.md](./research.md).
+retired. The **session token is unchanged** and the edge already strips inbound `X-Kita-*` and asserts the
+identity, so FR-003 holds as-is; `edge-gateway` changes only where it *gets* roles. See
+[research.md](./research.md).
 
 > **Spec correction (Phase 0)**: the spec assumed *"status and roles are already maintained in the
 > personnel system."* Status yes; **roles no** — hr-service stores none, and its own `Role` enum governs
@@ -29,7 +30,7 @@ inbound `X-Kita-*` and asserts the identity, so FR-003 holds as-is. See [researc
 **Primary Dependencies**: Spring Web / Data JPA / Validation, Flyway, Jakarta Bean Validation; the existing
 `RemoteCall` + `contractTest` harness (018) on the caller side
 **Storage**: PostgreSQL, schema-per-service. **hr-service only**: 1 new column (`employee.account_username`)
-+ 2 new tables (`employee_role`, `account_link_change`) in a single Flyway `V11`. No other service gains schema.
++ 2 new tables (`employee_role`, `identity_change`) in a single Flyway `V11`. No other service gains schema.
 **Testing**: JUnit 5 + AssertJ pure unit tests (local); Testcontainers ITs + `*ApiContractTest` (Docker);
 workflow's `contractTest` source set binds to hr's **real** DTOs, so this change is drift-checked by construction
 **Target Platform**: Linux containers — composed stack + Floci; one isolated deployment per client
@@ -40,9 +41,9 @@ uncached** — caching would reintroduce the revocation delay this design exists
 unreachable; FR-013 authorization rules unchanged **except the deliberate FR-020 `OWNER` exemption**; the four
 resolution failures must stay distinguishable (SC-004); roles are **never** written into the session token
 **Scale/Scope**: hr-service (link + roles + `OWNER` + admin + audit); workflow-service (resolve by username,
-outcome taxonomy, `OWNER` self-review exemption, delete `HrPositionRoles`); **edge-gateway** (resolve roles per
-request, fail closed); **all four services' `CallerContext`** (`OWNER` implies-all; absent header grants
-nothing); identity-service (permanent account names, real `DemoSeeder` links); compose/sim (`HR_ADAPTER=http`,
+outcome taxonomy, `OWNER` self-review exemption, `OWNER` short-circuit in `ActionAuthorizer`, delete `HrPositionRoles`);
+**edge-gateway** (resolve roles per request, fail closed); **hr/crm/procurement `CallerContext`**
+(`OWNER` implies-all; absent header grants nothing); identity-service (permanent account names, real `DemoSeeder` links); compose/sim (`HR_ADAPTER=http`,
 `stub` off)
 
 ## Constitution Check
@@ -68,7 +69,7 @@ nothing); identity-service (permanent account names, real `DemoSeeder` links); c
 specs/017-account-employee-identity/
 ├── plan.md              # this file
 ├── research.md          # Phase 0 — 5 decisions + what the code actually does
-├── data-model.md        # Phase 1 — Employee(+link), EmployeeRole, AccountLinkChange, Resolution Outcome
+├── data-model.md        # Phase 1 — Employee(+link), EmployeeRole, IdentityChange, Resolution Outcome
 ├── quickstart.md        # Phase 1 — validation for SC-001…SC-007
 ├── contracts/hr-identity-api.md
 ├── checklists/requirements.md
@@ -81,7 +82,7 @@ backend/hr-service/                                    # owns the link + the rol
 ├── src/main/java/com/kita/hr/employee/
 │   ├── Employee.java                                  #   + accountUsername (unique, nullable)
 │   ├── EmployeeRole.java + repository                 #   NEW — back-office role tokens (opaque)
-│   ├── AccountLinkChange.java + repository            #   NEW — link/role audit (who, when)
+│   ├── IdentityChange.java + repository            #   NEW — link/role audit (who, when)
 │   └── EmployeeResponse.java                          #   + accountUsername, roles  ← contract change
 ├── src/main/java/com/kita/hr/api/
 │   ├── EmployeeController.java                        #   + by-account lookup, link/unlink, roles
@@ -96,8 +97,10 @@ backend/workflow-service/                              # resolves by account use
 └── src/contractTest/java/.../HrEmployeeContractTest.java
 
 backend/edge-gateway/.../SessionAuthFilter.java         # resolve roles from hr PER REQUEST, fail closed
-backend/{hr,crm,procurement,workflow}-service/
+backend/{hr,crm,procurement}-service/
 └── .../common/security/CallerContext.java             # OWNER implies-all; absent header ⇒ NO roles (stub off)
+backend/workflow-service/.../authorization/ActionAuthorizer.java  # OWNER short-circuit — NOT its CallerContext,
+                                                        # which by design does not read roles at all
 backend/workflow-service/.../actor/BackOfficePipeline.java  # skip self-review guard when actor holds OWNER
 
 backend/identity-service/.../config/DemoSeeder.java    # real employees + links (+ an OWNER), not emp-* names
