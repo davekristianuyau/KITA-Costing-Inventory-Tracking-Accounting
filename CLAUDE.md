@@ -124,25 +124,23 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/018-secure-service-contracts/plan.md` (**Correct & secure service-to-service integration** — fixes
-workflow-service's drifted outbound calls and encrypts internal traffic; unblocks 016 SC-007).
-Java 17 / Spring Boot 3.5.0. Two problems, both grounded in the code (Phase 0): (1) `workflow-service`'s
-`ports/http/Http*Adapter` calls drift from the receivers' **real** DTOs (built against in-memory fakes, never
-run against real services) — e.g. sales has **no `/{id}/items`** endpoint (lines are atomic at create,
-`customerRef`, item `itemId` is a **UUID**), responses return `id` but adapters read `salesOrderId`/`customerId`/
-`purchaseOrderId`, build needs a **derived `locationId`**, PO/supplier IDs are UUIDs, supplier needs a **derived
-`supplierCode`**, `setSuppliedItems` is `POST` per item not `PUT` list; (2) all internal calls are plaintext HTTP
-on the `kita` bridge net. Approach (research.md): correct each caller + derive values no human supplies (FR-002);
-**consumer-contract tests bind against receivers' real DTO records** so drift fails the build (no Spring Cloud
-Contract); **mTLS via Spring Boot 3.5 SSL bundles** with **`client-auth=want` + an app-layer `ServiceIdentityFilter`**
-(want, not need, so a no-cert caller is *recordable*) on **every** service, in-place rotation via `reload-on-update`
-+ `management.health.ssl`, cert-bootstrap init so bring-up is encrypted with **no manual cert steps** (SC-008).
-**Clarified 2026-07-23 (max security):** encryption covers **all** HTTP hops (incl. gateway→backend) **AND
-Postgres/Redis**; refusals are **persisted** (`service_call_refusal` table per receiving service — one Flyway
-migration each; US1 stays migration-free); the e2e proof runs on the **Floci AWS-imitation** deployment
-(FR-004/SC-001). Transport-only, no behaviour change (FR-010). US1 correct calls → US2 verify → US3
-mTLS+datastore TLS+refusal table (broadest) → US4 rotation. 016 is already implemented (PR #24 open) and merges
-once this lands. See [[specs-017-018-queued]] + [[workflow-service-007-progress]] + [[spec-016-workflow-ui-progress]].
+`specs/016-workflow-ui/plan.md` (**Workflow (back-office) service full UI** — the fifth and last per-service UI).
+Fill the 011 Workflow tab with the full `workflow-service` **manifest** (~19 functions, grouped): the append-only
+activity log, authorization rules, the pending maker-checker queue, and the 12 governed actions (sales order, PO,
+receiving, build, party maintenance), reusing the 012–015 shared framework. Phase 0 (code-read) found this is
+**NOT frontend-only**: FR-004/FR-005 have **no endpoint** and FR-003's outcome filter doesn't exist → add **3
+read-only** additions to workflow-service (`GET /authorization`, `GET /pending-reviews` + `PendingReviewStore.list()`,
+`outcome` param on `/activity`) — no control/pipeline/recorder change. Two small framework extensions: optional
+`group` on `ServiceFunction` (Sidebar headings) and an **outcome-aware result view** (`result: "outcome"` +
+`callEdge` reading the `{outcome, reason}` envelope) so approved / rejected-invalid / not-permitted / unavailable
+are distinct (SC-004; self-review = 422 invalid, checked BEFORE authorization). **No actor input in the UI** — the
+edge strips inbound `X-Kita-*` and sets `X-Kita-User` from the session subject; the sim gains `emp-*` demo logins
+(switch actor = switch login) and workflow's CRM/OPERATIONS/PROCUREMENT adapters go `http` (HR stays `fake`).
+Builds on 011–015 + 007 (workflow-service). See [[frontend-and-aws-pipeline-roadmap]],
+[[workflow-service-007-progress]], [[spec-015-procurement-ui-progress]].
+**018 has since merged (PR #25)** — workflow's outbound calls are corrected and all internal traffic is
+mTLS-encrypted, so 016's SC-007 (a governed action's effect visible in the owning service's tab) is now
+achievable. HR stays on the seeded directory until **017** maps a login account to an employee record.
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -277,11 +275,24 @@ achieved. To revert an artifact to its original state, run
 [2026-07-20 18:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
 [2026-07-20 19:21] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
 [2026-07-20 19:25] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 22:43] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-20 22:44] - Resume code: d6bcabc1-b370-4ef1-8fb2-850c875dc02a
+[2026-07-22 12:07] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-22 12:39] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-22 12:41] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-22 12:48] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-22 13:03] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-22 13:13] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-22 13:23] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-23 00:06] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-23 00:13] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
+[2026-07-23 00:17] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
 [2026-07-23 00:35] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
-[2026-07-23 00:53] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
 [2026-07-23 00:53] - Resume code: c546350b-ead7-4f6a-a7e1-5660e7c55787
 [2026-07-23 19:47] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-23 20:05] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-23 20:12] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-23 20:37] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-27 21:17] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-28 00:00] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-28 00:10] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1

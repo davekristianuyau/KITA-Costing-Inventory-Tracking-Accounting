@@ -16,6 +16,13 @@ import org.springframework.stereotype.Component;
  * In-memory {@link HrPort} for isolated build/test and dev. Seeds one employee per role plus the
  * all-roles stub actor so the quickstart runs self-contained. Unknown ids resolve to empty, so
  * "unknown / separated employee is rejected" holds.
+ *
+ * <p><b>Also a stopgap in the local simulation</b> (see docker-compose: {@code HR_ADAPTER=fake} while the
+ * other adapters run {@code http}). Nothing yet maps a login account to an employee record: the edge sets
+ * {@code X-Kita-User} to the login name, while {@link com.kita.workflow.ports.http.HttpHrAdapter} looks an
+ * employee up by its own id. The sim works around it by naming demo logins after these seeds. Closing that
+ * gap properly is spec {@code 017-account-employee-identity}; when it lands, the sim moves to the http
+ * adapter and this class goes back to being test-only.
  */
 @Component
 @ConditionalOnProperty(name = "workflow.hr.adapter", havingValue = "fake", matchIfMissing = true)

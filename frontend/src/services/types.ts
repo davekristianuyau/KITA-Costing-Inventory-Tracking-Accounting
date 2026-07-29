@@ -3,7 +3,9 @@
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-export type ResultKind = "table" | "json" | "detail" | "message";
+// "outcome" renders the back-office outcome taxonomy — approved / rejected-invalid / not-permitted /
+// temporarily-unavailable — distinctly, from the status + the {outcome, reason} envelope (feature 016).
+export type ResultKind = "table" | "json" | "detail" | "message" | "outcome";
 
 export type InputType =
   | "text"
@@ -55,6 +57,9 @@ export interface ServiceFunction {
   resultRefs?: ResultRef[];
   /** Short human description shown in the workspace header. */
   description?: string;
+  /** Optional area this function belongs to; the left pane renders a labelled group per run of
+   *  functions sharing one. Manifests that declare none render as a flat list (feature 016). */
+  group?: string;
 }
 
 export interface ServiceManifest {
