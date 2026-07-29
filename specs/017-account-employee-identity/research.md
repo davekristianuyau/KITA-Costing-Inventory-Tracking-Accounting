@@ -91,6 +91,19 @@ roles don't grant it". Each is recorded in `back_office_activity` like any other
 into one indistinguishable empty — SC-004 requires them apart. **Alternative rejected**: exceptions per
 case (loses the single audit path the pipeline already has).
 
+## Decision 3b — account names are permanent (FR-016)
+
+**Decision**: `identity-service` treats a username as permanent — no rename, and a deactivated account's
+username is never reissued. Enforced where accounts are administered/seeded, and stated in the account
+contract.
+
+**Rationale**: the link is keyed on the username (Decision 1). Without this rule, renaming an account —
+or reissuing a departed person's name to a new hire — silently transfers the linked employee's identity
+**and roles** to someone else. That is a privilege-escalation path, not a data-tidiness concern.
+**Alternative rejected**: keying on identity's account UUID — stable by construction, but the request only
+carries the username, so hr would need a username→id translation from identity on every governed action,
+reintroducing the cross-service dependency the hr-side link was chosen to avoid.
+
 ## Decision 4 — retire both stand-ins (FR-012)
 
 **Decision**: remove (a) 018's `workflow.hr.position-roles` map + `HrPositionRoles`, and (b) the
@@ -111,6 +124,65 @@ value and `EMPLOYEE_SELF` self-service authorization works for the first time.
 
 **Rationale**: a free correctness win from Decision 1, with no new header. **Alternative rejected**:
 having the edge set `X-Kita-Employee-Id` — it would have to call HR during request routing.
+
+## Decision 6 — one flat role vocabulary; `OWNER` universally means "everything" (FR-017)
+
+**Decision**: an employee holds a flat set of **opaque role tokens** in hr-service. Each service
+recognizes the subset it cares about — workflow's (`SALES`, `PROCUREMENT_APPROVER`, …), hr's own
+(`HR_ADMIN`, `PAYROLL_OFFICER`, …), crm's, procurement's — and ignores the rest (FR-004 scenario 3).
+**`OWNER` is recognized by every service as implying all of its roles**, implemented in each
+`CallerContext` as a single "if OWNER, grant" branch.
+
+**Rationale**: one store, one administration screen, one audit trail. A second "service role" vocabulary
+would double the storage and the admin surface for no user-visible gain, and would make "who can do what"
+answerable only by joining two lists. Opaque tokens mean a service can add a role without an hr redeploy.
+
+**Alternatives rejected**: separate back-office vs service-API role tables (two places to grant, easy to
+leave inconsistent); `OWNER` as a boolean flag on the employee rather than a token (a second mechanism to
+audit and reason about, when it is conceptually just the most powerful role).
+
+## Decision 7 — roles are resolved **per request at the edge**, never carried in the token (FR-018)
+
+**Decision**: `edge-gateway` — which already validates the session on every request and already sets
+`X-Kita-Roles` — resolves account → employee → roles from hr-service **per request** and sets the trusted
+header. Every service keeps its existing `CallerContext` and simply stops defaulting to all-roles when the
+header is absent. Unreachable hr ⇒ **fail closed** (FR-011).
+
+**Rationale**: the obvious-looking alternative is wrong and worth naming — *populating the token's
+(currently empty) `roles` claim at login* would put authority back **into the session**, exactly what
+Decision 2 exists to prevent: a stolen or stale token would carry privileges, and a revoked role would
+persist until the token expired, breaking **SC-002** ("loses access on their next attempt") and **SC-006**.
+Resolving at the edge keeps roles server-side and fresh per request, and requires **no change to any
+service's authorization code** — only that `stub` stops meaning "grant everything".
+
+**Alternatives rejected**: *roles in the token at login* (above — fails SC-002/SC-006); *each service
+resolves from hr itself* (four new hr clients and four times the traffic; the edge is already the single
+place a session is verified — hr remains a special case, resolving its own roles with a local DB read).
+
+**⚠️ Main implementation risk (FR-019)**: the plain `docker-compose.yml` dev stack routes through
+`gateway`, which sets **no** `X-Kita-*` headers at all — services there rely on `stub` precisely because
+there is no login. Turning `stub` off without a session-bearing entry point makes that stack refuse
+everything. Handling, in US4: `stub` is demoted to a **build/test-only seam** (as `InMemoryHrAdapter`
+already is); any stack that authorizes must be fronted by the edge; and an `OWNER`-linked account must be
+seeded **and verified** before the flip. If fronting the base stack proves disproportionate, the fallback
+is to label it explicitly as an unauthenticated development stack rather than quietly leave a permissive
+deployed path.
+
+## Decision 8 — the `OWNER` maker-checker exemption needs **no schema change** (FR-020, SC-010)
+
+**Decision**: in `BackOfficePipeline`, the self-review guard (today an unconditional 422 raised *before*
+authorization) is skipped when the acting employee holds `OWNER`. Single-person approvals stay
+identifiable because `back_office_activity` **already records both** `actor_employee_id` and
+`maker_employee_id` — so SC-010 is a query (`WHERE actor_employee_id = maker_employee_id`), not a column.
+
+**Rationale**: the cheapest possible change that satisfies the requirement, and the audit property comes
+free from data already captured. **Alternative rejected**: a `single_person_approval` boolean — redundant
+with two columns that already exist, and a denormalized flag can disagree with them.
+
+**Recorded trade-off**: this removes segregation of duties on exactly the controls it protects (purchase
+approval, payment confirmation, delivery receipt). The user accepted it on 2026-07-29 for single-person
+businesses. The mitigation is visibility, not prevention: the activity log must make single-person
+approvals easy to list, and the quickstart includes that query.
 
 ## Cross-cutting notes
 

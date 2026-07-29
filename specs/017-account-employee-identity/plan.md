@@ -13,10 +13,15 @@ roles it never had, workflow resolves the acting employee by account username, a
 retired. `identity-service`, `TokenService` and `edge-gateway` are **unchanged** — the edge already strips
 inbound `X-Kita-*` and asserts the identity, so FR-003 holds as-is. See [research.md](./research.md).
 
-> **Spec correction (Phase 0)**: the spec assumes *"status and roles are already maintained in the
+> **Spec correction (Phase 0)**: the spec assumed *"status and roles are already maintained in the
 > personnel system."* Status yes; **roles no** — hr-service stores none, and its own `Role` enum governs
-> HR's own API. FR-004 is unachievable without adding role storage, so that is in scope here. Settled
-> with the user on 2026-07-29 (research Decision 2).
+> HR's own API. FR-004 is unachievable without adding role storage, so that is in scope here.
+>
+> **Clarifications of 2026-07-29 widened this feature** (FR-014…FR-020). Beyond the link, 017 now also:
+> stores roles in hr with an **`OWNER`** superuser role (Decisions 2, 6); makes account names **permanent**
+> so a rename cannot transfer an identity (Decision 3b); **resolves session roles per request at the edge
+> for every service and retires the permissive `stub` fallback** (Decision 7 — the largest addition); and
+> lets an `OWNER` be **both maker and checker**, recorded distinguishably (Decision 8).
 
 ## Technical Context
 
@@ -32,9 +37,13 @@ workflow's `contractTest` source set binds to hr's **real** DTOs, so this change
 **Performance Goals**: one HR round trip per governed action (already the case for status); **deliberately
 uncached** — caching would reintroduce the revocation delay this design exists to remove
 **Constraints**: FR-003 already satisfied (edge strips + asserts); FR-011 **fail closed** when HR is
-unreachable; FR-013 authorization rules unchanged; the four resolution failures must stay distinguishable (SC-004)
-**Scale/Scope**: hr-service (link + roles + admin + audit), workflow-service (resolve by username, outcome
-taxonomy, delete `HrPositionRoles`), identity `DemoSeeder` (real links), compose (`HR_ADAPTER=http`)
+unreachable; FR-013 authorization rules unchanged **except the deliberate FR-020 `OWNER` exemption**; the four
+resolution failures must stay distinguishable (SC-004); roles are **never** written into the session token
+**Scale/Scope**: hr-service (link + roles + `OWNER` + admin + audit); workflow-service (resolve by username,
+outcome taxonomy, `OWNER` self-review exemption, delete `HrPositionRoles`); **edge-gateway** (resolve roles per
+request, fail closed); **all four services' `CallerContext`** (`OWNER` implies-all; absent header grants
+nothing); identity-service (permanent account names, real `DemoSeeder` links); compose/sim (`HR_ADAPTER=http`,
+`stub` off)
 
 ## Constitution Check
 
@@ -44,13 +53,13 @@ taxonomy, delete `HrPositionRoles`), identity `DemoSeeder` (real links), compose
 |-----------|------------|
 | I. Specification-Driven | ✅ Spec → plan → artifacts, prioritized US1–US4. Phase 0 corrected a false spec assumption rather than building on it. |
 | II. TDD (NON-NEGOTIABLE) | ✅ Each slice is test-first: the resolution-outcome taxonomy and the one-to-one rule are pure-unit testable; `contractTest` goes red the moment hr's DTO changes, driving the caller fix. |
-| III. Security & Data Integrity (NON-NEGOTIABLE) | ✅ **This is a security feature.** Roles are server-resolved per action (never caller-asserted), revocation is immediate, unreachable HR fails **closed**, link/role changes are audited, administration is `HR_ADMIN`-gated. |
+| III. Security & Data Integrity (NON-NEGOTIABLE) | ⚠️→✅ **This is a security feature** and net strongly positive: roles are server-resolved per request (never carried in the token), revocation is immediate, unreachable HR fails **closed**, the permissive `stub` fallback is retired, account names are permanent so an identity cannot transfer, and every link/role change is audited under `OWNER`. **One deliberate weakening**: FR-020 lets an `OWNER` satisfy both halves of a maker-checker control — see Complexity Tracking. |
 | IV. Environment Isolation | ✅ One deployment per client; hr has no tenant concept, so a link cannot span clients. No prod data in dev. |
 | V. Observability | ✅ Four distinguishable outcomes, each recorded in `back_office_activity`; every link/role change records who + when. |
 | VI. Simplicity & YAGNI | ✅ Chose the option leaving identity/token/edge **untouched**; one migration, no new module, no new header, no cache. |
 | VII. Automated Quality Gates | ✅ `:hr-service:build` + `:workflow-service:build` (incl. `contractTest`) gate merges; 017 should also **fix** hr's long-standing `OpenApiContractTest` red by documenting the new endpoints. |
 
-**Result: PASS** — no violations; Complexity Tracking not required.
+**Result: PASS** — with one recorded, user-accepted trade-off (below).
 
 ## Project Structure
 
@@ -86,23 +95,43 @@ backend/workflow-service/                              # resolves by account use
 ├── .../actor/ActorResolver.java                       #   4 distinct outcomes, fail-closed
 └── src/contractTest/java/.../HrEmployeeContractTest.java
 
-backend/identity-service/.../config/DemoSeeder.java    # real employees + links, not emp-* magic names
-docker-compose.yml, sim/                               # HR_ADAPTER: fake → http (016's note names 017)
+backend/edge-gateway/.../SessionAuthFilter.java         # resolve roles from hr PER REQUEST, fail closed
+backend/{hr,crm,procurement,workflow}-service/
+└── .../common/security/CallerContext.java             # OWNER implies-all; absent header ⇒ NO roles (stub off)
+backend/workflow-service/.../actor/BackOfficePipeline.java  # skip self-review guard when actor holds OWNER
+
+backend/identity-service/.../config/DemoSeeder.java    # real employees + links (+ an OWNER), not emp-* names
+backend/identity-service/.../domain/AppUser.java       # account names permanent, never reissued
+docker-compose.yml, sim/                               # HR_ADAPTER: fake → http; stub off (016's note names 017)
 ```
 
-**Structure Decision**: hr-service takes the new state and endpoints; workflow-service changes only how it
-resolves the actor. **identity-service, `TokenService` and `edge-gateway` are untouched** — the single
-biggest scope saving, and the reason FR-003 needs no work.
+**Structure Decision**: hr-service takes the new state and endpoints; workflow-service changes how it
+resolves the actor; **edge-gateway becomes the single per-request role-resolution point**, which is what
+lets all four services keep their existing `CallerContext` and change only their absent-header behaviour.
+The **session token is still untouched** — deliberately, since putting roles in it would break SC-002/SC-006.
 
 ## Phasing (maps to user stories, MVP-first)
 
-- **US1 (P1, MVP)** — link + roles in hr, resolution by username in workflow, activity attributed to the
-  real employee. The smallest slice that removes the test double from the authorization path.
-- **US2 (P2)** — link administration: link / list / unlink, one-to-one enforcement (409), audit.
+- **US1 (P1, MVP)** — link + roles (+ `OWNER`) in hr, resolution by username in workflow with the four-outcome
+  taxonomy, activity attributed to the real employee. The smallest slice that removes the test double from
+  the authorization path.
+- **US2 (P2)** — administration under `OWNER`: link / list / unlink, one-to-one enforcement (409), role
+  grant/revoke, full audit; permanent account names; the `OWNER` maker-checker exemption (FR-020) + the
+  single-person-approval query (SC-010).
 - **US3 (P2)** — leavers: non-`ACTIVE` refused with a status-naming reason; a live session doesn't extend access.
-- **US4 (P3)** — retire both stand-ins (`HrPositionRoles`, `emp-*` seeded logins), flip `HR_ADAPTER=http`,
-  prove no deployed path resolves from a seeded directory.
+- **US4 (P3)** — **the widest slice, and the natural split point.** Retire both stand-ins (`HrPositionRoles`,
+  `emp-*` seeded logins), flip `HR_ADAPTER=http`, move role resolution into the edge, turn `stub` off across
+  all four services, and resolve the base-stack risk above. If this feature needs to ship sooner, US1–US3
+  stand alone and **US4 can become its own spec** — the boundary is drawn here on purpose.
 
 ## Complexity Tracking
 
-No Constitution violations — section intentionally empty.
+| Trade-off | Why accepted | Alternative rejected because |
+|---|---|---|
+| **FR-020**: an `OWNER` may be both maker and checker, weakening segregation of duties on purchase approval, payment confirmation and delivery receipt | User decision (2026-07-29) for single-person businesses, where no second employee exists to check. Mitigated by **visibility, not prevention**: `back_office_activity` already stores `actor_employee_id` and `maker_employee_id`, so every single-person approval is listable (SC-010), and the quickstart ships the query | *Never exempt* — leaves a one-person business unable to complete its own purchase flow. *Exempt only when no second employee holds the checker role* — conditional authorization that is materially harder to reason about and to test, for a narrow gain |
+| Retiring the `stub` fallback touches **four services** rather than one | FR-018/SC-008: shipping "identity is real" while every service API still grants all roles to an unauthenticated caller would be misleading and insecure | Keeping `stub` in deployed paths — the exact permissive default this feature exists to remove |
+
+**Residual risk (tracked, US4)**: the plain `docker-compose.yml` stack routes through `gateway`, which sets
+no `X-Kita-*` headers, so turning `stub` off there refuses everything. US4 must either front that stack
+with the edge or label it explicitly as an unauthenticated development stack — and must seed **and
+verify** an `OWNER`-linked account *before* the flip (FR-019), or the deployment is unadministerable.

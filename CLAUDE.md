@@ -129,19 +129,27 @@ their own employee; the personnel record becomes the source of status AND roles)
 Java 17 / Spring Boot 3.5.0. **The gap (Phase 0, verified in code):** `edge-gateway` sets `X-Kita-User` to the
 **username**, `workflow-service` looks employees up by **HR UUID**, and `AuthService` issues tokens with
 `List.of()` roles — the demo only works because `DemoSeeder` names logins after `InMemoryHrAdapter`'s employee
-ids (`emp-sales`…). **The spec's assumption that "roles are already maintained in the personnel system" is
-FALSE** — hr-service stores none (its own `Role` enum governs HR's own API), so FR-004 needs role storage added.
-**Decisions (2026-07-29, with the user):** (1) the account↔employee link lives in **hr-service**
-(`employee.account_username` + `GET /employees/by-account/{username}`), which leaves **identity-service,
-TokenService and edge-gateway completely unchanged** — the edge already strips inbound `X-Kita-*`, so FR-003
-holds as-is; (2) **back-office roles are stored in hr-service** (`employee_role`, opaque tokens) because roles
-must never be caller-asserted, revocation must bite on the next action, and a config map fails SC-001/SC-006.
+ids (`emp-sales`…). **The spec's assumption that "roles are already maintained in the personnel system" was
+FALSE** — hr-service stores none, so 017 ADDS role storage.
+**Decisions (2026-07-29, with the user):** (1) the account<->employee link lives in **hr-service**
+(`employee.account_username` + `GET /employees/by-account/{username}`), so the **session token is unchanged** —
+the edge already strips inbound `X-Kita-*`, satisfying FR-003 for free; (2) **roles are stored in hr** as ONE
+flat opaque vocabulary spanning every service, with **`OWNER`** universally meaning "all of this service's
+roles"; (3) account names are **permanent and never reissued** (a rename would transfer identity + roles);
+(4) **roles resolve PER REQUEST at the edge, never in the token** — putting them in the token would delay
+revocation until expiry and break SC-002/SC-006; the permissive `stub` fallback is retired across all four
+services; (5) an **`OWNER` may be both maker and checker** (accepted trade-off) — no schema change, since
+`back_office_activity` already stores `actor_employee_id` + `maker_employee_id`, so single-person approvals
+are a query (SC-010).
 `HrPort` returns a **ResolutionOutcome** (RESOLVED / NO_EMPLOYEE_LINKED / EMPLOYEE_NOT_ACTIVE /
 EMPLOYEE_MISSING / UNAVAILABLE→503 fail-closed), never collapsing into 403 (SC-004). Deliberately **uncached**.
 One Flyway `V11` in hr only. Retires BOTH stand-ins (018's `workflow.hr.position-roles` + the `emp-*` logins)
-and flips `HR_ADAPTER` to `http` (016's docker-compose note names 017 as the trigger). hr's `CallerContext`
-already reads a never-set `X-Kita-Employee-Id` — this makes it real. US1 resolve → US2 admin → US3 leavers →
-US4 remove stand-ins. See [[spec-018-secure-contracts-progress]] + [[spec-016-workflow-ui-progress]].
+and flips `HR_ADAPTER` to `http` (016's docker-compose note names 017 as the trigger).
+**⚠️ Risk (US4):** the plain `docker-compose.yml` stack routes through `gateway`, which sets NO `X-Kita-*`
+headers — turning `stub` off there refuses everything, so front it with the edge or label it unauthenticated,
+and seed+verify an `OWNER` link BEFORE the flip (FR-019). US4 is the deliberate split point if 017 must ship
+sooner. US1 resolve -> US2 admin+OWNER -> US3 leavers -> US4 retire stand-ins + stub.
+See [[spec-018-secure-contracts-progress]] + [[spec-016-workflow-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -298,3 +306,4 @@ achieved. To revert an artifact to its original state, run
 [2026-07-28 00:00] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-28 00:10] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-29 16:08] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-29 18:37] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1

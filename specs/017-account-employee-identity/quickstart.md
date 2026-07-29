@@ -54,6 +54,32 @@ Link, list (`GET /api/hr/account-links`), unlink. Linking a second account to th
 second employee to the same account) → **409** naming the conflict. Every change appears in
 `account_link_change` with the acting administrator. A non-`HR_ADMIN` caller is refused (FR-010).
 
+## 6b. OWNER: privileges, and the accepted maker-checker trade-off (US2 — FR-017/FR-020, SC-010)
+
+Grant an employee `OWNER`, then confirm:
+- they can administer links and grant roles, while a non-`OWNER` administrator cannot (FR-017);
+- `OWNER` implies every service's own roles — one account can reach hr, crm, procurement and workflow;
+- they may raise **and** approve the same purchase order (FR-020), whereas any non-`OWNER` doing so is
+  still refused **422 self-review** — the control is unchanged for everyone else;
+- that action is findable afterwards, which is the whole mitigation for the trade-off:
+
+```sql
+SELECT action, actor_employee_id, at FROM back_office_activity
+WHERE maker_employee_id IS NOT NULL AND maker_employee_id = actor_employee_id;
+```
+Expected: the owner's self-approved action is listed. **No schema change** — both columns already exist.
+
+## 6c. Roles resolve per request, never from the token (US4 — FR-018, SC-006/SC-008)
+
+- Revoke a role and **immediately** retry without re-logging-in → refused. If it still succeeds, roles are
+  being carried in the session, which is exactly what this design forbids.
+- Stop hr-service and retry any authorized request → **temporarily unavailable**, never granted (FR-011).
+- Call a service with **no** role header at all → **nothing** is granted. Before 017 this returned full
+  privileges via `stub`; that must no longer happen in any stack that authorizes (SC-008).
+- ⚠️ **Before flipping `stub` off**, confirm at least one account resolves to an employee holding `OWNER`
+  (FR-019) — otherwise the deployment is unadministerable. The plain `docker-compose.yml` stack sets no
+  identity headers at all, so it must be fronted by the edge or labelled explicitly unauthenticated.
+
 ## 7. Stand-ins are gone (US4 — SC-005, FR-012)
 ```bash
 grep -rn "position-roles\|HrPositionRoles" backend/ ; echo "--- expect: no hits ---"

@@ -24,9 +24,13 @@ token and `edge-gateway` are **unchanged**.
 - **Fields**: `id` (UUID, `@UuidGenerator`), `employee_id` (FK → `employee`, `ON DELETE CASCADE`),
   `role` (text — an opaque token, not an hr enum), `assigned_at`, `assigned_by`.
 - **Constraint**: `UNIQUE (employee_id, role)` — a role is held once.
-- **Why text, not an enum**: these are *workflow's* role tokens (`SALES`, `PROCUREMENT_APPROVER`, …), not
-  hr's own `Role` enum. Storing them opaquely keeps hr from having to redeploy when the back office adds
-  a role, and satisfies FR-004 scenario 3 (an unrecognized token grants nothing and must not error).
+- **Why text, not an enum**: this is **one flat vocabulary** spanning every service's roles — workflow's
+  (`SALES`, `PROCUREMENT_APPROVER`, …), hr's own (`HR_ADMIN`, `PAYROLL_OFFICER`, …), crm's, procurement's.
+  Each service recognizes its own subset and ignores the rest, so hr never redeploys when another service
+  adds a role, and FR-004 scenario 3 (unrecognized token grants nothing, never errors) holds by design.
+- **`OWNER`** is an ordinary token in this set with one special reading: **every** service treats it as
+  implying all of its own roles (FR-017), a single "if OWNER, grant" branch in each `CallerContext`. It is
+  not a separate flag or table — it is the most powerful role, audited like any other grant.
 - **Read**: returned on the employee read so one call yields status **and** roles.
 
 ## AccountLinkChange *(new — audit)*
@@ -56,12 +60,33 @@ What resolving an account to an actable employee produced — the spec's "Resolu
 
 - Replaces today's `Optional<EmployeeView>`, which collapses the middle three into one empty value.
 
-## Session Identity *(unchanged — already satisfied)*
+## Single-person approval *(derived — no new column)*
 
-The spec's "Session Identity" entity needs no new artifact. `edge-gateway` **strips every inbound
-`X-Kita-*`** and sets `X-Kita-User` from the validated session subject, so the acting identity is already
+FR-020 lets an `OWNER` be both maker and checker of one action; SC-010 requires those actions be
+identifiable afterwards. **No schema change is needed**: `back_office_activity` already stores both
+`actor_employee_id` and `maker_employee_id`, so a single-person approval is exactly
+
+```sql
+SELECT * FROM back_office_activity
+WHERE maker_employee_id IS NOT NULL AND maker_employee_id = actor_employee_id;
+```
+
+A denormalized boolean was rejected — it can disagree with the two columns that already answer the question.
+
+## Session Identity *(unchanged shape — new source)*
+
+The header contract is unchanged: `edge-gateway` still strips every inbound `X-Kita-*` and sets trusted
+`X-Kita-User` / `X-Kita-Client` / `X-Kita-Roles`. What changes is **where the roles come from**: today the
+token's always-empty `roles` claim; after 017, resolved **per request** from the personnel record
+(research Decision 7). Roles are therefore never carried as authority *in* the session — they are looked
+up beside it, so a revoked role stops working on the next request rather than at token expiry.
+
+Each service's `CallerContext` keeps reading `X-Kita-Roles`; only its **absent-header behaviour** changes,
+from "grant everything" (`stub`) to "grant nothing".
+
+The spec's "Session Identity" entity therefore needs no new artifact: the acting identity is already
 platform-asserted and unalterable by the client (FR-003). 017 changes only what the receiving side *does*
-with it: hr resolves it to an employee instead of workflow assuming it already is one.
+with it — hr resolves it to an employee instead of workflow assuming it already is one.
 
 ## Persistence changes
 
