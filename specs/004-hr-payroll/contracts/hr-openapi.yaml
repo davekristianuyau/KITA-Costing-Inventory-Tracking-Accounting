@@ -32,6 +32,28 @@ paths:
         distinctly from an employee who exists but may not act (200 with a non-ACTIVE status) and from a
         permission refusal.
       responses: { '200': { description: OK — status + roles }, '404': { description: No employee linked to that account } }
+  /employees/{id}/account:
+    put:
+      tags: [employees]
+      summary: Link a login account to this employee (017 FR-008). OWNER only.
+      description: >
+        Strictly one-to-one in both directions; a 409 names which side collided. Re-linking is an
+        explicit unlink-then-link, never a silent overwrite — overwriting would move an identity and
+        its roles with no trace of the previous holder.
+      responses: { '200': { description: Linked }, '403': { description: OWNER required }, '409': { description: Account or employee already linked } }
+    delete:
+      tags: [employees]
+      summary: Unlink the account (017 FR-008). OWNER only.
+      responses: { '200': { description: Unlinked }, '403': { description: OWNER required }, '409': { description: No linked account } }
+  /employees/{id}/roles:
+    put:
+      tags: [employees]
+      summary: Replace this employee's role tokens (017 FR-014). OWNER only.
+      description: >
+        The full desired set — an idempotent replace, so a retry cannot double-grant. Tokens are opaque
+        strings spanning every service's vocabulary; hr validates them against no enum, and an
+        unrecognized token simply grants nothing downstream.
+      responses: { '200': { description: Roles replaced }, '403': { description: OWNER required } }
   /employees/{id}/compensation:
     post: { tags: [employees], summary: Add an effective-dated compensation record, responses: { '201': { description: Created } } }
     get: { tags: [employees], summary: Compensation history (self or privileged), responses: { '200': { description: OK }, '404': { description: Not found } } }
@@ -40,6 +62,11 @@ paths:
   /employees/{id}/loans:
     post: { tags: [deductions], summary: Attach a loan/advance with an installment schedule, responses: { '201': { description: Created } } }
 
+  /account-links:
+    get:
+      tags: [employees]
+      summary: Who can act as whom — every employee that currently has a login (017 FR-008)
+      responses: { '200': { description: OK }, '403': { description: Privileged read } }
   /attendance:
     post: { tags: [attendance], summary: Ingest raw daily time records (single/batch), responses: { '202': { description: Accepted } } }
   /attendance/worked-time:

@@ -8,6 +8,7 @@ import com.kita.workflow.authorization.BackOfficeAction;
 import com.kita.workflow.common.DownstreamUnavailableException;
 import com.kita.workflow.common.ForbiddenException;
 import com.kita.workflow.common.ValidationException;
+import com.kita.workflow.common.security.Role;
 import com.kita.workflow.common.security.CallerContext;
 import java.util.function.Function;
 import org.springframework.stereotype.Component;
@@ -68,7 +69,13 @@ public class BackOfficePipeline {
       // happens to lack the checker role (FR-021, contracts/workflow-api.md).
       // NB: compared against the resolved EMPLOYEE id, because that is what a maker is recorded as.
       // Comparing the account name here would silently stop detecting self-review after 017.
-      if (makerEmployeeId != null && makerEmployeeId.equals(resolved.employeeId())) {
+      //
+      // 017 FR-020: an OWNER is exempt — a single-person business has no second employee to check.
+      // This is a deliberate, user-accepted weakening of segregation of duties on exactly the actions
+      // it protects. The mitigation is visibility, not prevention: the activity record keeps both
+      // actor_employee_id and maker_employee_id, so every single-person approval is listable (SC-010).
+      boolean owner = resolved.roles().contains(Role.OWNER);
+      if (!owner && makerEmployeeId != null && makerEmployeeId.equals(resolved.employeeId())) {
         throw new ValidationException("self-review not allowed: the maker cannot review their own work");
       }
       authorizer.authorize(resolved.roles(), action, kind);

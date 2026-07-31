@@ -81,17 +81,17 @@ permitted (403), distinctly from every resolution failure.
 distinct from a permission refusal; a non-OWNER attempting either is refused.
 
 ### Tests first
-- [ ] T021 [P] [US2] hr test in `backend/hr-service/src/test/java/com/kita/hr/api/AccountLinkApiTest.java`: link/unlink happy paths; the **one-to-one rule refused with 409 in both directions** (account already linked elsewhere; employee already has another account); an `identity_change` row per change (FR-002/FR-009).
-- [ ] T022 [P] [US2] hr test in `backend/hr-service/src/test/java/com/kita/hr/api/EmployeeRolesApiTest.java`: role grant/revoke is an **idempotent replace** (a retry cannot double-grant); an **unrecognized token is accepted and grants nothing** downstream (FR-004 scenario 3); every change audited (FR-015).
-- [ ] T023 [P] [US2] Pure unit test in `backend/workflow-service/src/test/java/com/kita/workflow/actor/BackOfficePipelineTest.java`: an actor holding `OWNER` **skips** the self-review guard; every non-OWNER maker reviewing their own work is still **422** (FR-020).
+- [X] T021 [P] [US2] hr test in `backend/hr-service/src/test/java/com/kita/hr/api/AccountLinkApiTest.java`: link/unlink happy paths; the **one-to-one rule refused with 409 in both directions** (account already linked elsewhere; employee already has another account); an `identity_change` row per change (FR-002/FR-009).
+- [X] T022 [P] [US2] hr test in `backend/hr-service/src/test/java/com/kita/hr/api/EmployeeRolesApiTest.java`: role grant/revoke is an **idempotent replace** (a retry cannot double-grant); an **unrecognized token is accepted and grants nothing** downstream (FR-004 scenario 3); every change audited (FR-015).
+- [X] T023 [P] [US2] Pure unit test in `backend/workflow-service/src/test/java/com/kita/workflow/actor/BackOfficePipelineTest.java`: an actor holding `OWNER` **skips** the self-review guard; every non-OWNER maker reviewing their own work is still **422** (FR-020).
 
 ### Implementation
-- [ ] T024 [US2] Add `PUT` + `DELETE /api/hr/employees/{id}/account` to `EmployeeController` — **`OWNER`-gated** (FR-010/FR-017), one-to-one enforced with a reason naming the conflict, writing an `identity_change` row.
-- [ ] T025 [US2] Add `PUT /api/hr/employees/{id}/roles` (**`OWNER`-gated**, idempotent full-set replace, opaque tokens) + audit rows.
-- [ ] T026 [P] [US2] Add `GET /api/hr/account-links` in a new `backend/hr-service/src/main/java/com/kita/hr/api/AccountLinkController.java` (privileged read: who can act as whom).
-- [ ] T027 [US2] In `backend/workflow-service/.../actor/BackOfficePipeline.java`, skip the self-review guard when the acting employee holds `OWNER` (FR-020); leave it enforced for everyone else.
-- [ ] T028 [US2] Make account names permanent in `backend/identity-service/src/main/java/com/kita/identity/domain/AppUser.java` + `auth/AuthService.java`: no rename path, and a deactivated account's username is never reissued (FR-016) — with a test, since this is what stops an identity transferring to a new hire.
-- [ ] T029 [P] [US2] Add the single-person-approval query to `backend/workflow-service/README.md` + a test asserting an OWNER self-approval is listable via `maker_employee_id = actor_employee_id` (SC-010) — **no schema change**.
+- [X] T024 [US2] Add `PUT` + `DELETE /api/hr/employees/{id}/account` to `EmployeeController` — **`OWNER`-gated** (FR-010/FR-017), one-to-one enforced with a reason naming the conflict, writing an `identity_change` row.
+- [X] T025 [US2] Add `PUT /api/hr/employees/{id}/roles` (**`OWNER`-gated**, idempotent full-set replace, opaque tokens) + audit rows.
+- [X] T026 [P] [US2] Add `GET /api/hr/account-links` in a new `backend/hr-service/src/main/java/com/kita/hr/api/AccountLinkController.java` (privileged read: who can act as whom).
+- [X] T027 [US2] In `backend/workflow-service/.../actor/BackOfficePipeline.java`, skip the self-review guard when the acting employee holds `OWNER` (FR-020); leave it enforced for everyone else.
+- [X] T028 [US2] Make account names permanent in `backend/identity-service/src/main/java/com/kita/identity/domain/AppUser.java` + `auth/AuthService.java`: no rename path, and a deactivated account's username is never reissued (FR-016) — with a test, since this is what stops an identity transferring to a new hire.
+- [X] T029 [P] [US2] Add the single-person-approval query to `backend/workflow-service/README.md` + a test asserting an OWNER self-approval is listable via `maker_employee_id = actor_employee_id` (SC-010) — **no schema change**.
 
 **Checkpoint**: joiners/leavers are administered without touching data by hand; privilege grants are audited.
 

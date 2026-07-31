@@ -224,4 +224,54 @@ class BackOfficePipelineTest {
             isNull(),
             eq(0));
   }
+
+  // --- 017 FR-020: an OWNER may be both maker and checker ---------------------------------------
+
+  @Test
+  void ownerMayReviewTheirOwnWork() {
+    hr.seed("boss", "OWNER");
+    when(caller.actor()).thenReturn("boss");
+
+    // Same person on both sides: normally a 422 self-review, permitted for an OWNER (accepted
+    // trade-off for single-person businesses — the mitigation is that the record shows it).
+    String result =
+        pipeline.execute(
+            BackOfficeAction.CONFIRM_SALES_PAYMENT,
+            AuthorizationKind.CHECKER,
+            "so:owner",
+            "emp-boss",
+            actor -> "PAYMENT_CONFIRMED",
+            null);
+
+    assertThat(result).isEqualTo("PAYMENT_CONFIRMED");
+  }
+
+  @Test
+  void aSinglePersonApprovalIsRecordedWithMakerEqualToActorSoItCanBeFoundLater() {
+    hr.seed("boss", "OWNER");
+    when(caller.actor()).thenReturn("boss");
+
+    pipeline.execute(
+        BackOfficeAction.CONFIRM_SALES_PAYMENT, AuthorizationKind.CHECKER, "so:owner", "emp-boss",
+        actor -> "ok", null);
+
+    // SC-010 is a query over these two columns; nothing is identifiable unless both are recorded.
+    verify(recorder)
+        .record(eq("emp-boss"), any(), eq(ActivityOutcome.SUCCESS), isNull(), eq("so:owner"),
+            eq("emp-boss"), isNull(), eq(0));
+  }
+
+  @Test
+  void everyoneElseIsStillRefusedForReviewingTheirOwnWork() {
+    hr.seed("clerk", "CASHIER");
+    when(caller.actor()).thenReturn("clerk");
+
+    assertThatThrownBy(
+            () ->
+                pipeline.execute(
+                    BackOfficeAction.CONFIRM_SALES_PAYMENT, AuthorizationKind.CHECKER, "so:1",
+                    "emp-clerk", actor -> "ok", null))
+        .isInstanceOf(ValidationException.class)
+        .hasMessageContaining("self-review");
+  }
 }
