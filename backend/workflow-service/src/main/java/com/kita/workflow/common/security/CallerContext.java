@@ -32,6 +32,19 @@ public class CallerContext {
     return header.trim();
   }
 
+  /**
+   * The trusted role header the edge set for this request, passed straight through to downstream
+   * services (017). workflow itself does not authorize on it — its roles come from HR — but the
+   * services it orchestrates DO, and a service-to-service call does not pass through the edge, so
+   * without forwarding this the downstream sees an unroled caller and refuses everything.
+   *
+   * <p>Safe to forward: the edge strips anything the browser sent and re-sets this from the personnel
+   * record, so it is a platform assertion being relayed between verified services, not a client claim.
+   */
+  public String rolesHeader() {
+    return header("X-Kita-Roles");
+  }
+
   private String header(String name) {
     var attrs = RequestContextHolder.getRequestAttributes();
     if (attrs instanceof ServletRequestAttributes sra) {

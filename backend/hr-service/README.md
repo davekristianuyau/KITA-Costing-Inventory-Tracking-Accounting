@@ -126,3 +126,41 @@ is active (`docker-compose.mtls.yml` / Floci); it is absent by default so local 
 SELECT occurred_at, peer_address, attempted_cn, reason, request_path FROM service_call_refusal
 ORDER BY occurred_at DESC;
 ```
+
+## Identity: account links and roles (017)
+
+hr-service is the **source of truth for who someone is and what they may do**. Before 017 it held neither
+the link to a login nor any back-office roles — its own `Role` enum governs *this* service's API, not what
+someone may do in the back office, and the demo only worked because login names happened to match seeded
+employee ids.
+
+| Endpoint | Purpose | Gate |
+|---|---|---|
+| `GET /employees/by-account/{username}` | resolve a login to its employee, **status + roles in one call** | service-to-service |
+| `PUT` / `DELETE /employees/{id}/account` | link / unlink | `OWNER` |
+| `PUT /employees/{id}/roles` | replace the full role set | `OWNER` |
+| `GET /account-links` | who can act as whom | `OWNER` or `HR_ADMIN` |
+
+- **404 from the by-account lookup means "no employee linked"** and must stay distinguishable from an
+  employee who exists but may not act (200 with a non-ACTIVE status) and from a permission refusal.
+- **One-to-one, both directions.** `employee.account_username` is UNIQUE, and a conflict names which side
+  collided. Re-linking is an explicit unlink-then-link — a silent overwrite would move an identity and
+  every role with it, leaving no trace of the previous holder.
+- **Role tokens are opaque strings** spanning every service's vocabulary (`SALES`, `HR_ADMIN`,
+  `PROCUREMENT_APPROVER`, … plus `OWNER`). hr validates them against no enum, so another service can add
+  a role without an hr redeploy; an unrecognized token simply grants nothing downstream.
+- **`OWNER`** implies every role in every service, and may act as both maker and checker (FR-020).
+- **Everything is audited** to `identity_change` (`LINKED | UNLINKED | ROLE_GRANTED | ROLE_REVOKED`) with
+  the acting administrator — no privilege change is ever anonymous.
+
+```sql
+-- SC-009: every privilege change, attributable
+SELECT changed_at, changed_by, action, role, employee_id
+FROM   identity_change
+WHERE  action IN ('ROLE_GRANTED','ROLE_REVOKED')
+ORDER  BY changed_at DESC;
+```
+
+⚠️ **Account names are permanent** (FR-016). hr links by name, so renaming an account — or reissuing a
+leaver's name — would transfer their identity and roles to someone else. `identity-service` has no rename
+path and deactivates rather than deletes; `AccountNamePermanenceTest` guards it.
