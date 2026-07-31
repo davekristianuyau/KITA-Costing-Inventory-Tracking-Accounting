@@ -23,6 +23,15 @@ paths:
   /employees/{id}:
     get: { tags: [employees], summary: Get an employee (self or privileged), responses: { '200': { description: OK }, '404': { description: Not found } } }
     patch: { tags: [employees], summary: Update employee / status, responses: { '200': { description: OK }, '400': { description: Validation error } } }
+  /employees/by-account/{username}:
+    get:
+      tags: [employees]
+      summary: Resolve a login account to its employee, with status and roles (017 FR-001/FR-004)
+      description: >
+        Service-to-service. 404 means the account has no employee linked, which the caller MUST report
+        distinctly from an employee who exists but may not act (200 with a non-ACTIVE status) and from a
+        permission refusal.
+      responses: { '200': { description: OK — status + roles }, '404': { description: No employee linked to that account } }
   /employees/{id}/compensation:
     post: { tags: [employees], summary: Add an effective-dated compensation record, responses: { '201': { description: Created } } }
     get: { tags: [employees], summary: Compensation history (self or privileged), responses: { '200': { description: OK }, '404': { description: Not found } } }
@@ -43,10 +52,13 @@ paths:
     post: { tags: [attendance], summary: Create an effective-dated premium multiplier (OT/holiday/night), responses: { '201': { description: Created } } }
 
   /payroll/runs:
+    get: { tags: [payroll], summary: List payroll runs, responses: { '200': { description: OK } } }
     post:
       tags: [payroll]
       summary: Create a payroll run (REGULAR or ADJUSTMENT) for a period + employee set
       responses: { '201': { description: Created (DRAFT) }, '400': { description: Validation error } }
+  /payroll/runs/{id}:
+    get: { tags: [payroll], summary: Get one payroll run, responses: { '200': { description: OK }, '404': { description: Not found } } }
   /payroll/runs/{id}/compute:
     post: { tags: [payroll], summary: Compute the run (DRAFT→COMPUTED), responses: { '200': { description: Computed; flagged employees listed } } }
   /payroll/runs/{id}/finalize:
@@ -71,7 +83,10 @@ paths:
     post: { tags: [leave], summary: Define a leave type + accrual policy, responses: { '201': { description: Created }, '409': { description: Duplicate code } } }
     get: { tags: [leave], summary: List leave types, responses: { '200': { description: OK } } }
   /leave/requests:
+    get: { tags: [leave], summary: List leave requests, responses: { '200': { description: OK } } }
     post: { tags: [leave], summary: File a leave request, responses: { '201': { description: Filed }, '409': { description: Overlapping leave } } }
+  /leave/requests/{id}:
+    get: { tags: [leave], summary: Get one leave request, responses: { '200': { description: OK }, '404': { description: Not found } } }
   /leave/requests/{id}/decision:
     post: { tags: [leave], summary: Approve/reject (MANAGER), responses: { '200': { description: Decided }, '409': { description: Insufficient balance } } }
   /leave/balances:

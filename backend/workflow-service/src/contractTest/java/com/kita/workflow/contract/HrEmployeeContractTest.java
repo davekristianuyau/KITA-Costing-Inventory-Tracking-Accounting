@@ -7,25 +7,28 @@ import com.kita.hr.employee.EmployeeStatus;
 import com.kita.hr.employee.EmploymentType;
 import com.kita.workflow.common.RetryingCaller;
 import com.kita.workflow.common.security.CallerContext;
-import com.kita.workflow.ports.HrPort.EmployeeView;
-import com.kita.workflow.ports.http.HrPositionRoles;
+import com.kita.workflow.ports.HrPort.ResolutionOutcome;
+import com.kita.workflow.ports.HrPort.Status;
 import com.kita.workflow.ports.http.HttpHrAdapter;
 import com.kita.workflow.ports.http.RemoteCall;
 import java.time.LocalDate;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
 /**
- * US2 consumer contract (FR-005), response side: the adapter is driven against the JSON hr-service's
- * <em>real</em> {@link EmployeeResponse} produces. This is the drift that hurt most — the old mapping
- * read {@code active} and {@code roles}, neither of which HR has, so every actor came back inactive
- * with no roles and every governed action failed before reaching an owning service.
+ * US2 consumer contract (018 FR-005), response side: the adapter is driven against JSON serialised from
+ * hr-service's <em>real</em> {@link EmployeeResponse}.
+ *
+ * <p>017 rewrote both sides of this call. hr now carries the account link and the role tokens, and the
+ * caller resolves by <b>account name</b> rather than by an HR UUID it never had. This test is what
+ * caught the DTO change the moment it landed — it stopped compiling — which is the guard working.
  */
 class HrEmployeeContractTest {
 
@@ -43,15 +46,15 @@ class HrEmployeeContractTest {
     server.shutdown();
   }
 
-  private HttpHrAdapter adapterWith(HrPositionRoles roles) {
+  private HttpHrAdapter adapter() {
     String base = server.url("/").toString();
     base = base.substring(0, base.length() - 1);
     RemoteCall remote = new RemoteCall(new RetryingCaller(3, 0), new CallerContext(true));
-    return new HttpHrAdapter(RestClient.builder(), base, remote, roles);
+    return new HttpHrAdapter(RestClient.builder(), base, remote);
   }
 
   /** A real hr-service response body — built from HR's own record, not a hand-written stub. */
-  private String realEmployeeJson(EmployeeStatus status, String position) {
+  private String realEmployeeJson(EmployeeStatus status, String account, List<String> roles) {
     EmployeeResponse response =
         new EmployeeResponse(
             employeeId,
@@ -62,53 +65,77 @@ class HrEmployeeContractTest {
             "juan@example.com",
             "0917",
             EmploymentType.REGULAR,
-            position,
+            "Sales Clerk",
             LocalDate.of(2020, 1, 1),
             null,
             status,
             null,
             null,
             null,
-            null);
+            null,
+            account,
+            roles);
     return ContractSupport.toJson(response);
   }
 
-  private void enqueue(String body) {
+  private void enqueue(int code, String body) {
     server.enqueue(
-        new MockResponse().setResponseCode(200).addHeader("Content-Type", "application/json").setBody(body));
+        new MockResponse().setResponseCode(code).addHeader("Content-Type", "application/json").setBody(body));
   }
 
   @Test
-  void activeIsDerivedFromTheRealStatusField() {
-    enqueue(realEmployeeJson(EmployeeStatus.ACTIVE, "SALES CLERK"));
-    HrPositionRoles roles = new HrPositionRoles();
-    roles.getPositionRoles().put("SALES CLERK", "SALES");
+  void resolvesByAccountAndReadsStatusAndRolesFromTheRealRecord() throws Exception {
+    enqueue(200, realEmployeeJson(EmployeeStatus.ACTIVE, "alice", List.of("SALES", "CASHIER")));
 
-    Optional<EmployeeView> view = adapterWith(roles).getEmployee(employeeId.toString());
+    ResolutionOutcome outcome = adapter().resolve("alice");
 
-    assertThat(view).isPresent();
-    assertThat(view.get().active()).isTrue(); // from status=ACTIVE, not a non-existent `active` field
-    assertThat(view.get().roles()).containsExactly("SALES");
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getPath()).isEqualTo("/api/hr/employees/by-account/alice");
+    assertThat(outcome.status()).isEqualTo(Status.RESOLVED);
+    assertThat(outcome.employeeId()).isEqualTo(employeeId.toString());
+    assertThat(outcome.roles()).containsExactlyInAnyOrder("SALES", "CASHIER");
   }
 
   @Test
-  void separatedEmployeeIsNotActive() {
-    enqueue(realEmployeeJson(EmployeeStatus.SEPARATED, "SALES CLERK"));
+  void a404MeansNoEmployeeLinkedNotAnError() {
+    enqueue(404, "");
 
-    Optional<EmployeeView> view = adapterWith(new HrPositionRoles()).getEmployee(employeeId.toString());
+    ResolutionOutcome outcome = adapter().resolve("orphan");
 
-    assertThat(view).isPresent();
-    assertThat(view.get().active()).isFalse();
+    assertThat(outcome.status()).isEqualTo(Status.NO_EMPLOYEE_LINKED);
+    assertThat(outcome.detail()).contains("orphan");
   }
 
   @Test
-  void unmappedPositionGrantsNoRolesFailClosed() {
-    enqueue(realEmployeeJson(EmployeeStatus.ACTIVE, "MYSTERY ROLE"));
+  void aNonActiveStatusResolvesButIsNotActiveAndNamesTheStatus() {
+    enqueue(200, realEmployeeJson(EmployeeStatus.SEPARATED, "bob", List.of("SALES")));
 
-    Optional<EmployeeView> view = adapterWith(new HrPositionRoles()).getEmployee(employeeId.toString());
+    ResolutionOutcome outcome = adapter().resolve("bob");
 
-    // HR holds no back-office roles; an unmapped position must grant nothing rather than everything.
-    assertThat(view).isPresent();
-    assertThat(view.get().roles()).isEmpty();
+    // 200 + non-ACTIVE must stay distinguishable from a 404 "no employee" (SC-004).
+    assertThat(outcome.status()).isEqualTo(Status.EMPLOYEE_NOT_ACTIVE);
+    assertThat(outcome.detail()).contains("SEPARATED");
+  }
+
+  @Test
+  void anEmployeeWithNoRolesResolvesWithAnEmptyRoleSet() {
+    enqueue(200, realEmployeeJson(EmployeeStatus.ACTIVE, "carol", List.of()));
+
+    ResolutionOutcome outcome = adapter().resolve("carol");
+
+    assertThat(outcome.status()).isEqualTo(Status.RESOLVED);
+    assertThat(outcome.roles()).isEmpty();
+  }
+
+  @Test
+  void anUnreachableHrFailsClosedAsUnavailable() {
+    enqueue(500, "");
+    enqueue(500, "");
+    enqueue(500, "");
+
+    ResolutionOutcome outcome = adapter().resolve("alice");
+
+    // Never RESOLVED, never a business rejection — the caller must report "retry", not "denied".
+    assertThat(outcome.status()).isEqualTo(Status.UNAVAILABLE);
   }
 }

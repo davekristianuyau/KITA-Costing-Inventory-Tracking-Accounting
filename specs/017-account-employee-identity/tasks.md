@@ -56,18 +56,18 @@ is attributed to that employee. An account linked to an employee **without** tha
 permitted (403), distinctly from every resolution failure.
 
 ### Tests first
-- [ ] T011 [P] [US1] hr test in `backend/hr-service/src/test/java/com/kita/hr/api/EmployeeByAccountApiTest.java`: by-account lookup returns status **and** roles for a linked employee; **404** when the account is not linked.
-- [ ] T012 [P] [US1] Pure unit test in `backend/workflow-service/src/test/java/com/kita/workflow/actor/ActorResolverTest.java`: each `ResolutionOutcome` maps to its own result — `NO_EMPLOYEE_LINKED` / `EMPLOYEE_NOT_ACTIVE` / `EMPLOYEE_MISSING` → 422 with distinct reasons, `UNAVAILABLE` → **503 fail-closed**, and **none** becomes 403 (SC-004).
+- [X] T011 [P] [US1] hr test in `backend/hr-service/src/test/java/com/kita/hr/api/EmployeeByAccountApiTest.java`: by-account lookup returns status **and** roles for a linked employee; **404** when the account is not linked.
+- [X] T012 [P] [US1] Pure unit test in `backend/workflow-service/src/test/java/com/kita/workflow/actor/ActorResolverTest.java`: each `ResolutionOutcome` maps to its own result — `NO_EMPLOYEE_LINKED` / `EMPLOYEE_NOT_ACTIVE` / `EMPLOYEE_MISSING` → 422 with distinct reasons, `UNAVAILABLE` → **503 fail-closed**, and **none** becomes 403 (SC-004).
 
 ### Implementation
-- [ ] T013 [US1] Add `GET /api/hr/employees/by-account/{username}` to `backend/hr-service/src/main/java/com/kita/hr/api/EmployeeController.java` + the service lookup (one call returns status + roles).
-- [ ] T014 [US1] Change `backend/workflow-service/src/main/java/com/kita/workflow/ports/HrPort.java` from `Optional<EmployeeView>` to a `ResolutionOutcome` (5 cases per `data-model.md`).
-- [ ] T015 [US1] Rewrite `backend/workflow-service/.../ports/http/HttpHrAdapter.java` to call **by-account** with the username, map 200/404/5xx → outcomes, and **delete `HrPositionRoles.java`** and its `workflow.hr.position-roles` config (018's stand-in, FR-012).
-- [ ] T016 [US1] Update `backend/workflow-service/.../ports/fake/InMemoryHrAdapter.java` to the new port, keyed by **account name** (test seam only — no longer a deployed path).
-- [ ] T017 [US1] Update `backend/workflow-service/.../actor/ActorResolver.java` to return the distinct outcomes and **fail closed** when HR is unreachable (FR-011); no caching anywhere on this path.
-- [ ] T018 [US1] Surface the outcomes in `backend/workflow-service/.../actor/BackOfficePipeline.java` + `api/GlobalExceptionHandler.java`: correct status per outcome, and each attempt recorded in `back_office_activity` (FR-006).
-- [ ] T019 [US1] Update `backend/workflow-service/src/contractTest/java/com/kita/workflow/contract/HrEmployeeContractTest.java` to bind hr's **new** `EmployeeResponse` (roles + accountUsername) — turns T007's red green again.
-- [ ] T020 [US1] Attribute activity to the **resolved employee id**, not the login name, in `backend/workflow-service/src/main/java/com/kita/workflow/activity/ActivityRecorder.java` + pipeline, with a test asserting two accounts are never conflated (SC-003, US1 scenario 2).
+- [X] T013 [US1] Add `GET /api/hr/employees/by-account/{username}` to `backend/hr-service/src/main/java/com/kita/hr/api/EmployeeController.java` + the service lookup (one call returns status + roles).
+- [X] T014 [US1] Change `backend/workflow-service/src/main/java/com/kita/workflow/ports/HrPort.java` from `Optional<EmployeeView>` to a `ResolutionOutcome` (5 cases per `data-model.md`).
+- [X] T015 [US1] Rewrite `backend/workflow-service/.../ports/http/HttpHrAdapter.java` to call **by-account** with the username, map 200/404/5xx → outcomes, and **delete `HrPositionRoles.java`** and its `workflow.hr.position-roles` config (018's stand-in, FR-012).
+- [X] T016 [US1] Update `backend/workflow-service/.../ports/fake/InMemoryHrAdapter.java` to the new port, keyed by **account name** (test seam only — no longer a deployed path).
+- [X] T017 [US1] Update `backend/workflow-service/.../actor/ActorResolver.java` to return the distinct outcomes and **fail closed** when HR is unreachable (FR-011); no caching anywhere on this path.
+- [X] T018 [US1] Surface the outcomes in `backend/workflow-service/.../actor/BackOfficePipeline.java` + `api/GlobalExceptionHandler.java`: correct status per outcome, and each attempt recorded in `back_office_activity` (FR-006).
+- [X] T019 [US1] Update `backend/workflow-service/src/contractTest/java/com/kita/workflow/contract/HrEmployeeContractTest.java` to bind hr's **new** `EmployeeResponse` (roles + accountUsername) — turns T007's red green again.
+- [X] T020 [US1] Attribute activity to the **resolved employee id**, not the login name, in `backend/workflow-service/src/main/java/com/kita/workflow/activity/ActivityRecorder.java` + pipeline, with a test asserting two accounts are never conflated (SC-003, US1 scenario 2).
 
 **Checkpoint**: a real login resolves to a real employee and acts with that employee's roles.
 
@@ -135,7 +135,7 @@ citing the status, and recorded.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T043 [P] Document the new hr endpoints in `specs/004-hr-payroll/contracts/hr-openapi.yaml` (the source of truth `OpenApiContractTest` reads) — this should **fix `OpenApiContractTest`**, the long-standing red on `main` (see [[kita-ci-known-red-jobs]]).
+- [X] T043 [P] *(pulled forward during US1)* Document the new hr endpoints in `specs/004-hr-payroll/contracts/hr-openapi.yaml` (the source of truth `OpenApiContractTest` reads) — this should **fix `OpenApiContractTest`**, the long-standing red on `main` (see [[kita-ci-known-red-jobs]]).
 - [ ] T044 [P] READMEs: `backend/hr-service/README.md` (link, roles, OWNER, audit), `backend/workflow-service/README.md` (resolution outcomes; delete the now-obsolete `position-roles` section), `backend/edge-gateway/README.md` (per-request role resolution).
 - [ ] T045 Run `./gradlew spotlessApply build` from `backend/` — green against the documented baseline, with T038 removing the hr red.
 - [ ] T046 Run `specs/017-account-employee-identity/quickstart.md` end to end on the composed stack (SC-001…SC-010), including the single-person-approval query and the hr-down fail-closed check.

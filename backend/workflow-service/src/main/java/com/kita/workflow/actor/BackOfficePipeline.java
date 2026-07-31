@@ -50,29 +50,47 @@ public class BackOfficePipeline {
       Function<ResolvedActor, T> work,
       Function<T, String> successTargetRef) {
 
-    String actor = caller.actor();
+    // X-Kita-User carries the signed-in ACCOUNT; the employee it belongs to is resolved from the
+    // personnel record (017). Until that succeeds the account name is all we can attribute a refusal
+    // to — which is the honest thing to record for "this account has no employee".
+    String account = caller.actor();
 
     ResolvedActor resolved;
+    String attributedTo = account;
     try {
-      resolved = actorResolver.resolve(actor);
+      resolved = actorResolver.resolve(account);
+      // 017 SC-003: once resolved, everything is attributed to the EMPLOYEE, so two accounts can never
+      // be conflated and an action always names the person who really performed it.
+      attributedTo = resolved.employeeId();
+
       // Separation of duties: a maker cannot review their own work. Checked before the role grant so
       // self-review is REJECTED_INVALID (422), not REJECTED_NOT_PERMITTED (403) — even when the maker
       // happens to lack the checker role (FR-021, contracts/workflow-api.md).
-      if (makerEmployeeId != null && makerEmployeeId.equals(actor)) {
+      // NB: compared against the resolved EMPLOYEE id, because that is what a maker is recorded as.
+      // Comparing the account name here would silently stop detecting self-review after 017.
+      if (makerEmployeeId != null && makerEmployeeId.equals(resolved.employeeId())) {
         throw new ValidationException("self-review not allowed: the maker cannot review their own work");
       }
       authorizer.authorize(resolved.roles(), action, kind);
     } catch (ForbiddenException e) {
       recorder.record(
-          actor, action, ActivityOutcome.REJECTED_NOT_PERMITTED, e.getMessage(),
+          attributedTo, action, ActivityOutcome.REJECTED_NOT_PERMITTED, e.getMessage(),
           knownTargetRef, makerEmployeeId, null, 0);
       throw e;
     } catch (ValidationException e) {
       recorder.record(
-          actor, action, ActivityOutcome.REJECTED_INVALID, e.getMessage(),
+          attributedTo, action, ActivityOutcome.REJECTED_INVALID, e.getMessage(),
+          knownTargetRef, makerEmployeeId, null, 0);
+      throw e;
+    } catch (DownstreamUnavailableException e) {
+      // The personnel system could not be reached. Fail closed AND record it (FR-006/FR-011) — without
+      // this catch the attempt would propagate unrecorded, leaving no trace of a refused action.
+      recorder.record(
+          attributedTo, action, ActivityOutcome.FAILED_UNAVAILABLE, e.getMessage(),
           knownTargetRef, makerEmployeeId, null, 0);
       throw e;
     }
+    final String actor = attributedTo;
 
     try {
       T result = work.apply(resolved);

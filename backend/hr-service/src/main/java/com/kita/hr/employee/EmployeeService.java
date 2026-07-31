@@ -14,16 +14,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmployeeService {
 
   private final EmployeeRepository employees;
+  private final EmployeeRoleRepository employeeRoles;
   private final CompensationRecordRepository compensations;
   private final EmployeeStatusHistoryRepository statusHistory;
   private final AuditWriter audit;
 
   public EmployeeService(
       EmployeeRepository employees,
+      EmployeeRoleRepository employeeRoles,
       CompensationRecordRepository compensations,
       EmployeeStatusHistoryRepository statusHistory,
       AuditWriter audit) {
     this.employees = employees;
+    this.employeeRoles = employeeRoles;
     this.compensations = compensations;
     this.statusHistory = statusHistory;
     this.audit = audit;
@@ -146,5 +149,18 @@ public class EmployeeService {
   public List<CompensationRecord> listCompensation(UUID id) {
     get(id); // 404 if missing
     return compensations.findByEmployeeIdOrderByEffectiveDateDesc(id);
+  }
+
+  /**
+   * Resolve a login account to its employee (017 FR-001). Empty means the account has no employee —
+   * which the caller must report distinctly from "the employee exists but is inactive" (FR-005).
+   */
+  public java.util.Optional<Employee> byAccount(String accountUsername) {
+    return employees.findByAccountUsername(accountUsername);
+  }
+
+  /** The back-office role tokens an employee holds (017 FR-014); opaque strings, never an hr enum. */
+  public List<String> rolesOf(UUID employeeId) {
+    return employeeRoles.findByEmployeeId(employeeId).stream().map(EmployeeRole::getRole).toList();
   }
 }

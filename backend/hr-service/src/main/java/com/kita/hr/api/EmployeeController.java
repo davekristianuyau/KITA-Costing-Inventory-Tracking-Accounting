@@ -1,11 +1,13 @@
 package com.kita.hr.api;
 
 import com.kita.hr.common.ForbiddenException;
+import com.kita.hr.common.NotFoundException;
 import com.kita.hr.common.security.CallerContext;
 import com.kita.hr.common.security.Role;
 import com.kita.hr.employee.CompensationRequest;
 import com.kita.hr.employee.CompensationResponse;
 import com.kita.hr.employee.CreateEmployeeRequest;
+import com.kita.hr.employee.Employee;
 import com.kita.hr.employee.EmployeeResponse;
 import com.kita.hr.employee.EmployeeService;
 import com.kita.hr.employee.StatusHistoryResponse;
@@ -51,7 +53,24 @@ public class EmployeeController {
   @GetMapping("/{id}")
   public EmployeeResponse get(@PathVariable UUID id) {
     authorizeRead(id);
-    return EmployeeResponse.from(service.get(id));
+    return EmployeeResponse.from(service.get(id), service.rolesOf(id));
+  }
+
+  /**
+   * Resolve a login account to its employee, with status AND roles in one round trip (017 FR-001/FR-004)
+   * — this is the call every governed action makes, so a second hop would be a per-action cost.
+   *
+   * <p>A 404 means "this account has no employee", which the caller MUST report distinctly from an
+   * employee who exists but may not act (200 with a non-ACTIVE status) and from a permission refusal
+   * (FR-005, SC-004). Service-to-service: the caller is the platform, not an end user.
+   */
+  @GetMapping("/by-account/{username}")
+  public EmployeeResponse getByAccount(@PathVariable String username) {
+    Employee employee =
+        service
+            .byAccount(username)
+            .orElseThrow(() -> new NotFoundException("no employee linked to account " + username));
+    return EmployeeResponse.from(employee, service.rolesOf(employee.getId()));
   }
 
   @PatchMapping("/{id}")
