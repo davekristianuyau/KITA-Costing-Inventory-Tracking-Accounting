@@ -1,0 +1,10 @@
+# Test-only configuration for :procurement-service:test.
+#
+# 017 retired the permissive fallback from every DEPLOYED path (FR-018/SC-008): in a real stack an
+# absent role header now grants nothing, and the roles come from the personnel record via the edge.
+# These suites run the service in isolation with no gateway in front of it, so the seam is re-enabled
+# HERE and only here — that is exactly the "build/test seam, never a deployed path" split the spec asks
+# for. Tests that assert the gate itself construct CallerContext(false) explicitly.
+procurement:
+  security:
+    stub: true

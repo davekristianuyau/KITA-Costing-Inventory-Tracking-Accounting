@@ -104,4 +104,54 @@ class ActionAuthorizerTest {
         .as("OWNER must be the only blanket grant")
         .isFalse();
   }
+
+  // --- 017 FR-013 guard: this feature changes WHOSE roles are checked, never WHAT the rules are ---
+
+  @Test
+  void ownerIsTheOnlyBlanketGrantEverIntroduced() {
+    ActionAuthorizer authorizer =
+        new ActionAuthorizer(
+            java.util.List.of(
+                new AuthorizationRule(
+                    BackOfficeAction.TAKE_SALES_ORDER, Role.SALES, AuthorizationKind.MAKER)));
+
+    // Every non-OWNER role must grant exactly what the mapping says and nothing more. If a future
+    // change adds a second implicit grant, this fails — which is the point: FR-013 says the rules
+    // themselves do not move, and FR-020's OWNER exemption is the single deliberate exception.
+    for (Role role : Role.values()) {
+      if (role == Role.OWNER) {
+        continue;
+      }
+      boolean mapped = role == Role.SALES;
+      assertThat(
+              authorizer.permits(
+                  java.util.Set.of(role),
+                  BackOfficeAction.TAKE_SALES_ORDER,
+                  AuthorizationKind.MAKER))
+          .as("%s should%s grant TAKE_SALES_ORDER (MAKER)", role, mapped ? "" : " NOT")
+          .isEqualTo(mapped);
+
+      assertThat(
+              authorizer.permits(
+                  java.util.Set.of(role),
+                  BackOfficeAction.TAKE_SALES_ORDER,
+                  AuthorizationKind.CHECKER))
+          .as("%s must not gain an unmapped (action, kind)", role)
+          .isFalse();
+    }
+  }
+
+  @Test
+  void anEmptyRoleSetGrantsNothing() {
+    ActionAuthorizer authorizer =
+        new ActionAuthorizer(
+            java.util.List.of(
+                new AuthorizationRule(
+                    BackOfficeAction.TAKE_SALES_ORDER, Role.SALES, AuthorizationKind.MAKER)));
+
+    assertThat(
+            authorizer.permits(
+                java.util.Set.of(), BackOfficeAction.TAKE_SALES_ORDER, AuthorizationKind.MAKER))
+        .isFalse();
+  }
 }

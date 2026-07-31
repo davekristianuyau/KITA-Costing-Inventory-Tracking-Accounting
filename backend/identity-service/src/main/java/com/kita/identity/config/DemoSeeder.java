@@ -17,11 +17,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * Seeds two demo clients and their users if the store is empty (idempotent). client-a prefers AWS (used by
  * the US4 LocalStack imitation); client-b prefers GCP. Demo password comes from config (never committed).
  *
- * <p>Each client also gets one login per back-office employee. The acting employee for a governed action is
- * the signed-in user (the edge sets {@code X-Kita-User} from the session and strips anything the browser
- * sends), so acting as a different role means signing in as that employee — which is also how the
- * maker-checker split is exercised. These names match the employees workflow-service resolves roles for.
- * Feature 017 replaces this name-matching convention with a real account→employee link.
+ * <p>Each client also gets one login per back-office role, plus an {@code owner}. The acting employee for
+ * a governed action is the signed-in user (the edge sets {@code X-Kita-User} from the session and strips
+ * anything the browser sends), so acting as a different role means signing in as that account — which is
+ * also how the maker-checker split is exercised.
+ *
+ * <p><b>017:</b> these are now <em>only</em> accounts. Nothing resolves an employee by matching a login
+ * name any more — hr-service holds an explicit account→employee link and the roles, seeded by its own
+ * demo seeder (FR-012). The {@code owner} account exists so a fresh deployment is administerable at all
+ * once the permissive fallback is off (FR-019); without it, nobody could grant the first role.
  */
 @Configuration
 @ConditionalOnProperty(name = "identity.seed.enabled", havingValue = "true", matchIfMissing = true)
@@ -29,8 +33,12 @@ public class DemoSeeder {
 
   private static final Logger log = LoggerFactory.getLogger(DemoSeeder.class);
 
-  /** One login per seeded back-office employee — the names workflow-service knows and holds roles for. */
-  private static final String[] BACK_OFFICE_EMPLOYEES = {
+  /**
+   * One login per back-office role, plus the OWNER. hr-service links each of these to a real employee
+   * record; the names carry no meaning on their own (017 FR-012).
+   */
+  private static final String[] BACK_OFFICE_ACCOUNTS = {
+    "owner",
     "emp-sales",
     "emp-cashier",
     "emp-sales-mgr",
@@ -61,13 +69,13 @@ public class DemoSeeder {
       users.save(new AppUser(a, "alice", hash));
       users.save(new AppUser(b, "bob", hash));
       for (Client client : new Client[] {a, b}) {
-        for (String employee : BACK_OFFICE_EMPLOYEES) {
+        for (String employee : BACK_OFFICE_ACCOUNTS) {
           users.save(new AppUser(client, employee, hash));
         }
       }
       log.info(
-          "seeded demo clients client-a/client-b with users alice/bob + {} back-office employee logins each",
-          BACK_OFFICE_EMPLOYEES.length);
+          "seeded demo clients client-a/client-b with users alice/bob + {} back-office logins each",
+          BACK_OFFICE_ACCOUNTS.length);
     };
   }
 }

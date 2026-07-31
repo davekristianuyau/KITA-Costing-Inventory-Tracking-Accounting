@@ -1,4 +1,16 @@
 # Local containerized backend stack (008-docker-cache-database).
+#
+# ⚠️ UNAUTHENTICATED DEVELOPMENT STACK (017 FR-018/FR-019). This composition fronts the services with
+# the plain `gateway`, which performs NO session verification and sets no X-Kita-* headers — so the
+# services cannot authorize anyone. To use it you must opt in EXPLICITLY:
+#
+#     KITA_DEV_NO_AUTH=true docker compose up
+#
+# which re-enables each service's permissive role fallback. That is deliberately a loud, named switch
+# rather than a silent default: shipping "identity is real" while every API quietly grants all roles to
+# an unauthenticated caller is exactly the hole 017 exists to close (SC-008). For an authenticated
+# stack, use the sim/console composition, which routes through `edge-gateway`.
+#
 # Only the gateway is host-exposed (8081); Postgres/Redis/services stay on the internal `kita` network.
 # Opt into DB/Redis host ports with docker-compose.override.yml (see .example).
 # Pinned engine versions match production for parity. Secrets come from `.env` (never committed).
@@ -46,6 +58,8 @@ services:
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       PARTY_STUB: ${PARTY_STUB:-true}
+      # explicit opt-in only — see the header note (017 SC-008)
+      OPERATIONS_SECURITY_STUB: ${KITA_DEV_NO_AUTH:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -67,6 +81,7 @@ services:
       DATABASE_URL: ${HR_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=hr,public}
       DATABASE_USER: ${DATABASE_USER:-kita}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+      HR_SECURITY_STUB: ${KITA_DEV_NO_AUTH:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +101,7 @@ services:
       DATABASE_URL: ${CRM_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=crm,public}
       DATABASE_USER: ${DATABASE_USER:-kita}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+      CRM_SECURITY_STUB: ${KITA_DEV_NO_AUTH:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,6 +121,7 @@ services:
       DATABASE_URL: ${PROCUREMENT_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=procurement,public}
       DATABASE_USER: ${DATABASE_USER:-kita}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+      PROCUREMENT_SECURITY_STUB: ${KITA_DEV_NO_AUTH:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -124,18 +141,17 @@ services:
       DATABASE_URL: ${WORKFLOW_DATABASE_URL:-jdbc:postgresql://postgres:5432/kita?currentSchema=workflow,public}
       DATABASE_USER: ${DATABASE_USER:-kita}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required (see .env.example)}
+      WORKFLOW_SECURITY_STUB: ${KITA_DEV_NO_AUTH:-false}
       # Orchestrate the REAL services, so a governed action taken in the console has real effects that
       # show up in that service's own tab (016 SC-007). The in-memory adapters are a build/test seam for
       # `:workflow-service:test` running without the rest of the stack — not a runtime mode.
       OPERATIONS_ADAPTER: ${OPERATIONS_ADAPTER:-http}
       CRM_ADAPTER: ${CRM_ADAPTER:-http}
       PROCUREMENT_ADAPTER: ${PROCUREMENT_ADAPTER:-http}
-      # HR stays on the seeded directory: nothing yet maps a login account to an employee record, so the
-      # http adapter would need the login name to BE the employee UUID. Closing that gap is spec 017.
-      # (018 wired the real HR adapter and a workflow.hr.position-roles map — see
-      # docker-compose.mtls.yml — but that path needs the ACTOR to be an employee UUID, which the
-      # console cannot supply yet. So the console keeps `fake` until 017 lands.)
-      HR_ADAPTER: ${HR_ADAPTER:-fake}
+      # 017 closed the gap: hr-service now holds the account->employee link, so the login name the
+      # console sends resolves to a real employee. The seeded directory is gone from every deployed
+      # path (FR-012).
+      HR_ADAPTER: ${HR_ADAPTER:-http}
     depends_on:
       postgres:
         condition: service_healthy

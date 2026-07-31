@@ -28,9 +28,11 @@ spring:
 
 workflow:
   security:
-    # When true, a caller with no X-Kita-User header is resolved to a stub employee holding all
-    # roles (dev/test only). Identity comes from the gateway; ROLES come from HR, never the header.
-    stub: ${WORKFLOW_SECURITY_STUB:true}
+    # 017 FR-018: this is an IDENTITY fallback, not a role one — with it on, a caller with NO
+    # X-Kita-User at all is resolved to a fabricated employee holding every role. That is a bigger
+    # hole than the role fallback in the other services (which at least required a real session), so
+    # it is retired separately and deliberately. Enable only for isolated :workflow-service:test runs.
+    stub: ${WORKFLOW_SECURITY_STUB:false}
   retry:
     # Bounded auto-retry for transient downstream failures before reporting unavailable (FR-018).
     max-attempts: ${WORKFLOW_RETRY_MAX_ATTEMPTS:3}
