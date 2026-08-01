@@ -29,6 +29,7 @@ public class RemoteCall {
 
   static final String IDEMPOTENCY_HEADER = "X-Idempotency-Key";
   static final String USER_HEADER = "X-Kita-User";
+  static final String ROLES_HEADER = "X-Kita-Roles";
 
   private final RetryingCaller retry;
   private final CallerContext caller;
@@ -126,6 +127,13 @@ public class RemoteCall {
     String actor = caller.actor();
     if (actor != null && !actor.isBlank()) {
       headers.add(USER_HEADER, actor);
+    }
+    // 017: relay the trusted roles too. The receiving service authorizes on X-Kita-Roles, and this
+    // call does not pass through the edge, so without it the downstream sees an unroled caller and
+    // refuses everything once the permissive fallback is off.
+    String roles = caller.rolesHeader();
+    if (roles != null && !roles.isBlank()) {
+      headers.add(ROLES_HEADER, roles);
     }
   }
 }

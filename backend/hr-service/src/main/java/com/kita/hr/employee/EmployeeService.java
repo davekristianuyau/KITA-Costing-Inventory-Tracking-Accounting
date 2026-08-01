@@ -4,6 +4,7 @@ import com.kita.hr.common.AuditWriter;
 import com.kita.hr.common.ConflictException;
 import com.kita.hr.common.NotFoundException;
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -14,16 +15,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmployeeService {
 
   private final EmployeeRepository employees;
+  private final EmployeeRoleRepository employeeRoles;
+  private final IdentityChangeRepository identityChanges;
   private final CompensationRecordRepository compensations;
   private final EmployeeStatusHistoryRepository statusHistory;
   private final AuditWriter audit;
 
   public EmployeeService(
       EmployeeRepository employees,
+      EmployeeRoleRepository employeeRoles,
+      IdentityChangeRepository identityChanges,
       CompensationRecordRepository compensations,
       EmployeeStatusHistoryRepository statusHistory,
       AuditWriter audit) {
     this.employees = employees;
+    this.employeeRoles = employeeRoles;
+    this.identityChanges = identityChanges;
     this.compensations = compensations;
     this.statusHistory = statusHistory;
     this.audit = audit;
@@ -146,5 +153,110 @@ public class EmployeeService {
   public List<CompensationRecord> listCompensation(UUID id) {
     get(id); // 404 if missing
     return compensations.findByEmployeeIdOrderByEffectiveDateDesc(id);
+  }
+
+  /**
+   * Resolve a login account to its employee (017 FR-001). Empty means the account has no employee —
+   * which the caller must report distinctly from "the employee exists but is inactive" (FR-005).
+   */
+  public java.util.Optional<Employee> byAccount(String accountUsername) {
+    return employees.findByAccountUsername(accountUsername);
+  }
+
+  /** The back-office role tokens an employee holds (017 FR-014); opaque strings, never an hr enum. */
+  public List<String> rolesOf(UUID employeeId) {
+    return employeeRoles.findByEmployeeId(employeeId).stream().map(EmployeeRole::getRole).toList();
+  }
+
+  // --- 017 US2: administering the account link and the roles ------------------------------------
+
+  /**
+   * Link an account to an employee (FR-002/FR-008/FR-009). Strictly one-to-one in both directions, and
+   * a conflict names which side collided so the administrator knows what to unlink. Re-linking is a
+   * deliberate unlink-then-link, never a silent overwrite — overwriting would transfer an identity
+   * (and its roles) with no trace of the previous holder.
+   */
+  @Transactional
+  public Employee linkAccount(UUID employeeId, String accountUsername, String actor) {
+    if (accountUsername == null || accountUsername.isBlank()) {
+      throw new ConflictException("an account name is required");
+    }
+    Employee employee = get(employeeId);
+    if (employee.getAccountUsername() != null
+        && !employee.getAccountUsername().equals(accountUsername)) {
+      throw new ConflictException(
+          "employee is already linked to account "
+              + employee.getAccountUsername()
+              + "; unlink first");
+    }
+    employees
+        .findByAccountUsername(accountUsername)
+        .filter(other -> !other.getId().equals(employeeId))
+        .ifPresent(
+            other -> {
+              throw new ConflictException(
+                  "account " + accountUsername + " is already linked to another employee");
+            });
+    employee.setAccountUsername(accountUsername);
+    Employee saved = employees.save(employee);
+    identityChanges.save(IdentityChange.linked(employeeId, accountUsername, actor));
+    return saved;
+  }
+
+  /** Unlink; afterwards the account can perform no governed action (FR-008). */
+  @Transactional
+  public Employee unlinkAccount(UUID employeeId, String actor) {
+    Employee employee = get(employeeId);
+    String previous = employee.getAccountUsername();
+    if (previous == null) {
+      throw new ConflictException("employee has no linked account");
+    }
+    employee.setAccountUsername(null);
+    Employee saved = employees.save(employee);
+    identityChanges.save(IdentityChange.unlinked(employeeId, previous, actor));
+    return saved;
+  }
+
+  /** Every employee that currently has a login, for audit: who can act as whom (FR-008). */
+  public List<Employee> linkedEmployees() {
+    return employees.findAll().stream().filter(e -> e.getAccountUsername() != null).toList();
+  }
+
+  /**
+   * Replace an employee's roles with exactly this set (FR-014/FR-015). An idempotent full-set replace,
+   * so a retried request cannot double-grant or half-apply; every added or removed token is audited, so
+   * no privilege change is silent (SC-009). Tokens are opaque — hr never validates them against another
+   * service's enum, and an unknown one simply grants nothing downstream.
+   */
+  @Transactional
+  public List<String> replaceRoles(UUID employeeId, List<String> desired, String actor) {
+    get(employeeId); // 404 if the employee does not exist
+    Set<String> wanted =
+        desired == null
+            ? Set.of()
+            : desired.stream()
+                .filter(r -> r != null && !r.isBlank())
+                .map(r -> r.trim().toUpperCase(java.util.Locale.ROOT))
+                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+
+    List<EmployeeRole> existing = employeeRoles.findByEmployeeId(employeeId);
+    Set<String> held =
+        existing.stream()
+            .map(EmployeeRole::getRole)
+            .collect(java.util.stream.Collectors.toSet());
+
+    for (EmployeeRole role : existing) {
+      if (!wanted.contains(role.getRole())) {
+        employeeRoles.delete(role);
+        identityChanges.save(IdentityChange.roleRevoked(employeeId, role.getRole(), actor));
+      }
+    }
+    for (String role : wanted) {
+      if (!held.contains(role)) {
+        employeeRoles.save(new EmployeeRole(employeeId, role, actor));
+        identityChanges.save(IdentityChange.roleGranted(employeeId, role, actor));
+      }
+    }
+    return rolesOf(employeeId);
   }
 }

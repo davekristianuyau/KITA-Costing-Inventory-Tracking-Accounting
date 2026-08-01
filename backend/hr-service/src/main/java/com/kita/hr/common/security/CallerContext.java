@@ -39,6 +39,11 @@ public class CallerContext {
         // unknown role token: ignore
       }
     }
+    // 017 FR-017: OWNER is the highest-position administrator — it implies every role this service
+    // knows, so a new role never has to be granted to owners separately.
+    if (roles.contains(Role.OWNER)) {
+      return EnumSet.allOf(Role.class);
+    }
     return roles;
   }
 

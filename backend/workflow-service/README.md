@@ -86,27 +86,39 @@ Drift is therefore caught three ways, all before a running environment (SC-003):
 
 Adding a port method? Write its contract test and register it in `PortCoverageGuardTest.VERIFIED_BY`.
 
-## Dependency note (hr-service roles) — ⚠️ unresolved
+## Identity and roles (017)
 
-Authorization needs the acting employee's back-office role tokens. **hr-service does not have them**:
-`Employee` stores no roles, `EmployeeResponse` returns none, and hr's own `Role` enum
-(`HR_ADMIN`/`PAYROLL_OFFICER`/`MANAGER`/`EMPLOYEE_SELF`) governs HR's own API, not workflow roles. 007
-deferred this ("a small hr-service addition") and the fake `HrPort` hid it; 018 surfaced it, because
-against real HR every actor resolved inactive + roleless and every governed action failed.
+The acting employee is resolved from the **signed-in account** (`X-Kita-User` carries a login name, not
+an employee id) via `GET /api/hr/employees/by-account/{username}`. `HrPort.resolve` returns a
+`ResolutionOutcome`, never an `Optional`, so the four ways it can fail stay distinguishable:
 
-Current behaviour: `active` is derived from HR's real `status` (`ACTIVE`), and roles come from the
-explicit `workflow.hr.position-roles` map (`HrPositionRoles`) — **fail-closed**, so an unmapped position
-grants nothing. Configure it per deployment:
+| Outcome | Surfaced as |
+|---|---|
+| `NO_EMPLOYEE_LINKED` | 422 — "no employee is linked to account X" |
+| `EMPLOYEE_NOT_ACTIVE` | 422 — reason names the status (e.g. SEPARATED) |
+| `EMPLOYEE_MISSING` | 422 — the linked employee no longer exists |
+| `UNAVAILABLE` | **503, fail closed** — never grant on a failed lookup |
+| resolved, but roles insufficient | 403 — and *only* this is 403 |
 
-```yaml
-workflow:
-  hr:
-    position-roles:
-      "SALES CLERK": SALES
-      "CASHIER": CASHIER
-      "WAREHOUSE STAFF": WAREHOUSE_STAFF
-      "PURCHASING OFFICER": PROCUREMENT_STAFF
+Resolution is deliberately **uncached**: a status or role change must bite on the very next action.
+Activity is attributed to the **resolved employee**, never the login, so re-linking an account cannot
+retroactively rewrite who did what.
+
+### `OWNER` and single-person approvals
+
+`OWNER` implies every role. In workflow that branch lives in `ActionAuthorizer.permits(...)`, **not** in
+`CallerContext` — this service resolves roles from HR and checks them against `authorization_mapping`,
+where `OWNER` never appears, so a branch in `CallerContext` would leave an owner refused everything.
+
+An `OWNER` may also act as **both maker and checker** of one action (FR-020) — an accepted trade-off for
+single-person businesses. Everyone else is still refused with a 422 self-review. The mitigation is
+visibility: both sides are recorded, so every single-person approval is listable.
+
+```sql
+-- SC-010: every action where one person was both maker and checker
+SELECT at, action, actor_employee_id, target_ref
+FROM   back_office_activity
+WHERE  maker_employee_id IS NOT NULL
+  AND  maker_employee_id = actor_employee_id
+ORDER  BY at DESC;
 ```
-
-Longer term this belongs to **spec 017** (account→employee identity) or a roles field in hr-service —
-see the "Open decision" note in `specs/018-secure-service-contracts/tasks.md`.

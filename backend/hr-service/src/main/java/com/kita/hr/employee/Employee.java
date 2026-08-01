@@ -43,6 +43,15 @@ public class Employee {
 
   @Column private String position;
 
+  /**
+   * The login account this employee signs in as (017 FR-001). Null when they have no login; unique
+   * across employees, which is FR-002's one-to-one rule in both directions. Account names are permanent
+   * and never reissued (FR-016) — without that, a rename would silently transfer this employee's
+   * identity and roles to someone else.
+   */
+  @Column(name = "account_username", unique = true)
+  private String accountUsername;
+
   @Column(name = "date_hired", nullable = false)
   private LocalDate dateHired;
 
@@ -132,6 +141,14 @@ public class Employee {
 
   public void setEmploymentType(EmploymentType employmentType) {
     this.employmentType = employmentType;
+  }
+
+  public String getAccountUsername() {
+    return accountUsername;
+  }
+
+  public void setAccountUsername(String accountUsername) {
+    this.accountUsername = accountUsername;
   }
 
   public String getPosition() {

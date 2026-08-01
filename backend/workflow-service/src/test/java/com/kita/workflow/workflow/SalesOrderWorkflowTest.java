@@ -13,6 +13,8 @@ import com.kita.workflow.workflow.SalesOrderWorkflow.DraftResult;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import com.kita.workflow.actor.ResolvedActor;
+import com.kita.workflow.common.security.Role;
 import org.junit.jupiter.api.Test;
 
 /** Pure unit tests for the sales-order lifecycle (FR-004, SC-001/005/006/009) — fakes, no DB. */
@@ -44,7 +46,7 @@ class SalesOrderWorkflowTest {
     assertThat(d.reservedAll()).isTrue();
     assertThat(ops.availableQty("item-a")).isEqualByComparingTo("90"); // 10 reserved
 
-    assertThat(workflow.confirmPayment("emp-cashier", d.salesOrderId())).isEqualTo("PAYMENT_CONFIRMED");
+    assertThat(workflow.confirmPayment(staff("emp-cashier"), d.salesOrderId())).isEqualTo("PAYMENT_CONFIRMED");
     assertThat(workflow.release("emp-whse", d.salesOrderId())).isEqualTo("RELEASED");
     assertThat(workflow.complete("emp-sales", d.salesOrderId())).isEqualTo("COMPLETED");
     assertThat(pending.get(d.salesOrderId())).isEmpty(); // transient position cleared
@@ -53,7 +55,7 @@ class SalesOrderWorkflowTest {
   @Test
   void selfReviewOfPaymentIsRefused() {
     DraftResult d = draftTen();
-    assertThatThrownBy(() -> workflow.confirmPayment("emp-sales", d.salesOrderId()))
+    assertThatThrownBy(() -> workflow.confirmPayment(staff("emp-sales"), d.salesOrderId()))
         .isInstanceOf(ValidationException.class)
         .hasMessageContaining("self-review");
   }
@@ -88,7 +90,37 @@ class SalesOrderWorkflowTest {
 
   @Test
   void confirmingAnUnknownOrderIsRejected() {
-    assertThatThrownBy(() -> workflow.confirmPayment("emp-cashier", "missing"))
+    assertThatThrownBy(() -> workflow.confirmPayment(staff("emp-cashier"), "missing"))
         .isInstanceOf(ValidationException.class);
+  }
+
+  @Test
+  void ownerMayConfirmTheirOwnDraft() {
+    // 017 FR-020. This guard is defense-in-depth behind BackOfficePipeline's — if it does NOT know
+    // about OWNER, the exemption silently does nothing and an owner is still refused. That is exactly
+    // what the end-to-end run caught, so it is pinned here.
+    DraftResult d = workflow.draft("emp-boss", new DraftRequest("cust-1", List.of(line("1", "10.00"))));
+
+    assertThat(workflow.confirmPayment(owner("emp-boss"), d.salesOrderId()))
+        .isEqualTo("PAYMENT_CONFIRMED");
+  }
+
+  @Test
+  void aNonOwnerStillCannotConfirmTheirOwnDraft() {
+    DraftResult d = workflow.draft("emp-sales", new DraftRequest("cust-1", List.of(line("1", "10.00"))));
+
+    assertThatThrownBy(() -> workflow.confirmPayment(staff("emp-sales"), d.salesOrderId()))
+        .isInstanceOf(ValidationException.class)
+        .hasMessageContaining("self-review");
+  }
+
+  /** A resolved actor with no OWNER role — the ordinary maker-checker case. */
+  private static ResolvedActor staff(String employeeId) {
+    return new ResolvedActor(employeeId, java.util.Set.of());
+  }
+
+  /** An OWNER, who may review their own work (017 FR-020). */
+  private static ResolvedActor owner(String employeeId) {
+    return new ResolvedActor(employeeId, java.util.Set.of(Role.OWNER));
   }
 }

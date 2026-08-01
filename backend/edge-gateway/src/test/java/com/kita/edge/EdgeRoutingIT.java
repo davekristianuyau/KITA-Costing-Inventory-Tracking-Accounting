@@ -45,6 +45,13 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class EdgeRoutingIT {
 
+  /**
+   * 017: the edge now resolves the acting account's roles from hr on every request, so the personnel
+   * service must be stubbed here — otherwise every routed request fails closed with 503, which is the
+   * correct behaviour but not what this test is about.
+   */
+  private static final MockWebServer hr = new MockWebServer();
+
   private static final MockWebServer backendA = new MockWebServer();
   private static final MockWebServer backendB = new MockWebServer();
   private static KeyPair identityKeys;
@@ -62,6 +69,19 @@ class EdgeRoutingIT {
     encKey = new byte[32];
     new SecureRandom().nextBytes(encKey);
 
+    // Every request that passes session verification now triggers a role lookup, so hr must answer
+    // all of them — a per-test enqueue would leave other tests hanging until the resolver timed out.
+    hr.setDispatcher(
+        new okhttp3.mockwebserver.Dispatcher() {
+          @Override
+          public MockResponse dispatch(RecordedRequest request) {
+            return new MockResponse()
+                .setResponseCode(200)
+                .addHeader("Content-Type", "application/json")
+                .setBody("{\"id\":\"emp-1\",\"status\":\"ACTIVE\",\"roles\":[\"SALES\"]}");
+          }
+        });
+    hr.start();
     backendA.start();
     backendB.start();
     // A started-then-stopped server yields a port with nothing listening → connection refused.
@@ -70,6 +90,7 @@ class EdgeRoutingIT {
     deadPort = dead.getPort();
     dead.shutdown();
 
+    registry.add("edge.hr.base-url", () -> "http://localhost:" + hr.getPort());
     registry.add("edge.backends.client-a", () -> "http://localhost:" + backendA.getPort());
     registry.add("edge.backends.client-b", () -> "http://localhost:" + backendB.getPort());
     registry.add("edge.backends.client-dead", () -> "http://localhost:" + deadPort);
@@ -81,6 +102,7 @@ class EdgeRoutingIT {
 
   @AfterAll
   static void stop() throws Exception {
+    hr.shutdown();
     backendA.shutdown();
     backendB.shutdown();
   }
@@ -113,6 +135,8 @@ class EdgeRoutingIT {
     assertThat(received.getPath()).isEqualTo("/api/operations/things");
     assertThat(received.getHeader("X-Kita-User")).isEqualTo("alice");
     assertThat(received.getHeader("X-Kita-Client")).isEqualTo("client-a"); // trusted, not the spoof
+    // 017: roles come from the personnel record, never from the token (whose claim stays empty).
+    assertThat(received.getHeader("X-Kita-Roles")).isEqualTo("SALES");
     assertThat(backendB.getRequestCount()).isZero(); // isolation: B never contacted
   }
 

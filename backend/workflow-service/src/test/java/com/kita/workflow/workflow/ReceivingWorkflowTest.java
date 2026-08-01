@@ -14,6 +14,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import com.kita.workflow.actor.ResolvedActor;
+import com.kita.workflow.common.security.Role;
 import org.junit.jupiter.api.Test;
 
 /** Pure unit tests for receiving under maker–checker (FR-010/011/016/021, SC-006/009) — no DB. */
@@ -49,13 +51,13 @@ class ReceivingWorkflowTest {
   @Test
   void distinctCheckerConfirmsPartialThenFull() {
     RecordResult first = recordForty();
-    ProcurementPort.ReceiptResult r1 = workflow.confirm("emp-whse-mgr", first.pendingReceiptId());
+    ProcurementPort.ReceiptResult r1 = workflow.confirm(staff("emp-whse-mgr"), first.pendingReceiptId());
     assertThat(r1.poStatus()).isEqualTo("PARTIALLY_RECEIVED");
     assertThat(procurement.receivedQty(poId, "item-a")).isEqualByComparingTo("40");
 
     RecordResult second =
         workflow.record("emp-whse", new RecordRequest(poId, List.of(line("60"))));
-    ProcurementPort.ReceiptResult r2 = workflow.confirm("emp-whse-mgr", second.pendingReceiptId());
+    ProcurementPort.ReceiptResult r2 = workflow.confirm(staff("emp-whse-mgr"), second.pendingReceiptId());
     assertThat(r2.poStatus()).isEqualTo("FULLY_RECEIVED");
     assertThat(procurement.receivedQty(poId, "item-a")).isEqualByComparingTo("100");
   }
@@ -63,7 +65,7 @@ class ReceivingWorkflowTest {
   @Test
   void selfReviewIsRefused() {
     RecordResult r = recordForty();
-    assertThatThrownBy(() -> workflow.confirm("emp-whse", r.pendingReceiptId()))
+    assertThatThrownBy(() -> workflow.confirm(staff("emp-whse"), r.pendingReceiptId()))
         .isInstanceOf(ValidationException.class)
         .hasMessageContaining("self-review");
     assertThat(procurement.statusOf(poId)).isEqualTo("SENT"); // no effect
@@ -72,7 +74,7 @@ class ReceivingWorkflowTest {
   @Test
   void overReceiptIsRefusedWithNoChange() {
     RecordResult r = workflow.record("emp-whse", new RecordRequest(poId, List.of(line("140"))));
-    assertThatThrownBy(() -> workflow.confirm("emp-whse-mgr", r.pendingReceiptId()))
+    assertThatThrownBy(() -> workflow.confirm(staff("emp-whse-mgr"), r.pendingReceiptId()))
         .isInstanceOf(ValidationException.class)
         .hasMessageContaining("over-receipt");
     assertThat(procurement.statusOf(poId)).isEqualTo("SENT");
@@ -83,7 +85,7 @@ class ReceivingWorkflowTest {
   void inventoryUpdateFailureRejectsWholeReceiptPoUnchanged() {
     RecordResult r = recordForty();
     procurement.failNextReceive();
-    assertThatThrownBy(() -> workflow.confirm("emp-whse-mgr", r.pendingReceiptId()))
+    assertThatThrownBy(() -> workflow.confirm(staff("emp-whse-mgr"), r.pendingReceiptId()))
         .isInstanceOf(DownstreamUnavailableException.class);
     assertThat(procurement.statusOf(poId)).isEqualTo("SENT"); // no half-applied delivery (US4 AC4)
     assertThat(procurement.receivedQty(poId, "item-a")).isEqualByComparingTo("0");
@@ -94,13 +96,23 @@ class ReceivingWorkflowTest {
     // Record against a PO the procurement service does not know (became invalid since recording).
     RecordResult r =
         workflow.record("emp-whse", new RecordRequest("ghost-po", List.of(line("10"))));
-    assertThatThrownBy(() -> workflow.confirm("emp-whse-mgr", r.pendingReceiptId()))
+    assertThatThrownBy(() -> workflow.confirm(staff("emp-whse-mgr"), r.pendingReceiptId()))
         .isInstanceOf(ValidationException.class);
   }
 
   @Test
   void confirmingUnknownPendingReceiptIsRejected() {
-    assertThatThrownBy(() -> workflow.confirm("emp-whse-mgr", "missing"))
+    assertThatThrownBy(() -> workflow.confirm(staff("emp-whse-mgr"), "missing"))
         .isInstanceOf(ValidationException.class);
+  }
+
+  /** A resolved actor with no OWNER role — the ordinary maker-checker case. */
+  private static ResolvedActor staff(String employeeId) {
+    return new ResolvedActor(employeeId, java.util.Set.of());
+  }
+
+  /** An OWNER, who may review their own work (017 FR-020). */
+  private static ResolvedActor owner(String employeeId) {
+    return new ResolvedActor(employeeId, java.util.Set.of(Role.OWNER));
   }
 }

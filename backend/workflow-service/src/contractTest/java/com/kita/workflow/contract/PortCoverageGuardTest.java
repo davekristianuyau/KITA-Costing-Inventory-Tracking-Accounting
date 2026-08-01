@@ -51,7 +51,7 @@ class PortCoverageGuardTest {
     VERIFIED_BY.put("CrmPort#createCustomer", "CrmCustomerContractTest");
     VERIFIED_BY.put("CrmPort#updateCustomer", "CrmCustomerContractTest");
     // hr-service
-    VERIFIED_BY.put("HrPort#getEmployee", "HrEmployeeContractTest");
+    VERIFIED_BY.put("HrPort#resolve", "HrEmployeeContractTest");
   }
 
   private static final List<Class<?>> PORTS =

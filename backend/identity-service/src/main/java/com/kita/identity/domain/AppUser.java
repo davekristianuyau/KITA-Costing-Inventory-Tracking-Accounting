@@ -12,7 +12,18 @@ import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 
-/** A user; belongs to exactly one client; username unique within that client (FR-019). */
+/**
+ * A user; belongs to exactly one client; username unique within that client (009 FR-019).
+ *
+ * <p><b>017 FR-016 — account names are permanent.</b> There is deliberately no setter for
+ * {@code username}, and accounts are deactivated ({@code active=false}) rather than deleted, so the
+ * unique constraint keeps a departed person's name reserved forever.
+ *
+ * <p>This is not tidiness. hr-service links an employee to an account <em>by name</em>, so renaming an
+ * account — or reissuing a leaver's name to a new hire — would silently transfer that employee's
+ * identity <em>and every role they hold</em> to a different person. Do not add a rename path, and do
+ * not hard-delete an account; {@code AccountNamePermanenceTest} guards both.
+ */
 @Entity
 @Table(
     name = "app_user",

@@ -124,23 +124,32 @@ Format for entries:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/016-workflow-ui/plan.md` (**Workflow (back-office) service full UI** — the fifth and last per-service UI).
-Fill the 011 Workflow tab with the full `workflow-service` **manifest** (~19 functions, grouped): the append-only
-activity log, authorization rules, the pending maker-checker queue, and the 12 governed actions (sales order, PO,
-receiving, build, party maintenance), reusing the 012–015 shared framework. Phase 0 (code-read) found this is
-**NOT frontend-only**: FR-004/FR-005 have **no endpoint** and FR-003's outcome filter doesn't exist → add **3
-read-only** additions to workflow-service (`GET /authorization`, `GET /pending-reviews` + `PendingReviewStore.list()`,
-`outcome` param on `/activity`) — no control/pipeline/recorder change. Two small framework extensions: optional
-`group` on `ServiceFunction` (Sidebar headings) and an **outcome-aware result view** (`result: "outcome"` +
-`callEdge` reading the `{outcome, reason}` envelope) so approved / rejected-invalid / not-permitted / unavailable
-are distinct (SC-004; self-review = 422 invalid, checked BEFORE authorization). **No actor input in the UI** — the
-edge strips inbound `X-Kita-*` and sets `X-Kita-User` from the session subject; the sim gains `emp-*` demo logins
-(switch actor = switch login) and workflow's CRM/OPERATIONS/PROCUREMENT adapters go `http` (HR stays `fake`).
-Builds on 011–015 + 007 (workflow-service). See [[frontend-and-aws-pipeline-roadmap]],
-[[workflow-service-007-progress]], [[spec-015-procurement-ui-progress]].
-**018 has since merged (PR #25)** — workflow's outbound calls are corrected and all internal traffic is
-mTLS-encrypted, so 016's SC-007 (a governed action's effect visible in the owning service's tab) is now
-achievable. HR stays on the seeded directory until **017** maps a login account to an employee record.
+`specs/017-account-employee-identity/plan.md` (**Account-to-employee identity** — a signed-in user acts as
+their own employee; the personnel record becomes the source of status AND roles).
+Java 17 / Spring Boot 3.5.0. **The gap (Phase 0, verified in code):** `edge-gateway` sets `X-Kita-User` to the
+**username**, `workflow-service` looks employees up by **HR UUID**, and `AuthService` issues tokens with
+`List.of()` roles — the demo only works because `DemoSeeder` names logins after `InMemoryHrAdapter`'s employee
+ids (`emp-sales`…). **The spec's assumption that "roles are already maintained in the personnel system" was
+FALSE** — hr-service stores none, so 017 ADDS role storage.
+**Decisions (2026-07-29, with the user):** (1) the account<->employee link lives in **hr-service**
+(`employee.account_username` + `GET /employees/by-account/{username}`), so the **session token is unchanged** —
+the edge already strips inbound `X-Kita-*`, satisfying FR-003 for free; (2) **roles are stored in hr** as ONE
+flat opaque vocabulary spanning every service, with **`OWNER`** universally meaning "all of this service's
+roles"; (3) account names are **permanent and never reissued** (a rename would transfer identity + roles);
+(4) **roles resolve PER REQUEST at the edge, never in the token** — putting them in the token would delay
+revocation until expiry and break SC-002/SC-006; the permissive `stub` fallback is retired across all four
+services; (5) an **`OWNER` may be both maker and checker** (accepted trade-off) — no schema change, since
+`back_office_activity` already stores `actor_employee_id` + `maker_employee_id`, so single-person approvals
+are a query (SC-010).
+`HrPort` returns a **ResolutionOutcome** (RESOLVED / NO_EMPLOYEE_LINKED / EMPLOYEE_NOT_ACTIVE /
+EMPLOYEE_MISSING / UNAVAILABLE→503 fail-closed), never collapsing into 403 (SC-004). Deliberately **uncached**.
+One Flyway `V11` in hr only. Retires BOTH stand-ins (018's `workflow.hr.position-roles` + the `emp-*` logins)
+and flips `HR_ADAPTER` to `http` (016's docker-compose note names 017 as the trigger).
+**⚠️ Risk (US4):** the plain `docker-compose.yml` stack routes through `gateway`, which sets NO `X-Kita-*`
+headers — turning `stub` off there refuses everything, so front it with the edge or label it unauthenticated,
+and seed+verify an `OWNER` link BEFORE the flip (FR-019). US4 is the deliberate split point if 017 must ship
+sooner. US1 resolve -> US2 admin+OWNER -> US3 leavers -> US4 retire stand-ins + stub.
+See [[spec-018-secure-contracts-progress]] + [[spec-016-workflow-ui-progress]].
 <!-- SPECKIT END -->
 [2026-07-08 16:35] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
 [2026-07-08 16:45] - Resume code: 329478f0-31c6-4c0b-8a02-071d99e1686d
@@ -296,3 +305,12 @@ achieved. To revert an artifact to its original state, run
 [2026-07-27 21:17] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-28 00:00] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 [2026-07-28 00:10] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-29 16:08] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-29 18:37] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-29 18:49] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-29 18:55] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-29 19:32] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-29 22:25] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-29 22:29] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-31 18:59] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-07-31 19:26] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1

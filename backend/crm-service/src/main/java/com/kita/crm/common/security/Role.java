@@ -8,5 +8,10 @@ package com.kita.crm.common.security;
  */
 public enum Role {
   CRM_ADMIN,
-  SALES
+  SALES,
+  /**
+   * The highest-position administrator (017 FR-017). Held in the personnel record like any other
+   * token, but read by every service as implying all of that service's roles.
+   */
+  OWNER
 }

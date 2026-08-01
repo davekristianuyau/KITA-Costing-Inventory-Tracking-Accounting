@@ -28,9 +28,10 @@ spring:
 
 hr:
   security:
-    # When true, callers are trusted as HR_ADMIN when no role headers are present (dev/test only).
-    # In production the gateway authenticates and sets X-Kita-Roles / X-Kita-Employee-Id.
-    stub: ${HR_SECURITY_STUB:true}
+    # 017 FR-018/SC-008: an absent X-Kita-Roles header now grants NOTHING. This was
+    # "grant every role", a fair convenience while there was no login and a hole once
+    # there is one. Enable it only for isolated :hr-service:test runs.
+    stub: ${HR_SECURITY_STUB:false}
 
 management:
   endpoints:

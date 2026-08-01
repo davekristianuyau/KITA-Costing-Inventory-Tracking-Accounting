@@ -28,9 +28,10 @@ spring:
 
 crm:
   security:
-    # When true, callers with no role header are trusted as CRM_ADMIN (dev/test only).
-    # In production the gateway authenticates and sets X-Kita-Roles.
-    stub: ${CRM_SECURITY_STUB:true}
+    # 017 FR-018/SC-008: an absent X-Kita-Roles header now grants NOTHING. This was
+    # "grant every role", a fair convenience while there was no login and a hole once
+    # there is one. Enable it only for isolated :crm-service:test runs.
+    stub: ${CRM_SECURITY_STUB:false}
 
 management:
   endpoints:

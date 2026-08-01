@@ -22,6 +22,8 @@ import com.kita.workflow.common.security.Role;
 import com.kita.workflow.ports.fake.InMemoryHrAdapter;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import static org.mockito.ArgumentMatchers.isNull;
+import com.kita.workflow.common.DownstreamUnavailableException;
 import org.junit.jupiter.api.Test;
 
 /** Verifies the pipeline: resolve → authorize → run → record, with no side effect on rejection. */
@@ -29,7 +31,8 @@ class BackOfficePipelineTest {
 
   private final CallerContext caller = mock(CallerContext.class);
   private final ActivityRecorder recorder = mock(ActivityRecorder.class);
-  private final ActorResolver actorResolver = new ActorResolver(new InMemoryHrAdapter(false));
+  private final InMemoryHrAdapter hr = new InMemoryHrAdapter(false);
+  private final ActorResolver actorResolver = new ActorResolver(hr);
   private final ActionAuthorizer authorizer =
       new ActionAuthorizer(
           List.of(
@@ -142,5 +145,133 @@ class BackOfficePipelineTest {
                     actor -> "x",
                     null))
         .isInstanceOf(ValidationException.class);
+  }
+
+  // --- 017 SC-003: attribution is to the resolved EMPLOYEE, never to the login -------------------
+
+  @Test
+  void activityIsAttributedToTheResolvedEmployeeNotTheAccountName() {
+    // account "alice" belongs to employee "emp-alice" — the two are deliberately different, because
+    // recording the login would make the audit trail wrong the moment an account is re-linked.
+    hr.seed("alice", "CASHIER");
+    when(caller.actor()).thenReturn("alice");
+
+    pipeline.execute(
+        BackOfficeAction.CONFIRM_SALES_PAYMENT,
+        AuthorizationKind.CHECKER,
+        "sales-order:1",
+        null,
+        actor -> "PAYMENT_CONFIRMED",
+        null);
+
+    verify(recorder)
+        .record(
+            eq("emp-alice"),
+            eq(BackOfficeAction.CONFIRM_SALES_PAYMENT),
+            eq(ActivityOutcome.SUCCESS),
+            isNull(),
+            eq("sales-order:1"),
+            isNull(),
+            isNull(),
+            eq(0));
+  }
+
+  @Test
+  void twoAccountsAreNeverConflated() {
+    hr.seed("alice", "CASHIER");
+    hr.seed("bob", "CASHIER");
+
+    when(caller.actor()).thenReturn("alice");
+    pipeline.execute(
+        BackOfficeAction.CONFIRM_SALES_PAYMENT, AuthorizationKind.CHECKER, "so:1", null,
+        actor -> "ok", null);
+
+    when(caller.actor()).thenReturn("bob");
+    pipeline.execute(
+        BackOfficeAction.CONFIRM_SALES_PAYMENT, AuthorizationKind.CHECKER, "so:2", null,
+        actor -> "ok", null);
+
+    verify(recorder)
+        .record(eq("emp-alice"), any(), eq(ActivityOutcome.SUCCESS), isNull(), eq("so:1"),
+            isNull(), isNull(), eq(0));
+    verify(recorder)
+        .record(eq("emp-bob"), any(), eq(ActivityOutcome.SUCCESS), isNull(), eq("so:2"),
+            isNull(), isNull(), eq(0));
+  }
+
+  @Test
+  void anUnreachablePersonnelSystemIsRecordedAsUnavailableNotSilentlyDropped() {
+    hr.seed("alice", "CASHIER");
+    hr.setUnavailable(true);
+    when(caller.actor()).thenReturn("alice");
+
+    assertThatThrownBy(
+            () ->
+                pipeline.execute(
+                    BackOfficeAction.CONFIRM_SALES_PAYMENT, AuthorizationKind.CHECKER, "so:9",
+                    null, actor -> "ok", null))
+        .isInstanceOf(DownstreamUnavailableException.class);
+
+    // FR-006: the attempt must leave a trace even though resolution never completed.
+    verify(recorder)
+        .record(
+            eq("alice"), // no employee resolved, so the account is the honest attribution
+            eq(BackOfficeAction.CONFIRM_SALES_PAYMENT),
+            eq(ActivityOutcome.FAILED_UNAVAILABLE),
+            any(),
+            eq("so:9"),
+            isNull(),
+            isNull(),
+            eq(0));
+  }
+
+  // --- 017 FR-020: an OWNER may be both maker and checker ---------------------------------------
+
+  @Test
+  void ownerMayReviewTheirOwnWork() {
+    hr.seed("boss", "OWNER");
+    when(caller.actor()).thenReturn("boss");
+
+    // Same person on both sides: normally a 422 self-review, permitted for an OWNER (accepted
+    // trade-off for single-person businesses — the mitigation is that the record shows it).
+    String result =
+        pipeline.execute(
+            BackOfficeAction.CONFIRM_SALES_PAYMENT,
+            AuthorizationKind.CHECKER,
+            "so:owner",
+            "emp-boss",
+            actor -> "PAYMENT_CONFIRMED",
+            null);
+
+    assertThat(result).isEqualTo("PAYMENT_CONFIRMED");
+  }
+
+  @Test
+  void aSinglePersonApprovalIsRecordedWithMakerEqualToActorSoItCanBeFoundLater() {
+    hr.seed("boss", "OWNER");
+    when(caller.actor()).thenReturn("boss");
+
+    pipeline.execute(
+        BackOfficeAction.CONFIRM_SALES_PAYMENT, AuthorizationKind.CHECKER, "so:owner", "emp-boss",
+        actor -> "ok", null);
+
+    // SC-010 is a query over these two columns; nothing is identifiable unless both are recorded.
+    verify(recorder)
+        .record(eq("emp-boss"), any(), eq(ActivityOutcome.SUCCESS), isNull(), eq("so:owner"),
+            eq("emp-boss"), isNull(), eq(0));
+  }
+
+  @Test
+  void everyoneElseIsStillRefusedForReviewingTheirOwnWork() {
+    hr.seed("clerk", "CASHIER");
+    when(caller.actor()).thenReturn("clerk");
+
+    assertThatThrownBy(
+            () ->
+                pipeline.execute(
+                    BackOfficeAction.CONFIRM_SALES_PAYMENT, AuthorizationKind.CHECKER, "so:1",
+                    "emp-clerk", actor -> "ok", null))
+        .isInstanceOf(ValidationException.class)
+        .hasMessageContaining("self-review");
   }
 }

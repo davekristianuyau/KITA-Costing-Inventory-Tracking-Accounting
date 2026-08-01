@@ -42,10 +42,13 @@ public class SessionAuthFilter implements GlobalFilter, Ordered {
 
   private final SessionVerifier verifier;
   private final EdgeProperties props;
+  private final RoleResolver roleResolver;
 
-  public SessionAuthFilter(SessionVerifier verifier, EdgeProperties props) {
+  public SessionAuthFilter(
+      SessionVerifier verifier, EdgeProperties props, RoleResolver roleResolver) {
     this.verifier = verifier;
     this.props = props;
+    this.roleResolver = roleResolver;
   }
 
   @Override
@@ -88,24 +91,43 @@ public class SessionAuthFilter implements GlobalFilter, Ordered {
         session.subject(),
         request.getURI().getPath());
 
-    ServerHttpRequest mutated =
-        request
-            .mutate()
-            .headers(
-                headers -> {
-                  List<String> spoofed =
-                      headers.keySet().stream()
-                          .filter(n -> n.regionMatches(true, 0, KITA_PREFIX, 0, KITA_PREFIX.length()))
-                          .toList();
-                  spoofed.forEach(headers::remove);
-                  headers.set("X-Kita-User", session.subject());
-                  headers.set("X-Kita-Client", session.client());
-                  headers.set("X-Kita-Roles", String.join(",", session.roles()));
-                })
-            .build();
-
-    return chain
-        .filter(exchange.mutate().request(mutated).build())
+    // 017 FR-018: roles come from the PERSONNEL RECORD, resolved per request — never from the token.
+    // The token's roles claim is deliberately left unused: roles carried in a session would survive a
+    // revocation until expiry, which is exactly what SC-002/SC-006 forbid.
+    return roleResolver
+        .rolesFor(session.subject())
+        .flatMap(
+            roles -> {
+              ServerHttpRequest mutated =
+                  request
+                      .mutate()
+                      .headers(
+                          headers -> {
+                            List<String> spoofed =
+                                headers.keySet().stream()
+                                    .filter(
+                                        n ->
+                                            n.regionMatches(
+                                                true, 0, KITA_PREFIX, 0, KITA_PREFIX.length()))
+                                    .toList();
+                            spoofed.forEach(headers::remove);
+                            headers.set("X-Kita-User", session.subject());
+                            headers.set("X-Kita-Client", session.client());
+                            headers.set("X-Kita-Roles", String.join(",", roles));
+                          })
+                      .build();
+              return chain.filter(exchange.mutate().request(mutated).build());
+            })
+        .onErrorResume(
+            RoleResolver.Unavailable.class,
+            ex -> {
+              // Fail CLOSED: the personnel record could not be consulted, so nothing is forwarded and
+              // no privilege is assumed (FR-011). Distinct from an unreachable backend below only in
+              // its log line; both are 503 "try again", never a silent grant.
+              log.info("edge cannot resolve roles client={} user={}", session.client(), session.subject());
+              exchange.getResponse().setStatusCode(HttpStatus.SERVICE_UNAVAILABLE);
+              return exchange.getResponse().setComplete();
+            })
         .onErrorResume(
             ex -> isConnectFailure(ex) && !exchange.getResponse().isCommitted(),
             ex -> {

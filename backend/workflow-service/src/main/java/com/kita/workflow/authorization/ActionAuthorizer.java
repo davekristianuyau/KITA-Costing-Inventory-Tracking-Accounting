@@ -29,6 +29,17 @@ public class ActionAuthorizer {
 
   /** True if any held role grants the (action, kind). */
   public boolean permits(Set<Role> heldRoles, BackOfficeAction action, AuthorizationKind kind) {
+    // 017 FR-017: OWNER is the highest-position administrator and permits everything.
+    //
+    // The branch belongs HERE, not in CallerContext: unlike hr/crm/procurement, workflow's
+    // CallerContext does not read roles at all — they are resolved from the HR record and checked
+    // against authorization_mapping, where OWNER is never seeded. An OWNER would otherwise be refused
+    // every governed action (research Decision 9). Seeding OWNER into the mapping table for every
+    // action/kind was rejected: it would need re-seeding whenever an action is added, and buries a
+    // security-critical rule in data instead of stating it once here.
+    if (heldRoles.contains(Role.OWNER)) {
+      return true;
+    }
     Set<Role> granted =
         grants.getOrDefault(action, Map.of()).getOrDefault(kind, Set.of());
     return heldRoles.stream().anyMatch(granted::contains);
