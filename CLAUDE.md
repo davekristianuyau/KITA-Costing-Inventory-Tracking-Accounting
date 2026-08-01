@@ -202,14 +202,40 @@ Entries before 2026-08-01 were collapsed to one line per distinct code (165 near
 [2026-08-01 12:16] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
 
 <!-- SPECKIT START -->
-**No spec is currently being implemented.** 002–018 are merged to `main`; 001-multi-cloud-cicd is the
-only one with open tasks (see *Current State* above).
+**Active feature: `019-local-production-deploy`** — read `specs/019-local-production-deploy/plan.md`.
 
-When starting the next feature, this block should point at its `plan.md`. The most recent plan,
-`specs/017-account-employee-identity/plan.md`, is complete — its durable decisions now live in
-`backend/edge-gateway/README.md` (why roles resolve per request and are never carried in the token) and
-in `specs/017-account-employee-identity/quickstart.md` (the verified-run table + the two bugs only the
-end-to-end run caught).
+One command (`/deploy-local`) deploys the whole system to the local **Floci** AWS emulator using the
+**real** `infra/terraform/modules/aws`, leaves it running, and proves it works with real traffic — browsable
+through the ALB exactly as production will be. Bash + Terraform ≥1.9 over the existing services.
+
+**Floci capabilities, established empirically 2026-08-01 — do not re-derive** (`research.md` has the
+evidence; `[[floci-emulators-reference]]` mirrors it):
+- **Floci runs a DNS server on UDP 53, documented nowhere.** Containers on Docker's default resolver
+  (127.0.0.11) get NXDOMAIN for every Floci name. This one fact inverted a conclusion mid-session: the ALB
+  was declared "API-only" by a test that never asked Floci's resolver.
+- **ALB fully works** — resolves and proxies real HTTP; creating a listener binds that port *inside* the
+  Floci container, so publishing it lets the host browser reach the app **through the load balancer**.
+- **ECS runs EC2-launch-type services** as real containers. Floci needs no ASG/capacity provider; **real AWS
+  does** — so an EC2 switch that passes locally can still leave production tasks `PENDING`. Highest-risk gap.
+- **ECR** works with no `docker login`; Floci spawns its own `registry:2` sibling that binds 5100 (never
+  publish 5100 from Floci), and a Floci restart **wipes ECR API state** while blobs survive → create repos
+  idempotently.
+- **RDS spawns a real PostgreSQL 16.3 immediately** (the old "~15 min" note is wrong) → deploy with
+  `emulated=false`. Exposed a latent prod bug: `database.tf` hardcodes `:5432` but the endpoint is Floci
+  proxying a nonstandard port → must use the instance's `port`.
+- **Cloud Map is the ONE gap** (management API only; Route 53 likewise — records return `INSYNC` and still
+  NXDOMAIN). Covered by a Docker network alias after placement, leaving deployed config byte-identical.
+  `nginx.conf` proxies to the **bare** host `edge`, so alias short names too, not just the FQDN.
+
+**Clarified (2026-08-01):** capacity provisioning is **in scope**, recorded as not verifiable locally;
+authorization is **fully enforced** (no permissive fallback) and verification must prove an unpermitted
+action is *refused*; all four local stacks **coexist** (each existing one backs a CI gate); on failure the
+command resolves generated container names and prints a runnable log command.
+
+**The thesis:** verification must exercise **real traffic**, never resource existence — `terraform state
+list` would have passed both silent failures found while researching this. US1 deploy+browse → US2 honest
+verification → US3 ECS-on-EC2 + capacity → US4 teardown/repeat.
+See [[spec-017-account-employee-identity-progress]] + [[spec-010-floci-multicloud-ci]].
 <!-- SPECKIT END -->
 
 ## Active Technologies
@@ -231,3 +257,21 @@ achieved. To revert an artifact to its original state, run
 `/speckit.token-budget.restore` instead.
 
 <!-- END token-budget compact-backups -->
+[2026-08-01 13:09] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 13:33] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 14:50] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 14:57] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 15:08] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 15:11] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 15:20] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 15:29] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 15:40] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 15:55] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 16:04] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 16:06] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 16:39] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 16:41] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 16:46] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 16:47] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 16:56] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
+[2026-08-01 17:30] - Resume code: f390186a-3d0c-4e43-a41f-ce1e359363e1
