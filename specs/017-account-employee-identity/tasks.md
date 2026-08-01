@@ -136,10 +136,10 @@ citing the status, and recorded.
 ## Phase 7: Polish & Cross-Cutting Concerns
 
 - [X] T043 [P] *(pulled forward during US1)* Document the new hr endpoints in `specs/004-hr-payroll/contracts/hr-openapi.yaml` (the source of truth `OpenApiContractTest` reads) — this should **fix `OpenApiContractTest`**, the long-standing red on `main` (see [[kita-ci-known-red-jobs]]).
-- [ ] T044 [P] READMEs: `backend/hr-service/README.md` (link, roles, OWNER, audit), `backend/workflow-service/README.md` (resolution outcomes; delete the now-obsolete `position-roles` section), `backend/edge-gateway/README.md` (per-request role resolution).
-- [ ] T045 Run `./gradlew spotlessApply build` from `backend/` — green against the documented baseline, with T038 removing the hr red.
-- [ ] T046 Run `specs/017-account-employee-identity/quickstart.md` end to end on the composed stack (SC-001…SC-010), including the single-person-approval query and the hr-down fail-closed check.
-- [ ] T047 [P] Capture context to the project memory directory via the `kita-context-capture` skill (the false-assumption lesson, the "roles never in the token" rationale, the OWNER trade-off, the base-stack risk).
+- [X] T044 [P] READMEs: `backend/hr-service/README.md` (link, roles, OWNER, audit), `backend/workflow-service/README.md` (resolution outcomes; delete the now-obsolete `position-roles` section), `backend/edge-gateway/README.md` (per-request role resolution).
+- [X] T045 Run `./gradlew spotlessApply build` from `backend/` — green against the documented baseline, with T038 removing the hr red.
+- [X] T046 Run `specs/017-account-employee-identity/quickstart.md` end to end on the composed stack (SC-001…SC-010), including the single-person-approval query and the hr-down fail-closed check.
+- [X] T047 [P] Capture context to the project memory directory via the `kita-context-capture` skill (the false-assumption lesson, the "roles never in the token" rationale, the OWNER trade-off, the base-stack risk).
 
 ---
 

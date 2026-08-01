@@ -2,6 +2,8 @@ package com.kita.workflow.workflow;
 
 import com.kita.workflow.authorization.BackOfficeAction;
 import com.kita.workflow.common.ValidationException;
+import com.kita.workflow.common.security.Role;
+import com.kita.workflow.actor.ResolvedActor;
 import com.kita.workflow.pending.PendingReview;
 import com.kita.workflow.pending.PendingReviewStore;
 import com.kita.workflow.ports.ProcurementPort;
@@ -52,14 +54,21 @@ public class ReceivingWorkflow {
     return new RecordResult(pendingReceiptId, PENDING_REVIEW);
   }
 
-  /** Confirm by a distinct checker; commits the receipt atomically via procurement. */
-  public ProcurementPort.ReceiptResult confirm(String actorEmployeeId, String pendingReceiptId) {
+  /**
+   * Confirm by a distinct checker; commits the receipt atomically via procurement.
+   *
+   * <p>Takes the resolved actor so it can honour the 017 FR-020 exemption (an OWNER may confirm their
+   * own recording) without re-deriving roles. Defense-in-depth alongside the pipeline's guard, which it
+   * must agree with or the exemption silently does nothing.
+   */
+  public ProcurementPort.ReceiptResult confirm(ResolvedActor actor, String pendingReceiptId) {
+    String actorEmployeeId = actor.employeeId();
     PendingReview review =
         pending
             .get(pendingReceiptId)
             .orElseThrow(
                 () -> new ValidationException("no pending receipt " + pendingReceiptId));
-    if (review.makerEmployeeId().equals(actorEmployeeId)) {
+    if (!actor.roles().contains(Role.OWNER) && review.makerEmployeeId().equals(actorEmployeeId)) {
       throw new ValidationException("self-review not allowed: the recorder cannot confirm");
     }
     RecordRequest request = (RecordRequest) review.payload();

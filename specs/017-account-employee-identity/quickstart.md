@@ -101,3 +101,30 @@ since the new endpoints must be documented.
 SC-001 new hire works via administration alone · SC-002 separation bites on the next attempt ·
 SC-003 100% attributed to the real employee · SC-004 four failures distinguishable · SC-005 zero seeded
 directories in deployed paths · SC-006 role change applies next action · SC-007 existing checks unchanged.
+
+---
+
+## Verified run — 2026-08-01 (composed stack, `stub` OFF, `HR_ADAPTER=http`)
+
+Everything below was executed against the running stack, not inferred.
+
+| Criterion | Evidence |
+|---|---|
+| **SC-001** | `POST /api/workflow/customers` as `emp-crm` → **201**, and the customer is readable from crm-service with the derived `customerCode` |
+| **SC-002** | Employee set `SEPARATED` in hr → the **very next action** with the same session → `422 "employee is SEPARATED"`. No re-login, no redeploy |
+| **SC-003** | The activity row is attributed to `4bde73d5…` — the **employee id** behind account `emp-crm`, not the login. An unresolvable account is honestly recorded as the account name |
+| **SC-004** | Four distinct outcomes proven live: no employee → `422 "no employee is linked to account X"`; separated → `422 "employee is SEPARATED"`; linked+active but wrong role → `403 role not permitted`; hr down → `503` |
+| **SC-008** | With `stub` off, a caller whose roles do not grant the action is refused — the permissive default is gone |
+| **SC-009** | `SELECT … FROM hr.identity_change WHERE action LIKE 'ROLE_%'` lists every grant with its administrator |
+| **SC-010** | `WHERE maker_employee_id = actor_employee_id` lists the owner's self-approved `CONFIRM_SALES_PAYMENT` |
+| **FR-011** | hr stopped → `503 FAILED_UNAVAILABLE`, never granted — **and the refusal is recorded** (FR-006) |
+| **FR-017** | The `owner` account performed operations-service actions (uom/item/location/adjustment), proving `OWNER` implies every service's own roles |
+| **FR-019** | hr seeds 10 employees with real links; exactly one holds `OWNER`, so the deployment is administerable |
+| **FR-020** | The owner drafted **and** confirmed the same sales order → `200 PAYMENT_CONFIRMED`; a non-owner doing the same is still `422 self-review` |
+
+⚠️ **Two real bugs this run caught** that no unit test had:
+1. workflow forwarded `X-Kita-User` but **not** `X-Kita-Roles` on service-to-service calls, so every
+   orchestrated write was refused once `stub` was off (`stub=true` had masked it).
+2. `SalesOrderWorkflow`/`ReceivingWorkflow` each hold a **second** self-review guard behind the
+   pipeline's. They did not know about `OWNER`, so FR-020 silently did nothing end to end even though
+   the pipeline exempted correctly.

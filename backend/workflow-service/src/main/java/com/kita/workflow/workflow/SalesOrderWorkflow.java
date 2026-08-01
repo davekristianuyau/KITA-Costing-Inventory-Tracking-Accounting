@@ -1,7 +1,9 @@
 package com.kita.workflow.workflow;
 
+import com.kita.workflow.actor.ResolvedActor;
 import com.kita.workflow.authorization.BackOfficeAction;
 import com.kita.workflow.common.ValidationException;
+import com.kita.workflow.common.security.Role;
 import com.kita.workflow.pending.PendingReview;
 import com.kita.workflow.pending.PendingReviewStore;
 import com.kita.workflow.ports.CrmPort;
@@ -67,10 +69,17 @@ public class SalesOrderWorkflow {
     return new DraftResult(salesOrderId, DRAFT, true);
   }
 
-  /** Manager/cashier confirms payment; must differ from the drafter (maker≠checker). */
-  public String confirmPayment(String actorEmployeeId, String salesOrderId) {
+  /**
+   * Manager/cashier confirms payment; must differ from the drafter (maker≠checker).
+   *
+   * <p>Takes the resolved actor rather than a bare id so it can honour the 017 FR-020 exemption without
+   * re-deriving roles: an OWNER may confirm their own draft. Kept here as defense-in-depth alongside the
+   * pipeline's guard — but it must agree with it, or the exemption silently does nothing.
+   */
+  public String confirmPayment(ResolvedActor actor, String salesOrderId) {
+    String actorEmployeeId = actor.employeeId();
     PendingReview position = require(salesOrderId, DRAFT, "confirm payment");
-    if (position.makerEmployeeId().equals(actorEmployeeId)) {
+    if (!actor.roles().contains(Role.OWNER) && position.makerEmployeeId().equals(actorEmployeeId)) {
       throw new ValidationException("self-review not allowed: the drafter cannot confirm payment");
     }
     pending.put(position.withStage(PAYMENT_CONFIRMED));

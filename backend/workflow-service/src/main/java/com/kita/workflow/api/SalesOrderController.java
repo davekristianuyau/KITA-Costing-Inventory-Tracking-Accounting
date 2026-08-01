@@ -56,7 +56,7 @@ public class SalesOrderController {
         AuthorizationKind.CHECKER,
         "sales-order:" + id,
         maker,
-        actor -> new StateResponse(workflow.confirmPayment(actor.employeeId(), id)),
+        actor -> new StateResponse(workflow.confirmPayment(actor, id)),
         null);
   }
 

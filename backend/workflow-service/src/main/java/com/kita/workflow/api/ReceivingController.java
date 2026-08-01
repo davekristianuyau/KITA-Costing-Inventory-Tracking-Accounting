@@ -56,7 +56,7 @@ public class ReceivingController {
         "receipt:" + pendingReceiptId,
         maker,
         actor -> {
-          var result = workflow.confirm(actor.employeeId(), pendingReceiptId);
+          var result = workflow.confirm(actor, pendingReceiptId);
           return new ConfirmResponse(result.receiptId(), result.poStatus());
         },
         null);
