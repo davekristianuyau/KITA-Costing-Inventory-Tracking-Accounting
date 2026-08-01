@@ -23,6 +23,15 @@ onto the local cloud emulator, and leaves it running and browsable.
 The value is confidence. A deployment defect found here costs minutes; the same defect found during a real
 cloud rollout costs an incident, and this project has no second reviewer to catch it.
 
+## Clarifications
+
+### Session 2026-08-01
+
+- Q: Does capacity provisioning for the intended compute model belong in this feature, or defer to the future real-cloud rollout? → A: Include it now, explicitly recorded as not verifiable locally, so the module stays genuinely deployable to a real cloud.
+- Q: Does the locally deployed system enforce authorization for real, or use the permissive dev fallback? → A: Fully enforced, same as production — no permissive fallback in this deployment.
+- Q: Does this command coexist with the three existing local stacks, or replace one? → A: All four coexist with documented distinct purposes; no CI gate is migrated, since each existing stack currently backs one.
+- Q: How does a developer read logs for a failing unit, given workloads are placed under generated names? → A: On failure the command resolves the generated names and prints an exact copy-pasteable log command per failing unit; it does not depend on the emulator serving a log service.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Bring the whole system up and use it (Priority: P1)
@@ -185,8 +194,10 @@ intervention and no leftovers from the first.
 - **FR-012**: Verification MUST confirm the printed entry URL is reachable from the developer's own machine.
 - **FR-013**: The command MUST report success only when every verification step passes; any failure MUST
   produce a non-success result naming the failing component.
-- **FR-014**: On failure the command MUST leave the environment running for diagnosis and MUST tell the
-  developer where to read the failing component's logs.
+- **FR-014**: On failure the command MUST leave the environment running for diagnosis and MUST print, for
+  each failing unit, an exact copy-pasteable command that reads that unit's logs. Because workloads are
+  placed under generated names the developer cannot guess, the command MUST resolve those names on their
+  behalf. This MUST NOT depend on the emulator providing a log-retrieval service.
 - **FR-015**: The command MUST bound how long it waits for health and fail with a clear timeout rather than
   hanging indefinitely.
 
@@ -206,11 +217,24 @@ intervention and no leftovers from the first.
 - **FR-020**: Deployed workloads MUST use the cost-appropriate compute model intended for production, not
   the premium serverless option.
 - **FR-021**: Where the intended compute model requires capacity provisioning that a real cloud needs and
-  the emulator does not, the infrastructure code MUST still define it.
+  the emulator does not, the infrastructure code MUST still define it, in this feature. The emulator places
+  workloads without it, so this definition MUST be treated as unverified-by-local-success and listed under
+  FR-022's enumerated gaps. Shipping the compute-model change without the capacity it depends on is
+  explicitly rejected: it would deploy cleanly locally and be incapable of running in a real cloud, with
+  nothing surfacing the defect until rollout.
 - **FR-022**: Every production behaviour that cannot be validated locally MUST be recorded as an explicit,
   enumerated gap, so local success is never mistaken for production readiness.
 - **FR-023**: Secrets and credentials used by the local deployment MUST NOT be committed to the repository
   and MUST NOT appear in command output or logs.
+- **FR-024**: The deployed system MUST enforce authorization exactly as production does. No permissive
+  fallback that grants access to unidentified callers may be enabled in this deployment. The deployment
+  MUST therefore establish at least one fully privileged account before verification, since a system that
+  refuses everyone is indistinguishable from a broken one.
+- **FR-025**: Verification MUST include an action that is refused when the caller lacks permission, so that
+  a deployment which silently grants everything cannot pass as healthy.
+- **FR-026**: This command MUST coexist with the existing local stacks without altering them, and
+  documentation MUST state in one place what each is for and which to reach for. Each existing stack
+  currently backs a continuous-integration gate, so none may be retired by this feature.
 
 ### Key Entities
 
@@ -246,6 +270,11 @@ intervention and no leftovers from the first.
 - **SC-008**: A warm re-run (images already built, no application changes) completes in under 5 minutes, so
   the command is practical to use repeatedly within a working session.
 - **SC-009**: The deployment creates nothing in any real cloud account and requires no real credentials.
+- **SC-010**: The deployed system both permits a privileged action and refuses an unpermitted one, proving
+  access control is genuinely enforced rather than absent — a system that grants everything cannot pass
+  verification.
+- **SC-011**: When a unit fails, the developer reaches its logs using only what the command printed, with
+  no manual lookup of generated names.
 
 ## Assumptions
 

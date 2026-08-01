@@ -53,17 +53,24 @@ Three decisions had reasonable defaults and were resolved in Assumptions rather 
    so reusing the existing seeders is the only sensible reading of "test it in my browser".
 3. **Cold-run duration left unbounded** — dominated by image builds.
 
-### Two scope questions worth raising in `/speckit-clarify`
+### Scope questions — RESOLVED in `/speckit-clarify` (session 2026-08-01)
 
-Neither blocks planning; both change effort materially and are better decided explicitly:
+1. **Capacity provisioning scope (FR-021)** → **in scope now**, recorded as not verifiable locally.
+   Shipping the compute-model change without it was explicitly rejected: it would deploy cleanly locally
+   and be incapable of running in a real cloud.
+2. **Relationship to the existing local stacks (FR-026)** → **all four coexist**, documented. Decisive
+   fact: each of the three existing stacks currently backs a CI gate, so retiring any would turn this
+   into a CI-migration project.
 
-1. **Capacity provisioning scope (FR-021).** The intended compute model needs capacity infrastructure that
-   a real cloud requires and the emulator does not. It is currently *in* scope so the module stays
-   deployable, but it is the one part this feature **cannot validate** — it could reasonably defer to the
-   future real-cloud rollout instead. Leaving it out means local passes while production would not.
-2. **Relationship to the existing local stacks.** This becomes the fourth way to run KITA locally. Whether
-   it supersedes any of the existing three, or all four coexist with distinct purposes, is unresolved and
-   affects both documentation and maintenance burden.
+Two further ambiguities were found and closed in the same session:
+
+3. **Authorization posture (FR-024/FR-025)** → **fully enforced, no permissive fallback**. The fallback
+   would conceal exactly the class of defect this feature exists to catch — 017 established that "passes
+   with the fallback on" proves nothing. Verification must now also confirm an unpermitted action is
+   *refused*, so a deployment that grants everything cannot pass.
+4. **Failure diagnosis (FR-014)** → the command **resolves generated workload names and prints a
+   copy-pasteable log command** per failing unit, deliberately not depending on the emulator serving a log
+   service — an unverified capability, and this feature has already been bitten twice by assuming those.
 
 ### Risk this spec is deliberately designed against
 
